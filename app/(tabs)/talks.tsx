@@ -1,9 +1,10 @@
 import { Text, View } from "react-native";
 
-export default function Index() {
+// Placeholder — implemented in TASK_001 step F.
+export default function Screen() {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Ministry</Text>
+      <Text>talks</Text>
     </View>
   );
 }
