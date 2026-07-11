@@ -6,10 +6,14 @@
     "orientation": "portrait",
     "scheme": "ministry",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.alext.ministry"
     },
-    "android": {},
+    "android": {
+      "package": "com.alext.ministry"
+    },
     "web": {
       "output": "static"
     },
