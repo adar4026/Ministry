@@ -1,0 +1,3 @@
+# Ministry
+
+Project scaffold.
