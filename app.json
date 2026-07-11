@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "ministry",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.alext.ministry"
@@ -14,15 +14,8 @@
     "android": {
       "package": "com.alext.ministry"
     },
-    "web": {
-      "output": "static"
-    },
     "plugins": [
-      "expo-router",
-      "expo-asset"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+      "expo-router"
+    ]
   }
 }
