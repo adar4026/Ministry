@@ -14,7 +14,7 @@ export function Header() {
   return (
     <View style={styles.wrap}>
       <Text style={styles.kicker}>ЖУРНАЛ СЛУЖЕНИЯ</Text>
-      <Text style={styles.name}>Ткач Алексей Викторович</Text>
+      <Text style={styles.name}>Алексей Ткач</Text>
       <View style={styles.facts}>
         {FACTS.map(([label, value]) => (
           <View key={label}>
