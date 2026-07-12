@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "@/components/Header";
+import { TabBar } from "@/components/TabBar";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -13,12 +14,10 @@ export default function TabsLayout() {
       <Header />
       {loaded ? (
         <Tabs
+          tabBar={(props) => <TabBar {...props} />}
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: COLORS.blue,
-            tabBarInactiveTintColor: COLORS.muted,
-            tabBarLabelStyle: { fontSize: 11 },
-            sceneStyle: { backgroundColor: COLORS.bg },
+            sceneStyle: { backgroundColor: COLORS.bg, paddingBottom: 90 },
           }}
         >
           <Tabs.Screen name="index" options={{ title: "Главная" }} />
