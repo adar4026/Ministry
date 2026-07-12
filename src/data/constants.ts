@@ -89,3 +89,9 @@ export function timeElapsed(isoDate: string, now: Date = new Date()): string {
   const remMonths = months % 12;
   return `${years} лет ${remMonths} мес.`;
 }
+
+// Display-only: "YYYY-MM-DD" -> "DD/MM/YYYY". Stored dates stay ISO.
+export function formatDateDMY(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+}

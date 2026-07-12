@@ -4,7 +4,7 @@ import { Badge } from "@/components/Badge";
 import { ChipSelector, TextField } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { EventForm } from "@/components/forms/EventForm";
-import { CAT, CATEGORY_KEYS, COLORS, timeElapsed } from "@/data/constants";
+import { CAT, CATEGORY_KEYS, COLORS, formatDateDMY, timeElapsed } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent } from "@/types";
 
@@ -67,7 +67,7 @@ export default function TimelineScreen() {
                     </Pressable>
                   </View>
                 </View>
-                <Text style={styles.date}>{ev.date}</Text>
+                <Text style={styles.date}>{formatDateDMY(ev.date)}</Text>
                 <Text style={styles.elapsed}>{timeElapsed(ev.date)}</Text>
               </View>
             </View>
