@@ -5,12 +5,11 @@ import { Card, SectionTitle } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { MonthlyHoursCard } from "@/components/MonthlyHoursCard";
 import { RecordForm } from "@/components/forms/RecordForm";
-import { COLORS, MF, MN, byYearMonth, groupBySY } from "@/data/constants";
+import { COLORS, MF, MN, MONTHLY_GOAL, byYearMonth, groupBySY, hoursForMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
 
 const LOW_YEAR = 300; // service-year total below this is highlighted
-const MONTHLY_GOAL = 50; // TASK_002 Phase 1: fixed goal, hours/month
 
 function monthColor(hours: number): string {
   if (hours >= 70) return "#dbeafe";
@@ -23,11 +22,7 @@ export default function HoursScreen() {
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
   const totalHours = useMemo(() => records.reduce((s, r) => s + r.hours, 0), [records]);
-  const thisMonthHours = useMemo(() => {
-    const now = new Date();
-    const rec = records.find((r) => r.year === now.getFullYear() && r.month === now.getMonth() + 1);
-    return rec?.hours ?? 0;
-  }, [records]);
+  const thisMonthHours = useMemo(() => hoursForMonth(records), [records]);
   const thisMonthLabel = useMemo(() => {
     const now = new Date();
     return `${MF[now.getMonth()]} ${now.getFullYear()}`;

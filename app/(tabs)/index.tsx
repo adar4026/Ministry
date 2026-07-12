@@ -8,6 +8,7 @@ import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { StatCard } from "@/components/StatCard";
+import { TodayCard } from "@/components/TodayCard";
 import { CAT, COLORS, byYearMonth, groupBySY } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
@@ -48,6 +49,8 @@ export default function Dashboard() {
         </View>
         <Avatar size={40} onPress={() => router.push("/profile")} />
       </View>
+
+      <TodayCard />
 
       <View style={styles.statRow}>
         <StatCard label="Ср. время сл." value={avgMonthlyHours.toFixed(1)} color={COLORS.accent} />

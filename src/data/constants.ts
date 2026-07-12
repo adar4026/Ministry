@@ -100,3 +100,51 @@ export function formatDateDMY(isoDate: string): string {
   const [y, m, d] = isoDate.split("-");
   return `${d}/${m}/${y}`;
 }
+
+// Monthly service goal in hours (TASK_002 Phase 1; shared with the Today card).
+export const MONTHLY_GOAL = 50;
+
+// Hours recorded for the month containing `now` (0 if no record yet).
+export function hoursForMonth(records: HourRecord[], now: Date = new Date()): number {
+  const rec = records.find((r) => r.year === now.getFullYear() && r.month === now.getMonth() + 1);
+  return rec?.hours ?? 0;
+}
+
+// "X ч Y м" formatting for possibly-fractional hour values ("2 ч 30 м";
+// zero minutes are omitted: "50 ч").
+export function formatHM(hours: number): string {
+  let h = Math.floor(hours);
+  let m = Math.round((hours - h) * 60);
+  if (m === 60) {
+    h += 1;
+    m = 0;
+  }
+  return m === 0 ? `${h} ч` : `${h} ч ${m} м`;
+}
+
+export type MonthProgress = {
+  daysInMonth: number;
+  daysLeft: number; // remaining days including today
+  hoursDone: number;
+  hoursRemaining: number; // to MONTHLY_GOAL, min 0
+  requiredPerDay: number; // avg hours/day over the remaining days to hit the goal
+  status: "ahead" | "on" | "behind";
+};
+
+// Derived state of the current month vs. the monthly goal, built on
+// hoursForMonth() — single source for the Today card.
+export function monthProgress(records: HourRecord[], now: Date = new Date()): MonthProgress {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate() + 1;
+  const hoursDone = hoursForMonth(records, now);
+  const hoursRemaining = Math.max(0, MONTHLY_GOAL - hoursDone);
+  const requiredPerDay = daysLeft > 0 ? hoursRemaining / daysLeft : hoursRemaining;
+
+  // Expected pace by the start of today, with half a day's pace as tolerance.
+  const dailyPace = MONTHLY_GOAL / daysInMonth;
+  const expected = dailyPace * (now.getDate() - 1);
+  const status =
+    hoursDone >= expected + dailyPace / 2 ? "ahead" : hoursDone < expected - dailyPace / 2 ? "behind" : "on";
+
+  return { daysInMonth, daysLeft, hoursDone, hoursRemaining, requiredPerDay, status };
+}
