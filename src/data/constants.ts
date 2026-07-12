@@ -21,7 +21,7 @@ export const CAT: Record<
   Category,
   { label: string; bg: string; tx: string; dot: string }
 > = {
-  pioneer: { label: "Пионерство", bg: "#dbeafe", tx: "#1e40af", dot: "#3b82f6" },
+  pioneer: { label: "Пионер", bg: "#dbeafe", tx: "#1e40af", dot: "#3b82f6" },
   appointment: { label: "Назначение", bg: "#dcfce7", tx: "#166534", dot: "#22c55e" },
   move: { label: "Переезд", bg: "#fef9c3", tx: "#854d0e", dot: "#eab308" },
   school: { label: "Школа", bg: "#ede9fe", tx: "#5b21b6", dot: "#8b5cf6" },
