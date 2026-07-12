@@ -19,6 +19,7 @@ export default function HoursScreen() {
   const { records, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
+  const totalHours = useMemo(() => records.reduce((s, r) => s + r.hours, 0), [records]);
   const groups = useMemo(() => groupBySY(records), [records]);
   const maxH = useMemo(() => Math.max(1, ...groups.map((g) => g.total)), [groups]);
   // Display newest service year first; groupBySY itself stays ascending.
@@ -34,7 +35,10 @@ export default function HoursScreen() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Card>
-        <SectionTitle>Часы по служебным годам</SectionTitle>
+        <View style={styles.headRow}>
+          <SectionTitle>Часы по служебным годам</SectionTitle>
+          <Text style={styles.grandTotal}>Всего часов: {totalHours.toLocaleString("ru-RU")}</Text>
+        </View>
         {displayGroups.map((g) => {
           const pct = Math.round((g.total / maxH) * 100);
           const low = g.total < LOW_YEAR;
@@ -87,6 +91,8 @@ export default function HoursScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16 },
+  headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  grandTotal: { fontSize: 12, fontWeight: "700", color: COLORS.blue, marginBottom: 12 },
   group: { marginBottom: 16 },
   groupHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   sy: { fontSize: 12, fontWeight: "600", color: COLORS.text },

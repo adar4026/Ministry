@@ -14,7 +14,11 @@ export default function Dashboard() {
   const { records, events, talks, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
-  const totalHours = useMemo(() => records.reduce((s, r) => s + r.hours, 0), [records]);
+  const avgMonthlyHours = useMemo(() => {
+    const totalHours = records.reduce((s, r) => s + r.hours, 0);
+    const uniqueMonths = new Set(records.map((r) => `${r.year}-${r.month}`));
+    return uniqueMonths.size > 0 ? totalHours / uniqueMonths.size : 0;
+  }, [records]);
   const groups = useMemo(() => groupBySY(records), [records]);
   const curYear = groups[groups.length - 1];
 
@@ -33,7 +37,7 @@ export default function Dashboard() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.statRow}>
-        <StatCard label="Всего часов" value={totalHours.toLocaleString("ru-RU")} color={COLORS.accent} />
+        <StatCard label="Ср. время сл." value={avgMonthlyHours.toFixed(1)} color={COLORS.accent} />
         <StatCard label="Лет пионером" value="17.9" color="#22c55e" />
         <StatCard label="Служ. лет" value={groups.length} color="#8b5cf6" />
         <StatCard label="Публичных речей" value={talks.length} color="#f43f5e" />
