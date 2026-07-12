@@ -11,6 +11,7 @@ import {
   COLORS,
   TALK_CATEGORY,
   formatDateDMY,
+  talkTitle,
   timeElapsed,
 } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -29,10 +30,6 @@ const FILTER_OPTIONS = [
 type TimelineItem =
   | { kind: "event"; id: string; date: string; ev: MinistryEvent }
   | { kind: "talk"; id: string; date: string; talk: Talk };
-
-function talkTitle(t: Talk): string {
-  return t.title || (t.number ? `Речь №${t.number}` : "Специальная речь");
-}
 
 export default function TimelineScreen() {
   const { events, talks, saveEvent, deleteEvent, saveTalk, deleteTalk } = useStore();

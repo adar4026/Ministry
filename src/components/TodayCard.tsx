@@ -4,9 +4,11 @@ import { Card } from "@/components/ui";
 import {
   COLORS,
   MONTHLY_GOAL,
+  dayWord,
   formatDateDMY,
   formatHM,
   monthProgress,
+  toISODate,
 } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -15,20 +17,6 @@ const STATUS = {
   on: { emoji: "🟡", label: "По графику" },
   behind: { emoji: "🔴", label: "Отставание от графика" },
 } as const;
-
-// Russian plural for days: 1 день / 2 дня / 5 дней.
-function dayWord(n: number): string {
-  const d10 = n % 10;
-  const d100 = n % 100;
-  if (d10 === 1 && d100 !== 11) return "день";
-  if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "дня";
-  return "дней";
-}
-
-function toISO(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
 
 export function TodayCard() {
   const { records } = useStore();
@@ -41,7 +29,7 @@ export function TodayCard() {
     <Card>
       <View style={styles.head}>
         <Text style={styles.title}>Сегодня</Text>
-        <Text style={styles.date}>{formatDateDMY(toISO(now))}</Text>
+        <Text style={styles.date}>{formatDateDMY(toISODate(now))}</Text>
       </View>
 
       <Text style={styles.status}>

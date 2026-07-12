@@ -9,6 +9,7 @@ import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { StatCard } from "@/components/StatCard";
 import { TodayCard } from "@/components/TodayCard";
+import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { CAT, COLORS, byYearMonth, groupBySY } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
@@ -59,6 +60,8 @@ export default function Dashboard() {
         <StatCard label="Публичных речей" value={talks.length} color="#f43f5e" />
         <StatCard label="Школы пионеров" value={4} color="#f59e0b" />
       </View>
+
+      <UpcomingEventsCard />
 
       {curYear && (
         <Card style={styles.block}>

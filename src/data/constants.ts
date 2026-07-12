@@ -1,4 +1,4 @@
-import type { Category, HourRecord } from "@/types";
+import type { Category, HourRecord, MinistryEvent, Talk } from "@/types";
 
 // Color palette (ported from the web prototype).
 export const COLORS = {
@@ -147,4 +147,66 @@ export function monthProgress(records: HourRecord[], now: Date = new Date()): Mo
     hoursDone >= expected + dailyPace / 2 ? "ahead" : hoursDone < expected - dailyPace / 2 ? "behind" : "on";
 
   return { daysInMonth, daysLeft, hoursDone, hoursRemaining, requiredPerDay, status };
+}
+
+// "YYYY-MM-DD" for a Date, in local time (no UTC shift).
+export function toISODate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Russian plural for days: 1 день / 2 дня / 5 дней.
+export function dayWord(n: number): string {
+  const d10 = n % 10;
+  const d100 = n % 100;
+  if (d10 === 1 && d100 !== 11) return "день";
+  if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "дня";
+  return "дней";
+}
+
+// Russian plural for months: 1 месяц / 2 месяца / 5 месяцев.
+export function monthWord(n: number): string {
+  const d10 = n % 10;
+  const d100 = n % 100;
+  if (d10 === 1 && d100 !== 11) return "месяц";
+  if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return "месяца";
+  return "месяцев";
+}
+
+// "Сегодня" / "Завтра" / "Через N дней" / "Через N месяцев" for a future
+// ISO date, relative to now. Assumes dateISO is today or later.
+export function relativeDays(dateISO: string, now: Date = new Date()): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const target = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+
+  if (diffDays <= 0) return "Сегодня";
+  if (diffDays === 1) return "Завтра";
+  if (diffDays < 30) return `Через ${diffDays} ${dayWord(diffDays)}`;
+  const months = Math.round(diffDays / 30);
+  return `Через ${months} ${monthWord(months)}`;
+}
+
+// Display title for a Talk (shared with the Events timeline).
+export function talkTitle(t: Talk): string {
+  return t.title || (t.number ? `Речь №${t.number}` : "Специальная речь");
+}
+
+export type UpcomingItem = { kind: "event" | "talk"; id: string; date: string; title: string };
+
+// Combine events + talks into a single future-only, date-sorted list.
+// UI-layer combination only — both collections stay separate in storage.
+export function upcomingItems(
+  events: MinistryEvent[],
+  talks: Talk[],
+  now: Date = new Date(),
+  limit = 3,
+): UpcomingItem[] {
+  const todayISO = toISODate(now);
+  const items: UpcomingItem[] = [
+    ...events.filter((e) => e.date >= todayISO).map((e) => ({ kind: "event" as const, id: e.id, date: e.date, title: e.title })),
+    ...talks.filter((t) => t.date >= todayISO).map((t) => ({ kind: "talk" as const, id: t.id, date: t.date, title: talkTitle(t) })),
+  ];
+  return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, limit);
 }
