@@ -69,3 +69,23 @@ export function byYearMonth(a: HourRecord, b: HourRecord): number {
 // Simple unique id for user-created entries.
 export const uid = (): string =>
   "x" + Date.now() + Math.random().toString(36).slice(2, 5);
+
+// Time elapsed since an ISO date ("YYYY-MM-DD"), relative to now.
+// "Сегодня" for today, "X мес." under a year, "X лет Y мес." from a year on.
+export function timeElapsed(isoDate: string, now: Date = new Date()): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const event = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (event.getTime() === today.getTime()) return "Сегодня";
+
+  let months = (today.getFullYear() - event.getFullYear()) * 12 + (today.getMonth() - event.getMonth());
+  if (today.getDate() < event.getDate()) months -= 1;
+  months = Math.max(0, months);
+
+  if (months < 12) return `${months} мес.`;
+
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  return `${years} лет ${remMonths} мес.`;
+}

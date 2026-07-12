@@ -4,7 +4,7 @@ import { Badge } from "@/components/Badge";
 import { ChipSelector, TextField } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { EventForm } from "@/components/forms/EventForm";
-import { CAT, CATEGORY_KEYS, COLORS } from "@/data/constants";
+import { CAT, CATEGORY_KEYS, COLORS, timeElapsed } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent } from "@/types";
 
@@ -68,6 +68,7 @@ export default function TimelineScreen() {
                   </View>
                 </View>
                 <Text style={styles.date}>{ev.date}</Text>
+                <Text style={styles.elapsed}>{timeElapsed(ev.date)}</Text>
               </View>
             </View>
           );
@@ -109,4 +110,5 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 13, fontWeight: "600", color: COLORS.text },
   edit: { fontSize: 14, color: COLORS.muted },
   date: { fontSize: 11, color: COLORS.muted, marginTop: 3 },
+  elapsed: { fontSize: 10, color: COLORS.muted, marginTop: 1 },
 });
