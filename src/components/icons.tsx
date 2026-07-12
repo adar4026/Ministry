@@ -1,4 +1,4 @@
-import Svg, { Line, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
 export type IconProps = { size?: number; color: string };
 
@@ -42,6 +42,15 @@ export function MicIcon({ size = 22, color }: IconProps) {
       <Path d="M5 10a7 7 0 0 0 14 0" stroke={color} strokeWidth={2} strokeLinecap="round" />
       <Line x1={12} y1={19} x2={12} y2={22} stroke={color} strokeWidth={2} strokeLinecap="round" />
       <Line x1={8} y1={22} x2={16} y2={22} stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function PersonIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={8} r={4} stroke={color} strokeWidth={2} />
+      <Path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }

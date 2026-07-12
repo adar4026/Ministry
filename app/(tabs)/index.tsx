@@ -1,5 +1,7 @@
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
 import { Card, SectionTitle } from "@/components/ui";
 import { MonthChip } from "@/components/MonthChip";
@@ -36,6 +38,11 @@ export default function Dashboard() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.topBar}>
+        <Text style={styles.appTitle}>Служение</Text>
+        <Avatar size={40} onPress={() => router.push("/profile")} />
+      </View>
+
       <View style={styles.statRow}>
         <StatCard label="Ср. время сл." value={avgMonthlyHours.toFixed(1)} color={COLORS.accent} />
         <StatCard label="Лет пионером" value="17.9" color="#22c55e" />
@@ -93,6 +100,8 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
+  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  appTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text },
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   block: {},
   smallLabel: { fontSize: 12, color: COLORS.muted, marginBottom: 4 },

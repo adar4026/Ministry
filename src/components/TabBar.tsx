@@ -3,17 +3,17 @@ import type { ComponentType } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@/data/constants";
-import { CalendarIcon, ChartIcon, HomeIcon, type IconProps, MicIcon, PlusIcon } from "@/components/icons";
+import { CalendarIcon, ChartIcon, HomeIcon, type IconProps, PersonIcon, PlusIcon } from "@/components/icons";
 
 // Regular (non-center) tabs, in the order they should appear in the bar.
 // "add" is rendered separately as the center "+" button.
-const TAB_ORDER = ["index", "hours", "timeline", "talks"] as const;
+const TAB_ORDER = ["index", "hours", "timeline", "profile"] as const;
 
 const TAB_ICON: Record<string, ComponentType<IconProps>> = {
   index: HomeIcon,
   hours: ChartIcon,
   timeline: CalendarIcon,
-  talks: MicIcon,
+  profile: PersonIcon,
 };
 
 const ACTIVE_BG = "#f1f5f9"; // light gray pill behind the active tab

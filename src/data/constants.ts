@@ -31,6 +31,11 @@ export const CAT: Record<
 
 export const CATEGORY_KEYS = Object.keys(CAT) as Category[];
 
+// Display metadata for public talks shown in the unified Events timeline.
+// Talks keep their own collection (see StoreContext); this is UI-only styling
+// and is deliberately NOT part of the MinistryEvent `Category` enum.
+export const TALK_CATEGORY = { label: "Публичная речь", bg: "#e0e7ff", tx: "#3730a3", dot: "#6366f1" };
+
 // Month names — short and full.
 export const MN = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 export const MF = [
