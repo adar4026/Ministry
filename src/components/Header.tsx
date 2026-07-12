@@ -28,7 +28,20 @@ export function Header() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: COLORS.navy, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 18 },
+  wrap: {
+    backgroundColor: COLORS.navy,
+    borderRadius: 22,
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
   kicker: { fontSize: 10, letterSpacing: 3, color: "rgba(255,255,255,0.5)", marginBottom: 6 },
   name: { color: "#fff", fontSize: 22, fontWeight: "800" },
   facts: { flexDirection: "row", flexWrap: "wrap", gap: 20, marginTop: 14 },

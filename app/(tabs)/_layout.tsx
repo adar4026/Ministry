@@ -36,6 +36,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.navy },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
   loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.bg },
 });
