@@ -24,7 +24,8 @@ export default function TimelineScreen() {
       events
         .filter((e) => filter === "all" || e.category === filter)
         .filter((e) => !query || e.title.toLowerCase().includes(query.toLowerCase()))
-        .sort((a, b) => a.date.localeCompare(b.date)),
+        // Newest first; filter/search predicates above are unchanged.
+        .sort((a, b) => b.date.localeCompare(a.date)),
     [events, filter, query],
   );
 
