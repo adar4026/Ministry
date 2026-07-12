@@ -38,8 +38,14 @@ export default function Dashboard() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.topBar}>
-        <Text style={styles.appTitle}>Служение</Text>
+      {/* TASK_004 Phase 1: Home-only dashboard card; scrolls with the page
+          (inside the ScrollView, nothing fixed). Today-card content lands
+          here in Phase 2. */}
+      <View style={styles.dashboardCard}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.kicker}>ЖУРНАЛ СЛУЖЕНИЯ</Text>
+          <Text style={styles.appTitle}>Служение</Text>
+        </View>
         <Avatar size={40} onPress={() => router.push("/profile")} />
       </View>
 
@@ -100,7 +106,22 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
-  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  dashboardCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  kicker: { fontSize: 9, letterSpacing: 2, color: COLORS.muted, marginBottom: 2 },
   appTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text },
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   block: {},
