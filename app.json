@@ -14,8 +14,15 @@
     "android": {
       "package": "com.alext.ministry"
     },
+    "web": {
+      "output": "static"
+    },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "baseUrl": "/Ministry"
+    }
   }
 }
