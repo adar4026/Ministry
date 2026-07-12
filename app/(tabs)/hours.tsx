@@ -21,6 +21,8 @@ export default function HoursScreen() {
 
   const groups = useMemo(() => groupBySY(records), [records]);
   const maxH = useMemo(() => Math.max(1, ...groups.map((g) => g.total)), [groups]);
+  // Display newest service year first; groupBySY itself stays ascending.
+  const displayGroups = useMemo(() => [...groups].reverse(), [groups]);
 
   function confirmDelete(id: string) {
     Alert.alert("Удалить запись?", "Это действие нельзя отменить.", [
@@ -33,7 +35,7 @@ export default function HoursScreen() {
     <ScrollView contentContainerStyle={styles.content}>
       <Card>
         <SectionTitle>Часы по служебным годам</SectionTitle>
-        {groups.map((g) => {
+        {displayGroups.map((g) => {
           const pct = Math.round((g.total / maxH) * 100);
           const low = g.total < LOW_YEAR;
           return (
