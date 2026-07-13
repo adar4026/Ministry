@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Card, SectionTitle } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { COLORS, formatDateDMY, relativeDays, upcomingItems } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -13,8 +13,8 @@ export function UpcomingEventsCard() {
   const items = upcomingItems(events, talks, new Date(), LIMIT);
 
   return (
-    <Card>
-      <SectionTitle>Ближайшие события</SectionTitle>
+    <Card style={styles.card}>
+      <Text style={styles.title}>Ближайшие события</Text>
 
       {items.length === 0 ? (
         <Text style={styles.empty}>Нет предстоящих событий</Text>
@@ -22,7 +22,7 @@ export function UpcomingEventsCard() {
         items.map((it, i) => (
           <View key={`${it.kind}-${it.id}`} style={[styles.row, i < items.length - 1 && styles.rowBorder]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{it.title}</Text>
+              <Text style={styles.itemTitle}>{it.title}</Text>
               <Text style={styles.date}>{formatDateDMY(it.date)}</Text>
             </View>
             <Text style={styles.relative}>{relativeDays(it.date)}</Text>
@@ -38,13 +38,23 @@ export function UpcomingEventsCard() {
 }
 
 const styles = StyleSheet.create({
-  empty: { fontSize: 12, color: COLORS.muted, paddingVertical: 8 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 10, gap: 8 },
+  card: {
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  title: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 12 },
+  empty: { fontSize: 14, color: COLORS.muted, paddingVertical: 8 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 12, gap: 8 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title: { fontSize: 13, fontWeight: "600", color: COLORS.text },
-  date: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
-  relative: { fontSize: 12, fontWeight: "700", color: COLORS.blue },
+  itemTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
+  date: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
+  relative: { fontSize: 14, fontWeight: "700", color: COLORS.blue },
   showAll: { marginTop: 8, alignItems: "center", paddingVertical: 6 },
-  showAllText: { fontSize: 12, fontWeight: "700", color: COLORS.accent },
+  showAllText: { fontSize: 14, fontWeight: "700", color: COLORS.accent },
   pressed: { opacity: 0.7 },
 });

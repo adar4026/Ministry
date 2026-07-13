@@ -3,11 +3,10 @@ import { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/Badge";
-import { Card, SectionTitle } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
-import { StatCard } from "@/components/StatCard";
 import { TodayCard } from "@/components/TodayCard";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { CAT, COLORS, byYearMonth, groupBySY } from "@/data/constants";
@@ -15,14 +14,9 @@ import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
 
 export default function Dashboard() {
-  const { records, events, talks, saveRecord, deleteRecord } = useStore();
+  const { records, events, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
-  const avgMonthlyHours = useMemo(() => {
-    const totalHours = records.reduce((s, r) => s + r.hours, 0);
-    const uniqueMonths = new Set(records.map((r) => `${r.year}-${r.month}`));
-    return uniqueMonths.size > 0 ? totalHours / uniqueMonths.size : 0;
-  }, [records]);
   const groups = useMemo(() => groupBySY(records), [records]);
   const curYear = groups[groups.length - 1];
 
@@ -40,31 +34,19 @@ export default function Dashboard() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      {/* TASK_004 Phase 1: Home-only dashboard card; scrolls with the page
-          (inside the ScrollView, nothing fixed). Today-card content lands
-          here in Phase 2. */}
-      <View style={styles.dashboardCard}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>ЖУРНАЛ СЛУЖЕНИЯ</Text>
-          <Text style={styles.appTitle}>Служение</Text>
-        </View>
+      {/* Plain iOS-style large title — no card chrome, matches the native
+          large-title header pattern (Settings, App Store, Music). */}
+      <View style={styles.headerRow}>
+        <Text style={styles.pageTitle}>Журнал служения</Text>
         <Avatar size={40} onPress={() => router.push("/profile")} />
       </View>
 
       <TodayCard />
 
-      <View style={styles.statRow}>
-        <StatCard label="Ср. время сл." value={avgMonthlyHours.toFixed(1)} color={COLORS.accent} />
-        <StatCard label="Лет пионером" value="17.9" color="#22c55e" />
-        <StatCard label="Служ. лет" value={groups.length} color="#8b5cf6" />
-        <StatCard label="Публичных речей" value={talks.length} color="#f43f5e" />
-        <StatCard label="Школы пионеров" value={4} color="#f59e0b" />
-      </View>
-
       <UpcomingEventsCard />
 
       {curYear && (
-        <Card style={styles.block}>
+        <Card style={styles.homeCard}>
           <Text style={styles.smallLabel}>Текущий служебный год</Text>
           <Text style={styles.syTitle}>
             {curYear.sy} — {curYear.total} ч.
@@ -79,8 +61,8 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <Card style={styles.block}>
-        <SectionTitle>Последние события</SectionTitle>
+      <Card style={styles.homeCard}>
+        <Text style={styles.sectionTitle}>Последние события</Text>
         {recentEvents.map((ev) => (
           <View key={ev.id} style={styles.eventRow}>
             <View style={[styles.dot, { backgroundColor: (CAT[ev.category] ?? CAT.other).dot }]} />
@@ -112,27 +94,27 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
-  dashboardCard: {
+  headerRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    minHeight: 40,
   },
-  kicker: { fontSize: 9, letterSpacing: 2, color: COLORS.muted, marginBottom: 2 },
-  appTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text },
-  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  block: {},
-  smallLabel: { fontSize: 12, color: COLORS.muted, marginBottom: 4 },
-  syTitle: { fontSize: 18, fontWeight: "800", color: COLORS.blue, marginBottom: 14 },
+  pageTitle: { fontSize: 34, fontWeight: "800", color: COLORS.text, letterSpacing: 0.2 },
+  // Shared container for every remaining Home card: one consistent design
+  // (large corner radius, generous padding, soft native-style shadow).
+  homeCard: {
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  sectionTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 12 },
+  smallLabel: { fontSize: 15, color: COLORS.muted, marginBottom: 4 },
+  syTitle: { fontSize: 20, fontWeight: "800", color: COLORS.blue, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   gridItem: { width: "23%" },
   eventRow: { flexDirection: "row", gap: 10, alignItems: "flex-start", marginBottom: 10 },

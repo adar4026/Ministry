@@ -26,7 +26,7 @@ export function TodayCard() {
   const status = STATUS[p.status];
 
   return (
-    <Card>
+    <Card style={styles.card}>
       <View style={styles.head}>
         <Text style={styles.title}>Сегодня</Text>
         <Text style={styles.date}>{formatDateDMY(toISODate(now))}</Text>
@@ -36,33 +36,51 @@ export function TodayCard() {
         {status.emoji} {status.label}
       </Text>
 
-      <View style={styles.rows}>
-        <Row label="До конца месяца" value={`${p.daysLeft} ${dayWord(p.daysLeft)}`} />
-        <Row label="Часы в этом месяце" value={formatHM(p.hoursDone)} />
-        <Row label={`Осталось до цели (${MONTHLY_GOAL} ч)`} value={formatHM(p.hoursRemaining)} />
-        <Row label="Нужно в день" value={formatHM(p.requiredPerDay)} last />
+      {/* Primary value — the single most important number on Home: hours
+          completed this month. Everything else here is supporting detail. */}
+      <View style={styles.hero}>
+        <Text style={styles.heroLabel}>Часы в этом месяце</Text>
+        <Text style={styles.heroValue}>{formatHM(p.hoursDone)}</Text>
       </View>
+
+      <View style={styles.secondaryRow}>
+        <View style={styles.secondaryItem}>
+          <Text style={styles.secondaryLabel}>Осталось до цели ({MONTHLY_GOAL} ч)</Text>
+          <Text style={styles.secondaryValue}>{formatHM(p.hoursRemaining)}</Text>
+        </View>
+        <View style={styles.secondaryItem}>
+          <Text style={styles.secondaryLabel}>Нужно в день</Text>
+          <Text style={styles.secondaryValue}>{formatHM(p.requiredPerDay)}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.footnote}>
+        До конца месяца: {p.daysLeft} {dayWord(p.daysLeft)}
+      </Text>
     </Card>
   );
 }
 
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  return (
-    <View style={[styles.row, !last && styles.rowBorder]}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
   head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 14, fontWeight: "800", color: COLORS.text },
-  date: { fontSize: 12, fontWeight: "600", color: COLORS.muted },
-  status: { fontSize: 12, fontWeight: "700", color: COLORS.text, marginTop: 8 },
-  rows: { marginTop: 10 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  rowLabel: { fontSize: 12, color: COLORS.muted },
-  rowValue: { fontSize: 13, fontWeight: "700", color: COLORS.blue },
+  title: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  date: { fontSize: 15, fontWeight: "600", color: COLORS.muted },
+  status: { fontSize: 17, fontWeight: "700", color: COLORS.text, marginTop: 10 },
+  hero: { marginTop: 20 },
+  heroLabel: { fontSize: 15, color: COLORS.muted },
+  heroValue: { fontSize: 36, fontWeight: "800", color: COLORS.blue, marginTop: 2 },
+  secondaryRow: { flexDirection: "row", gap: 24, marginTop: 20 },
+  secondaryItem: { flex: 1 },
+  secondaryLabel: { fontSize: 13, color: COLORS.muted, minHeight: 32 },
+  secondaryValue: { fontSize: 22, fontWeight: "700", color: COLORS.text, marginTop: 2 },
+  footnote: { fontSize: 13, color: COLORS.muted, marginTop: 16 },
 });
