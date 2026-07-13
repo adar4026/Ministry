@@ -89,6 +89,38 @@ export function monthTotal(records: HourRecord[], sessions: Session[], year: num
   return records.find((r) => r.year === year && r.month === month)?.hours ?? 0;
 }
 
+export type LegacyEntryBlockReason = "current" | "future" | "session";
+
+// Single shared predicate for the TASK_005B product rule (see
+// docs/TASKS/TASK_005_ARCHITECTURE.md §10, resolved: "blocked, not
+// warned"). The legacy HourRecord entry workflow (RecordForm) may not
+// save for the current calendar month, any future month, or any past
+// month that already has >=1 Session — those months are Session-
+// authoritative or not yet reached, so a manual monthly total would
+// either collide with real Session data or pre-empt it. Returns null when
+// the month is a legitimate historical-backfill target. Every caller
+// (add.tsx, hours.tsx, Home's index.tsx, all via RecordForm) must go
+// through this one function — never re-implement the condition per screen.
+export function legacyEntryBlockReason(
+  sessions: Session[],
+  year: number,
+  month: number,
+  now: Date = new Date(),
+): LegacyEntryBlockReason | null {
+  const nowYear = now.getFullYear();
+  const nowMonth = now.getMonth() + 1;
+  if (year > nowYear || (year === nowYear && month > nowMonth)) return "future";
+  if (year === nowYear && month === nowMonth) return "current";
+  if (sessionsForMonth(sessions, year, month).length > 0) return "session";
+  return null;
+}
+
+export const LEGACY_ENTRY_BLOCK_MESSAGE: Record<LegacyEntryBlockReason, string> = {
+  current: "Текущий месяц нельзя записать здесь — используйте «Добавить время» или «Таймер» в разделе «Часы».",
+  future: "Будущий месяц нельзя записать здесь — используйте «Добавить время» или «Таймер», когда время наступит.",
+  session: "За этот месяц уже есть записи времени в разделе «Часы» → «История» — редактируйте их там.",
+};
+
 export type ServiceYearGroup = {
   sy: string;
   records: HourRecord[];

@@ -6,6 +6,7 @@
 import {
   groupBySY,
   hoursForMonth,
+  legacyEntryBlockReason,
   monthProgress,
   monthTotal,
   serviceYearAggregation,
@@ -190,5 +191,68 @@ describe("serviceYearAggregation (unified, session-aware)", () => {
     const sessions = [session("2025-10-01", 60)];
     const [group] = serviceYearAggregation(records, sessions);
     expect(group.months.map((m) => m.month)).toEqual([9, 10, 11]);
+  });
+});
+
+// TASK_005B — Product Rule: the legacy HourRecord entry workflow must
+// refuse to save for the current month, any future month, or any past
+// month with >=1 Session; past months with zero Sessions stay editable.
+// See docs/TASKS/TASK_005_ARCHITECTURE.md §10 (resolved: "blocked, not
+// warned") and RecordForm's UI-integration tests for the save-time check.
+describe("legacyEntryBlockReason", () => {
+  const now = new Date(2026, 5, 15); // June 2026
+
+  it("blocks the current calendar month", () => {
+    expect(legacyEntryBlockReason([], 2026, 6, now)).toBe("current");
+  });
+
+  it("blocks a future month in the same year", () => {
+    expect(legacyEntryBlockReason([], 2026, 7, now)).toBe("future");
+  });
+
+  it("blocks a future year entirely", () => {
+    expect(legacyEntryBlockReason([], 2027, 1, now)).toBe("future");
+  });
+
+  it("blocks a past month that already has at least one Session", () => {
+    const sessions = [session("2026-03-10", 60)];
+    expect(legacyEntryBlockReason(sessions, 2026, 3, now)).toBe("session");
+  });
+
+  it("allows a past month with zero Sessions (legitimate historical backfill)", () => {
+    expect(legacyEntryBlockReason([], 2026, 3, now)).toBeNull();
+  });
+
+  it("does not let an unrelated Session in a different month block this one", () => {
+    const sessions = [session("2026-04-10", 60)];
+    expect(legacyEntryBlockReason(sessions, 2026, 3, now)).toBeNull();
+  });
+});
+
+// TASK_005B DoD: explicitly verify that after creating one Session for the
+// current month, Home (via serviceYearAggregation/hoursForMonth) reflects
+// it, while the Hours screen's frozen contract — groupBySY(records) with
+// no sessions argument, its actual TASK_005A-era call site — does not.
+// This divergence is expected until TASK_005D migrates the Hours screen.
+describe("TASK_005B workflow: current-month Session vs. the frozen Hours contract", () => {
+  it("serviceYearAggregation marks the current month Session-authoritative while groupBySY(records) ignores it", () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const records = [record(year, month, 10)]; // legacy total, would otherwise show 10h
+    const sessions = [session(`${year}-${String(month).padStart(2, "0")}-01`, 120)]; // 2h Session
+
+    const [group] = serviceYearAggregation(records, sessions).slice(-1);
+    const current = group.months.find((m) => m.year === year && m.month === month)!;
+    expect(current.source).toBe("session");
+    expect(current.hours).toBe(2);
+    expect(hoursForMonth(records, now, sessions)).toBe(2);
+
+    // Hours screen's actual call site: groupBySY(records) — no sessions
+    // argument — must still resolve from the legacy record, unaffected.
+    const legacyGroups = groupBySY(records);
+    const legacySy = legacyGroups.find((g) => g.records.some((r) => r.year === year && r.month === month))!;
+    expect(legacySy.total).toBe(10);
   });
 });

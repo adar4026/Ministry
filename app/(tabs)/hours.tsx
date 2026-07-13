@@ -18,7 +18,7 @@ function monthColor(hours: number): string {
 }
 
 export default function HoursScreen() {
-  const { records, saveRecord, deleteRecord } = useStore();
+  const { records, sessions, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
   const totalHours = useMemo(() => records.reduce((s, r) => s + r.hours, 0), [records]);
@@ -94,6 +94,7 @@ export default function HoursScreen() {
         {editRec && (
           <RecordForm
             initial={editRec}
+            sessions={sessions}
             onSave={(input) => { saveRecord(input); setEditRec(null); }}
             onDelete={() => confirmDelete(editRec.id)}
           />

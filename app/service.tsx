@@ -25,7 +25,11 @@ export default function ServiceScreen() {
         {SECTIONS.map((s) => (
           <Pressable
             key={s.key}
-            onPress={() => Alert.alert(s.label, "Появится в Фазе 2")}
+            onPress={() => {
+              if (s.key === "add") return router.push("/entry");
+              if (s.key === "history") return router.push("/history");
+              Alert.alert(s.label, "Появится в Фазе 2");
+            }}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
           >
             <View style={{ flex: 1 }}>

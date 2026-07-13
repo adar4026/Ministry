@@ -8,7 +8,7 @@ import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
 export default function AddScreen() {
-  const { saveRecord, saveEvent, saveTalk } = useStore();
+  const { sessions, saveRecord, saveEvent, saveTalk } = useStore();
   // Bumping a key remounts the form, clearing its fields after a successful add.
   const [recKey, setRecKey] = useState(0);
   const [evKey, setEvKey] = useState(0);
@@ -21,6 +21,7 @@ export default function AddScreen() {
         <Text style={styles.hint}>Запишите часы за конкретный месяц</Text>
         <RecordForm
           key={`rec-${recKey}`}
+          sessions={sessions}
           onSave={(input) => {
             saveRecord(input);
             setRecKey((k) => k + 1);

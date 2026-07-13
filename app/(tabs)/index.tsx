@@ -113,6 +113,7 @@ export default function Dashboard() {
         {editRec && (
           <RecordForm
             initial={editRec}
+            sessions={sessions}
             onSave={(input) => { saveRecord(input); setEditRec(null); }}
             onDelete={() => confirmDelete(editRec.id)}
           />
