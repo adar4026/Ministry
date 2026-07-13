@@ -14,8 +14,6 @@ export function UpcomingEventsCard() {
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Ближайшие события</Text>
-
       {items.length === 0 ? (
         <Text style={styles.empty}>Нет предстоящих событий</Text>
       ) : (
@@ -47,7 +45,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
-  title: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 12 },
   empty: { fontSize: 14, color: COLORS.muted, paddingVertical: 8 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 12, gap: 8 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },

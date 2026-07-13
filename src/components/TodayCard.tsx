@@ -28,7 +28,6 @@ export function TodayCard() {
   return (
     <Card style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title}>Сегодня</Text>
         <Text style={styles.date}>{formatDateDMY(toISODate(now))}</Text>
       </View>
 
@@ -71,8 +70,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
-  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  head: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center" },
   date: { fontSize: 15, fontWeight: "600", color: COLORS.muted },
   status: { fontSize: 17, fontWeight: "700", color: COLORS.text, marginTop: 10 },
   hero: { marginTop: 20 },

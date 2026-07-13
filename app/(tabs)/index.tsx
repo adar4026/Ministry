@@ -61,39 +61,49 @@ export default function Dashboard() {
         <Avatar size={40} onPress={() => router.push("/profile")} />
       </View>
 
-      <TodayCard />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Сегодня</Text>
+        <TodayCard />
+      </View>
 
-      <UpcomingEventsCard />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ближайшие события</Text>
+        <UpcomingEventsCard />
+      </View>
 
       {curYear && (
-        <Card style={styles.homeCard}>
-          <Text style={styles.smallLabel}>Текущий служебный год</Text>
-          <Text style={styles.syTitle}>
-            {curYear.sy} — {curYear.total} ч.
-          </Text>
-          <View style={styles.grid}>
-            {curYear.months.map((m) => (
-              <View key={m.id} style={styles.gridItem}>
-                <MonthChip record={m} onPress={() => handleMonthPress(m)} />
-              </View>
-            ))}
-          </View>
-        </Card>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Текущий служебный год</Text>
+          <Card style={styles.homeCard}>
+            <Text style={styles.syTitle}>
+              {curYear.sy} — {curYear.total} ч.
+            </Text>
+            <View style={styles.grid}>
+              {curYear.months.map((m) => (
+                <View key={m.id} style={styles.gridItem}>
+                  <MonthChip record={m} onPress={() => handleMonthPress(m)} />
+                </View>
+              ))}
+            </View>
+          </Card>
+        </View>
       )}
 
-      <Card style={styles.homeCard}>
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Последние события</Text>
-        {recentEvents.map((ev) => (
-          <View key={ev.id} style={styles.eventRow}>
-            <View style={[styles.dot, { backgroundColor: (CAT[ev.category] ?? CAT.other).dot }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eventTitle}>{ev.title}</Text>
-              <Text style={styles.eventDate}>{ev.date}</Text>
+        <Card style={styles.homeCard}>
+          {recentEvents.map((ev) => (
+            <View key={ev.id} style={styles.eventRow}>
+              <View style={[styles.dot, { backgroundColor: (CAT[ev.category] ?? CAT.other).dot }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.eventTitle}>{ev.title}</Text>
+                <Text style={styles.eventDate}>{ev.date}</Text>
+              </View>
+              <Badge category={ev.category} />
             </View>
-            <Badge category={ev.category} />
-          </View>
-        ))}
-      </Card>
+          ))}
+        </Card>
+      </View>
 
       <Modal
         visible={editRec !== null}
@@ -125,7 +135,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 40,
   },
-  pageTitle: { fontSize: 34, fontWeight: "800", color: COLORS.text, letterSpacing: 0.2 },
+  pageTitle: { fontSize: 28, fontWeight: "800", color: COLORS.text, letterSpacing: 0.2 },
+  // Title-to-card grouping: tighter than the gap between section blocks
+  // (styles.content below), so the new title-above-card hierarchy reads as
+  // one unit per section rather than four evenly-spaced items.
+  section: { gap: 10 },
+  sectionTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text },
   // Shared container for every remaining Home card: one consistent design
   // (large corner radius, generous padding, soft native-style shadow).
   homeCard: {
@@ -137,8 +152,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
-  sectionTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 12 },
-  smallLabel: { fontSize: 15, color: COLORS.muted, marginBottom: 4 },
   syTitle: { fontSize: 20, fontWeight: "800", color: COLORS.blue, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   gridItem: { width: "23%" },
