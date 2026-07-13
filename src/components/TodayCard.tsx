@@ -19,10 +19,10 @@ const STATUS = {
 } as const;
 
 export function TodayCard() {
-  const { records } = useStore();
+  const { records, sessions } = useStore();
 
   const now = new Date();
-  const p = useMemo(() => monthProgress(records, now), [records, now.getDate()]);
+  const p = useMemo(() => monthProgress(records, now, sessions), [records, sessions, now.getDate()]);
   const status = STATUS[p.status];
 
   return (
