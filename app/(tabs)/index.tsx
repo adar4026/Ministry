@@ -33,7 +33,7 @@ export default function Dashboard() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Plain iOS-style large title — no card chrome, matches the native
           large-title header pattern (Settings, App Store, Music). */}
       <View style={styles.headerRow}>
@@ -93,7 +93,12 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 16 },
+  // Home-only screen background (Apple systemGroupedBackground); the shared
+  // Tabs sceneStyle bg is untouched, so Hours/Events/Add/Profile are unaffected.
+  screen: { backgroundColor: COLORS.groupedBg },
+  // Wider gap than other screens: a more open, breathable grouped-list feel
+  // between Header / Today / Upcoming Events / Current Service Year / History.
+  content: { padding: 16, gap: 28 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

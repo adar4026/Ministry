@@ -10,6 +10,10 @@ export const COLORS = {
   muted: "#94a3b8",
   text: "#1e293b",
   bg: "#f8fafc",
+  // Apple systemGroupedBackground (light). Home-screen only, for stronger
+  // separation from the white cards; the shared `bg` above is untouched so
+  // Hours/Events/Add/Profile keep their existing background.
+  groupedBg: "#f2f2f7",
   card: "#ffffff",
   danger: "#dc2626",
   dangerBg: "#fee2e2",
