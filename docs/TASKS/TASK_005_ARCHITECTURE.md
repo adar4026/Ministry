@@ -341,12 +341,17 @@ is **no longer the primary way to record ministry time**.
 This keeps `HourRecord` and `Session` from ever competing for the same
 month during normal use — consistent with §8.
 
-**Deferred UX decision (TASK_005B):** the exact behavior when a user
-attempts to use the legacy `HourRecord` entry workflow for a month that
-*already* contains `Session` data (warn, block, hide the entry point
-entirely, or another treatment) is a UX decision, not an architectural one,
-and must be explicitly defined during TASK_005B, consistent with this
-product rule.
+**Resolved (TASK_005B): legacy entry is blocked, not warned.** The legacy
+`HourRecord` entry workflow (reached from `app/(tabs)/add.tsx` and from
+the Hours screen's month-chip edit) refuses to save for: the current
+calendar month, any future month, and any past month that already has
+≥1 `Session`. Past months with zero `Session`s remain fully editable —
+this preserves the legitimate historical-backfill use case. A
+warn-but-allow treatment was considered and rejected: it would leave the
+dual-source collision physically possible, undermining the
+single-authoritative-source guarantee in §8. The check is implemented as
+a single shared predicate, not duplicated per screen — see
+`TASK_005B.md` for the implementation details.
 
 ---
 
@@ -436,6 +441,5 @@ are now resolved:
    ViewModel" addendum in `docs/TASKS/TASK_005A.md`, not left as an open
    follow-up.
 
-**Still open, deliberately deferred:**
-- Exact UX for attempting legacy entry on a month with existing Session
-  data — to be defined in TASK_005B (§10).
+5. **Legacy entry on a Session-covered month is blocked, not warned**
+   (§10) — resolved during TASK_005B scoping; see `TASK_005B.md`.
