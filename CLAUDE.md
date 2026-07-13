@@ -22,6 +22,8 @@
 - Данные пользователя неприкосновенны (seed.js не трогать)
 - Один логический этап — один коммит
 - После задачи: обновить docs/STATUS.md
+- Deploy и Git Tag — только после успешного прохождения Architecture
+  Review Checklist задачи (см. ADR-007, `docs/DECISIONS.md`)
 
 ---
 
