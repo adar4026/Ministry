@@ -32,3 +32,18 @@ export type Talk = {
   title: string;
   location: string; // place / congregation
 };
+
+// A single dated time entry. Primary time-tracking entity going forward —
+// see docs/TASKS/TASK_005_ARCHITECTURE.md. Kept intentionally minimal for
+// TASK_005: no type/credit-hour classification yet.
+export type Session = {
+  id: string;
+  date: string; // ISO day "YYYY-MM-DD" — the day the time was spent
+  startTime?: string; // ISO datetime; required when source === "timer"
+  endTime?: string; // ISO datetime; required when source === "timer"
+  durationMinutes: number; // authoritative duration; always required
+  note?: string;
+  source: "manual" | "timer";
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+};

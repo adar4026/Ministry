@@ -1,4 +1,4 @@
-import type { Category, HourRecord, MinistryEvent, Talk } from "@/types";
+import type { Category, HourRecord, MinistryEvent, Session, Talk } from "@/types";
 
 // Color palette (ported from the web prototype).
 export const COLORS = {
@@ -52,20 +52,63 @@ export function svcYear(year: number, month: number): string {
   return month >= 9 ? `${year}–${year + 1}` : `${year - 1}–${year}`;
 }
 
+// ---------------------------------------------------------------------------
+// Aggregation Layer (TASK_005A) — the single source for resolving how many
+// hours were spent in a given month across the two time-tracking sources:
+// legacy monthly HourRecord totals, and granular Session entries. See
+// docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8 for the authoritative rule this
+// implements: if any Session exists for a month, Sessions are authoritative
+// for that month; otherwise the legacy HourRecord is used. The two sources
+// are never merged or combined for the same month.
+// ---------------------------------------------------------------------------
+
+// "YYYY-MM-DD" -> { year, month }. Local parse, no Date/timezone involved.
+function parseISOYearMonth(iso: string): { year: number; month: number } {
+  const [y, m] = iso.split("-").map(Number);
+  return { year: y, month: m };
+}
+
+// All Sessions whose `date` falls within the given calendar month.
+export function sessionsForMonth(sessions: Session[], year: number, month: number): Session[] {
+  return sessions.filter((s) => {
+    const p = parseISOYearMonth(s.date);
+    return p.year === year && p.month === month;
+  });
+}
+
+// The authoritative hour total for one month: Session.sum() if at least one
+// Session exists for that month, otherwise the legacy HourRecord's hours (or
+// 0 if neither exists). This is the single primitive every other aggregation
+// function in this layer is built on — never duplicate this resolution logic
+// elsewhere.
+export function monthTotal(records: HourRecord[], sessions: Session[], year: number, month: number): number {
+  const monthSessions = sessionsForMonth(sessions, year, month);
+  if (monthSessions.length > 0) {
+    return monthSessions.reduce((sum, s) => sum + s.durationMinutes, 0) / 60;
+  }
+  return records.find((r) => r.year === year && r.month === month)?.hours ?? 0;
+}
+
 export type ServiceYearGroup = {
   sy: string;
   records: HourRecord[];
   total: number;
 };
 
-// Group hour records by service year, ascending by year label.
-export function groupBySY(records: HourRecord[]): ServiceYearGroup[] {
+// Group hour records by service year, ascending by year label. `sessions`
+// is optional and defaults to `[]`, so every existing call site (the Hours
+// screen) keeps working unmodified and returns byte-identical results —
+// `total` resolves through monthTotal() per §7–§8, which falls back to
+// `r.hours` when no sessions are supplied.
+export function groupBySY(records: HourRecord[], sessions: Session[] = []): ServiceYearGroup[] {
   const map: Record<string, ServiceYearGroup> = {};
   records.forEach((r) => {
     const sy = svcYear(r.year, r.month);
     if (!map[sy]) map[sy] = { sy, records: [], total: 0 };
     map[sy].records.push(r);
-    map[sy].total += r.hours;
+  });
+  Object.values(map).forEach((g) => {
+    g.total = g.records.reduce((sum, r) => sum + monthTotal(records, sessions, r.year, r.month), 0);
   });
   return Object.values(map).sort((a, b) => a.sy.localeCompare(b.sy));
 }
@@ -73,6 +116,62 @@ export function groupBySY(records: HourRecord[]): ServiceYearGroup[] {
 // Chronological sort helper for records within a group.
 export function byYearMonth(a: HourRecord, b: HourRecord): number {
   return a.year !== b.year ? a.year - b.year : a.month - b.month;
+}
+
+// Read-time presentation model for one visible month in a service year.
+// Not a HourRecord, not a Session, never stored — produced only by
+// serviceYearAggregation() below. See the "Home Service-Year ViewModel"
+// addendum in docs/TASKS/TASK_005A.md.
+export type ServiceYearMonth = {
+  id: string; // deterministic UI identifier, "YYYY-MM"
+  year: number;
+  month: number;
+  hours: number;
+  source: "session" | "legacy";
+};
+
+export type ServiceYearAggregate = {
+  sy: string;
+  months: ServiceYearMonth[];
+  total: number;
+};
+
+// Session-aware service-year aggregation for Home's "Текущий служебный год"
+// card (TASK_005A addendum). Unlike groupBySY() — which enumerates only
+// months that have a legacy HourRecord, by design, since the Hours screen's
+// existing contract must not change — this enumerates the *union* of months
+// present in either `records` or `sessions`, so a month tracked exclusively
+// via Session still appears. Every month resolves through the single
+// monthTotal() primitive; grouping semantics (by service year, ascending)
+// match groupBySY() exactly.
+export function serviceYearAggregation(records: HourRecord[], sessions: Session[]): ServiceYearAggregate[] {
+  const monthKeys: { year: number; month: number }[] = [];
+  const seen = new Set<string>();
+  const addKey = (year: number, month: number) => {
+    const key = `${year}-${month}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      monthKeys.push({ year, month });
+    }
+  };
+  records.forEach((r) => addKey(r.year, r.month));
+  sessions.forEach((s) => {
+    const p = parseISOYearMonth(s.date);
+    addKey(p.year, p.month);
+  });
+
+  const map: Record<string, ServiceYearAggregate> = {};
+  monthKeys.forEach(({ year, month }) => {
+    const sy = svcYear(year, month);
+    if (!map[sy]) map[sy] = { sy, months: [], total: 0 };
+    const hours = monthTotal(records, sessions, year, month);
+    const source: ServiceYearMonth["source"] = sessionsForMonth(sessions, year, month).length > 0 ? "session" : "legacy";
+    map[sy].months.push({ id: `${year}-${String(month).padStart(2, "0")}`, year, month, hours, source });
+    map[sy].total += hours;
+  });
+
+  Object.values(map).forEach((g) => g.months.sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month)));
+  return Object.values(map).sort((a, b) => a.sy.localeCompare(b.sy));
 }
 
 // Simple unique id for user-created entries.
@@ -108,10 +207,12 @@ export function formatDateDMY(isoDate: string): string {
 // Monthly service goal in hours (TASK_002 Phase 1; shared with the Today card).
 export const MONTHLY_GOAL = 50;
 
-// Hours recorded for the month containing `now` (0 if no record yet).
-export function hoursForMonth(records: HourRecord[], now: Date = new Date()): number {
-  const rec = records.find((r) => r.year === now.getFullYear() && r.month === now.getMonth() + 1);
-  return rec?.hours ?? 0;
+// Hours recorded for the month containing `now` (0 if neither a Session nor
+// a record exists yet). `sessions` is optional and defaults to `[]`, so
+// existing call sites (Hours screen, Home's TodayCard) keep working
+// unmodified and return byte-identical results — see monthTotal() above.
+export function hoursForMonth(records: HourRecord[], now: Date = new Date(), sessions: Session[] = []): number {
+  return monthTotal(records, sessions, now.getFullYear(), now.getMonth() + 1);
 }
 
 // "X ч Y м" formatting for possibly-fractional hour values ("2 ч 30 м";
@@ -136,11 +237,12 @@ export type MonthProgress = {
 };
 
 // Derived state of the current month vs. the monthly goal, built on
-// hoursForMonth() — single source for the Today card.
-export function monthProgress(records: HourRecord[], now: Date = new Date()): MonthProgress {
+// hoursForMonth() — single source for the Today card. `sessions` is
+// optional and defaults to `[]` — see hoursForMonth() above.
+export function monthProgress(records: HourRecord[], now: Date = new Date(), sessions: Session[] = []): MonthProgress {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysLeft = daysInMonth - now.getDate() + 1;
-  const hoursDone = hoursForMonth(records, now);
+  const hoursDone = hoursForMonth(records, now, sessions);
   const hoursRemaining = Math.max(0, MONTHLY_GOAL - hoursDone);
   const requiredPerDay = daysLeft > 0 ? hoursRemaining / daysLeft : hoursRemaining;
 

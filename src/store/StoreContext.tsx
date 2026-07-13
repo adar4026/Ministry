@@ -2,7 +2,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
 import { uid } from "@/data/constants";
-import type { HourRecord, MinistryEvent, Talk } from "@/types";
+import type { HourRecord, MinistryEvent, Session, Talk } from "@/types";
 
 // AsyncStorage keys — see ARCHITECTURE.md. Bump the version + write a migration
 // if the shape of any of these arrays ever changes.
@@ -10,7 +10,10 @@ const KEYS = {
   records: "mj_records_v1",
   events: "mj_events_v1",
   talks: "mj_talks_v1",
+  sessions: "mj_sessions_v1",
 } as const;
+
+const SEED_SESSIONS: Session[] = [];
 
 // Inputs accepted by the save* functions (id absent => create, id present => update).
 export type RecordInput = {
@@ -33,11 +36,21 @@ export type TalkInput = {
   title?: string;
   location?: string;
 };
+export type SessionInput = {
+  id?: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  durationMinutes: number;
+  note?: string;
+  source: Session["source"];
+};
 
 type StoreValue = {
   records: HourRecord[];
   events: MinistryEvent[];
   talks: Talk[];
+  sessions: Session[];
   loaded: boolean;
   saveRecord: (input: RecordInput) => void;
   deleteRecord: (id: string) => void;
@@ -45,6 +58,8 @@ type StoreValue = {
   deleteEvent: (id: string) => void;
   saveTalk: (input: TalkInput) => void;
   deleteTalk: (id: string) => void;
+  saveSession: (input: SessionInput) => void;
+  deleteSession: (id: string) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -53,8 +68,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [records, setRecords, rLoaded] = usePersistentState<HourRecord[]>(KEYS.records, SEED_RECORDS);
   const [events, setEvents, eLoaded] = usePersistentState<MinistryEvent[]>(KEYS.events, SEED_EVENTS);
   const [talks, setTalks, tLoaded] = usePersistentState<Talk[]>(KEYS.talks, SEED_TALKS);
+  const [sessions, setSessions, sLoaded] = usePersistentState<Session[]>(KEYS.sessions, SEED_SESSIONS);
 
-  const loaded = rLoaded && eLoaded && tLoaded;
+  const loaded = rLoaded && eLoaded && tLoaded && sLoaded;
 
   function saveRecord(input: RecordInput) {
     const rec: HourRecord = {
@@ -97,10 +113,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTalks((ts) => ts.filter((x) => x.id !== id));
   }
 
+  function saveSession(input: SessionInput) {
+    const now = new Date().toISOString();
+    setSessions((ss) => {
+      const existing = input.id ? ss.find((x) => x.id === input.id) : undefined;
+      const s: Session = {
+        id: input.id || uid(),
+        date: input.date,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        durationMinutes: input.durationMinutes,
+        note: input.note ?? "",
+        source: input.source,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      };
+      return input.id ? ss.map((x) => (x.id === input.id ? s : x)) : [...ss, s];
+    });
+  }
+  function deleteSession(id: string) {
+    setSessions((ss) => ss.filter((x) => x.id !== id));
+  }
+
   const value: StoreValue = {
     records,
     events,
     talks,
+    sessions,
     loaded,
     saveRecord,
     deleteRecord,
@@ -108,6 +147,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteEvent,
     saveTalk,
     deleteTalk,
+    saveSession,
+    deleteSession,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

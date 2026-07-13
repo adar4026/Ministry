@@ -1,13 +1,15 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { COLORS, MN } from "@/data/constants";
-import type { HourRecord } from "@/types";
+import { COLORS, MN, type ServiceYearMonth } from "@/data/constants";
 
 // Compact month tile used on the dashboard's current-service-year grid.
+// Renders a ServiceYearMonth ViewModel (session- or legacy-authoritative) —
+// see the "Home Service-Year ViewModel" addendum in docs/TASKS/TASK_005A.md.
+// Visual appearance is unchanged; only the data model feeding it changed.
 export function MonthChip({
   record,
   onPress,
 }: {
-  record: HourRecord;
+  record: ServiceYearMonth;
   onPress: () => void;
 }) {
   return (

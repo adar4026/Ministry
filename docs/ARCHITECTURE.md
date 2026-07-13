@@ -86,6 +86,26 @@ type Talk = {
 }
 ```
 
+### Session (запись времени, TASK_005A)
+
+Основная сущность учёта времени, начиная с TASK_005. Гранулярная запись —
+в отличие от Record (итог за месяц). Подробности правила агрегации —
+см. `docs/TASKS/TASK_005_ARCHITECTURE.md` §6–§8.
+
+```typescript
+type Session = {
+  id:              string;
+  date:            string;   // ISO-день "YYYY-MM-DD"
+  startTime?:      string;   // ISO datetime; обязателен при source === "timer"
+  endTime?:        string;   // ISO datetime; обязателен при source === "timer"
+  durationMinutes: number;   // авторитетная длительность; всегда обязателен
+  note?:           string;
+  source:          'manual' | 'timer';
+  createdAt:       string;   // ISO datetime
+  updatedAt:       string;   // ISO datetime
+}
+```
+
 ---
 
 ## Ключи хранилища (AsyncStorage)
@@ -94,6 +114,7 @@ type Talk = {
 mj_records_v1    — массив Record[]
 mj_events_v1     — массив Event[]
 mj_talks_v1      — массив Talk[]
+mj_sessions_v1   — массив Session[]  (TASK_005A)
 ```
 
 > ⚠️ При изменении схемы данных — менять версию ключа (v1 → v2) и писать миграцию.
@@ -122,13 +143,15 @@ function serviceYear(year: number, month: number): string {
 
 ```
 StoreContext
-├── records: Record[]
-├── events:  Event[]
-├── talks:   Talk[]
-├── loaded:  boolean
-├── saveRecord / deleteRecord
-├── saveEvent  / deleteEvent
-└── saveTalk   / deleteTalk
+├── records:  Record[]
+├── events:   Event[]
+├── talks:    Talk[]
+├── sessions: Session[]   (TASK_005A)
+├── loaded:   boolean
+├── saveRecord  / deleteRecord
+├── saveEvent   / deleteEvent
+├── saveTalk    / deleteTalk
+└── saveSession / deleteSession   (TASK_005A)
 ```
 
 Все экраны читают из стора через `useStore()`. Никакого локального состояния для данных.

@@ -9,15 +9,19 @@ import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { TodayCard } from "@/components/TodayCard";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
-import { CAT, COLORS, byYearMonth, groupBySY } from "@/data/constants";
+import { CAT, COLORS, serviceYearAggregation, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
 
 export default function Dashboard() {
-  const { records, events, saveRecord, deleteRecord } = useStore();
+  const { records, sessions, events, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
 
-  const groups = useMemo(() => groupBySY(records), [records]);
+  // Session-aware unified service-year aggregation (TASK_005A addendum) —
+  // Home no longer aggregates HourRecord directly. Months tracked only via
+  // Session still appear here, unlike the Hours screen's groupBySY(), whose
+  // contract is intentionally left untouched until TASK_005D.
+  const groups = useMemo(() => serviceYearAggregation(records, sessions), [records, sessions]);
   const curYear = groups[groups.length - 1];
 
   const recentEvents = useMemo(
@@ -30,6 +34,22 @@ export default function Dashboard() {
       { text: "Отмена", style: "cancel" },
       { text: "Удалить", style: "destructive", onPress: () => { deleteRecord(id); setEditRec(null); } },
     ]);
+  }
+
+  // Editing behavior per the TASK_005A addendum: a Session-authoritative
+  // month never opens the legacy RecordForm — only a HourRecord-authoritative
+  // month does, and only ever bound to the real HourRecord, never the
+  // ViewModel. Full navigation to Month Details arrives in TASK_005D.
+  function handleMonthPress(m: ServiceYearMonth) {
+    if (m.source === "session") {
+      Alert.alert(
+        "Этот месяц ведётся в разделе «Часы»",
+        "Часы за этот месяц учитываются по записям времени. Редактирование появится в разделе «Часы».",
+      );
+      return;
+    }
+    const rec = records.find((r) => r.year === m.year && r.month === m.month);
+    if (rec) setEditRec(rec);
   }
 
   return (
@@ -52,9 +72,9 @@ export default function Dashboard() {
             {curYear.sy} — {curYear.total} ч.
           </Text>
           <View style={styles.grid}>
-            {[...curYear.records].sort(byYearMonth).map((r) => (
-              <View key={r.id} style={styles.gridItem}>
-                <MonthChip record={r} onPress={() => setEditRec(r)} />
+            {curYear.months.map((m) => (
+              <View key={m.id} style={styles.gridItem}>
+                <MonthChip record={m} onPress={() => handleMonthPress(m)} />
               </View>
             ))}
           </View>
