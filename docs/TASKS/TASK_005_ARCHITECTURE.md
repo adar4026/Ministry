@@ -237,9 +237,18 @@ type Session = {
 
 **Creation-flow nullability rules:**
 
-- **Timer sessions** (`source: "timer"`) — `startTime` and `endTime` are
-  required. `durationMinutes` is derived from `endTime - startTime` at save
-  time and stored as the authoritative value.
+- **Timer sessions** (`source: "timer"`) — `durationMinutes` is the **sum of
+  the timer's active (unpaused) segments**, and is the authoritative value.
+  It is **not** derived from `endTime - startTime`: with Pause/Resume the
+  wall-clock span can exceed the tracked active time, so that derivation
+  would over-count. `startTime` and `endTime` are recorded as *informational
+  bookends only* — `startTime` = the first Start of the outing (the
+  `firstStartedAt` invariant below), `endTime` = the moment of Stop. They
+  bracket the whole outing including any paused intervals, and are never used
+  to compute duration. **Conversion from `bankedSeconds` to
+  `durationMinutes` will be defined in TASK_005C during UX/product design**;
+  the invariant fixed here is only that this conversion happens **exactly
+  once, at Save (never at Pause or earlier)**.
 - **Manual sessions** (`source: "manual"`) — `durationMinutes` is required
   and authoritative. `startTime`/`endTime` are optional and purely
   informational when present. Manual entry must never require the user to
@@ -252,13 +261,60 @@ Same shape as today. Permanent legacy data (see §9): authoritative exactly
 when a month has zero `Session`s (see §7–§8).
 
 ### New — `TimerState` (crash-recovery, not a reporting entity)
+
+**Resolved (TASK_005C Step 0):** the draft `{ startedAt, accumulatedMinutes,
+paused }` shape is replaced by the flat model below. A discriminated union
+was considered and **rejected** in favour of a flat shape plus a **mandatory
+defensive-normalization step** — this trades compile-time guarantees for
+runtime guarantees while preserving data wherever recovery is possible. The
+full normalization table lives in `TASK_005C.md`.
+
 ```ts
 type TimerState = {
-  startedAt: string | null;   // ISO datetime; null = not running
-  accumulatedMinutes: number;  // banked time across pause/resume segments
-  paused: boolean;
+  status: "idle" | "running" | "paused";
+  startedAt: string | null;        // start of the CURRENT active segment
+  firstStartedAt: string | null;   // first Start of the outing (bookend)
+  bankedSeconds: number;           // active time banked across segments
 };
 ```
+
+**Invariants (mandatory, not advisory):**
+
+- `bankedSeconds` accumulates active time in **seconds**, and is converted to
+  `Session.durationMinutes` **only once, at Save** (never at Pause). Banking
+  in seconds avoids the sub-minute precision loss that whole-minute banking
+  would cause across pause boundaries.
+- `firstStartedAt` is assigned **exactly once**, during the `idle → running`
+  transition, and MUST NOT be modified by Pause, Resume, Stop, recovery, or
+  any normal state transition. It is cleared only when the timer returns to
+  `idle` after a completed Save or a confirmed Discard, or during defensive
+  normalization of corrupted persisted state. It is the source of
+  `Session.startTime`.
+- `startedAt`:
+  - `running` → MUST hold the start time of the current active segment;
+  - `paused` → MUST be `null`;
+  - `idle` → MUST be `null`.
+- The **Stop → Save step is a UI overlay over the `paused` state** — there is
+  no persisted `"saving"` status. Only `idle` / `running` / `paused` are ever
+  written to `mj_timer_v1`.
+- **Defensive normalization is required:** invalid or inconsistent persisted
+  state MUST NOT crash the app. Where a safe state can be reconstructed, the
+  data is preserved and normalized; where it cannot, the timer falls back to
+  `idle`.
+
+**Recovery is mount-based** (defined here, detailed in `TASK_005C.md`): the
+timer is re-evaluated when the Timer screen mounts (cold launch or in-app
+navigation). Elapsed time is always recomputed from persisted timestamps —
+**there is no background execution**. Outcome:
+
+- `idle` → idle;
+- `paused` → restored immediately (no active clock, nothing accrues);
+- `running`, `now - startedAt < 15 min` → restored immediately;
+- `running`, `now - startedAt ≥ 15 min` → Recovery Screen
+  (Continue / Stop / Discard) — the user decides; there is **no hard cutoff**;
+- `now < startedAt` (clock moved backwards) → elapsed is clamped to
+  `bankedSeconds` and the user is asked to confirm.
+
 Storage key: `mj_timer_v1`. Kept separate from `Session` so an abandoned or
 killed timer never silently becomes a phantom entry — it only becomes a
 `Session` when the user explicitly confirms Stop → Save on the Timer screen.
@@ -443,3 +499,11 @@ are now resolved:
 
 5. **Legacy entry on a Session-covered month is blocked, not warned**
    (§10) — resolved during TASK_005B scoping; see `TASK_005B.md`.
+
+6. **`TimerState` shape and timer-session duration semantics refined** (§6)
+   — resolved during TASK_005C Step 0: flat
+   `{ status, startedAt, firstStartedAt, bankedSeconds }` with mandatory
+   invariants and defensive normalization (tagged union rejected);
+   `durationMinutes` = summed active segments (not `endTime - startTime`),
+   converted once at Save; mount-based recovery with a 15-minute seamless
+   threshold. See `TASK_005C.md`.
