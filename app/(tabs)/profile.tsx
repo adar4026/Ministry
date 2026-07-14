@@ -13,7 +13,7 @@ const PROFILE = {
   ] as [string, string][],
 };
 
-const APP_VERSION = "0.4.1";
+const APP_VERSION = "0.4.2";
 
 const SETTINGS = ["Уведомления", "Цели", "Календарь служения", "Статистика", "Оформление", "Язык"];
 const DATA = ["Экспорт", "Импорт", "Резервная копия", "Восстановление"];
