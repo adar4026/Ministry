@@ -2,16 +2,24 @@ import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
-import { Badge } from "@/components/Badge";
-import { Card } from "@/components/ui";
 import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
-import { TodayCard } from "@/components/TodayCard";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
-import { CAT, COLORS, serviceYearAggregation, type ServiceYearMonth } from "@/data/constants";
+import { DS, EventCard, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
+import { COLORS, formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
+
+// Home header date, e.g. "14 июля, понедельник" (genitive month + weekday).
+const MONTHS_GEN = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+];
+const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+function formatHomeDate(now: Date): string {
+  return `${now.getDate()} ${MONTHS_GEN[now.getMonth()]}, ${WEEKDAYS[now.getDay()]}`;
+}
 
 export default function Dashboard() {
   const { records, sessions, events, saveRecord, deleteRecord } = useStore();
@@ -24,9 +32,16 @@ export default function Dashboard() {
   const groups = useMemo(() => serviceYearAggregation(records, sessions), [records, sessions]);
   const curYear = groups[groups.length - 1];
 
+  // Last 5 events, most recent first, past-only (future events belong to
+  // "Ближайшие события" and are excluded here).
+  const todayISO = toISODate(new Date());
   const recentEvents = useMemo(
-    () => [...events].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5),
-    [events],
+    () =>
+      events
+        .filter((e) => e.date <= todayISO)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 5),
+    [events, todayISO],
   );
 
   function confirmDelete(id: string) {
@@ -54,30 +69,25 @@ export default function Dashboard() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {/* Plain iOS-style large title — no card chrome, matches the native
-          large-title header pattern (Settings, App Store, Music). */}
       <View style={styles.headerRow}>
-        <Text style={styles.pageTitle}>Журнал служения</Text>
-        <Avatar size={40} onPress={() => router.push("/profile")} />
+        <View style={styles.headerText}>
+          <Text style={styles.pageTitle}>Христианская жизнь</Text>
+          <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
+        </View>
+        <Avatar size={46} onPress={() => router.push("/profile")} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Сегодня</Text>
-        <TodayCard />
-      </View>
+      <HoursHeroCard />
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ближайшие события</Text>
+        <SectionHeader title="Ближайшие события" />
         <UpcomingEventsCard />
       </View>
 
       {curYear && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Текущий служебный год</Text>
-          <Card style={styles.homeCard}>
-            <Text style={styles.syTitle}>
-              {curYear.sy}
-            </Text>
+          <SectionHeader title="Текущий служебный год" />
+          <SummaryCard title={curYear.sy} accent={DS.tealInk} meta={formatHM(curYear.total)}>
             <View style={styles.grid}>
               {curYear.months.map((m) => (
                 <View key={m.id} style={styles.gridItem}>
@@ -85,24 +95,17 @@ export default function Dashboard() {
                 </View>
               ))}
             </View>
-          </Card>
+          </SummaryCard>
         </View>
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Последние события</Text>
-        <Card style={styles.homeCard}>
+        <SectionHeader title="Последние события" />
+        <View style={styles.eventList}>
           {recentEvents.map((ev) => (
-            <View key={ev.id} style={styles.eventRow}>
-              <View style={[styles.dot, { backgroundColor: (CAT[ev.category] ?? CAT.other).dot }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.eventTitle}>{ev.title}</Text>
-                <Text style={styles.eventDate}>{ev.date}</Text>
-              </View>
-              <Badge category={ev.category} />
-            </View>
+            <EventCard key={ev.id} event={ev} />
           ))}
-        </Card>
+        </View>
       </View>
 
       <Modal
@@ -127,37 +130,19 @@ const styles = StyleSheet.create({
   // Home-only screen background (Apple systemGroupedBackground); the shared
   // Tabs sceneStyle bg is untouched, so Hours/Events/Add/Profile are unaffected.
   screen: { backgroundColor: COLORS.groupedBg },
-  // Wider gap than other screens: a more open, breathable grouped-list feel
-  // between Header / Today / Upcoming Events / Current Service Year / History.
   content: { padding: 16, gap: 28 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 40,
+    minHeight: 46,
   },
-  pageTitle: { fontSize: 28, fontWeight: "800", color: COLORS.text, letterSpacing: 0.2 },
-  // Title-to-card grouping: tighter than the gap between section blocks
-  // (styles.content below), so the new title-above-card hierarchy reads as
-  // one unit per section rather than four evenly-spaced items.
+  headerText: { flex: 1 },
+  pageTitle: { fontSize: 30, fontWeight: "800", color: DS.navy, letterSpacing: -0.4 },
+  pageDate: { fontSize: 16, color: DS.subText, fontWeight: "600", marginTop: 4 },
+  // Title-to-content grouping: tighter than the gap between section blocks.
   section: { gap: 10 },
-  sectionTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text },
-  // Shared container for every remaining Home card: one consistent design
-  // (large corner radius, generous padding, soft native-style shadow).
-  homeCard: {
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  syTitle: { fontSize: 20, fontWeight: "800", color: COLORS.blue, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   gridItem: { width: "23%" },
-  eventRow: { flexDirection: "row", gap: 10, alignItems: "flex-start", marginBottom: 10 },
-  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
-  eventTitle: { fontSize: 13, fontWeight: "600", color: COLORS.text },
-  eventDate: { fontSize: 11, color: COLORS.muted },
+  eventList: { gap: 11 },
 });
