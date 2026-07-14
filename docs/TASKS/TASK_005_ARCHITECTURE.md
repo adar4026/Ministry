@@ -351,7 +351,7 @@ warn-but-allow treatment was considered and rejected: it would leave the
 dual-source collision physically possible, undermining the
 single-authoritative-source guarantee in §8. The check is implemented as
 a single shared predicate, not duplicated per screen — see
-`TASK_005B.md` for the implementation details.
+`TASK_005B.md` for the exact implementation.
 
 ---
 
