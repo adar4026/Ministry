@@ -47,3 +47,22 @@ export type Session = {
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 };
+
+// Timer control state (crash-recovery, not a reporting entity).
+// See docs/TASKS/TASK_005C.md §4-§8.
+export type TimerStatus = "idle" | "running" | "paused";
+
+export type TimerState = {
+  status: TimerStatus;
+  startedAt: string | null; // start of the CURRENT active segment
+  firstStartedAt: string | null; // first Start of the outing (bookend)
+  bankedSeconds: number; // active time banked across segments
+};
+
+// Recovery classifier outcomes (§7)
+export type TimerRecoveryOutcome =
+  | { kind: "idle" }
+  | { kind: "paused"; state: TimerState }
+  | { kind: "running"; state: TimerState }
+  | { kind: "recovery-screen"; state: TimerState; elapsedSeconds: number; startedAt: Date }
+  | { kind: "clock-rollback"; bankedSeconds: number; startedAt: Date };

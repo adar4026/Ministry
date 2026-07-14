@@ -115,6 +115,7 @@ mj_records_v1    — массив Record[]
 mj_events_v1     — массив Event[]
 mj_talks_v1      — массив Talk[]
 mj_sessions_v1   — массив Session[]  (TASK_005A)
+mj_timer_v1      — TimerState        (TASK_005C)
 ```
 
 > ⚠️ При изменении схемы данных — менять версию ключа (v1 → v2) и писать миграцию.

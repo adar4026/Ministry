@@ -28,6 +28,7 @@ export default function ServiceScreen() {
             onPress={() => {
               if (s.key === "add") return router.push("/entry");
               if (s.key === "history") return router.push("/history");
+              if (s.key === "timer") return router.push("/timer");
               Alert.alert(s.label, "Появится в Фазе 2");
             }}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
