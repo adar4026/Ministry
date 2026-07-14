@@ -76,7 +76,7 @@ export default function Dashboard() {
           <Text style={styles.sectionTitle}>Текущий служебный год</Text>
           <Card style={styles.homeCard}>
             <Text style={styles.syTitle}>
-              {curYear.sy} — {curYear.total} ч.
+              {curYear.sy}
             </Text>
             <View style={styles.grid}>
               {curYear.months.map((m) => (
