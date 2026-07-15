@@ -19,7 +19,6 @@ export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    // Months completed in this service year so far
     const completedMonths = currentSY.months.filter((m) => {
       const isPast = m.year < currentYear || (m.year === currentYear && m.month < currentMonth);
       const isCurrent = m.year === currentYear && m.month === currentMonth;
@@ -31,7 +30,6 @@ export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
     const avgHoursPerMonth = monthsCompleted > 0 ? totalHours / monthsCompleted : 0;
     const sessionMonths = completedMonths.filter((m) => m.source === "session").length;
 
-    // Projected year-end
     const monthsInSY = 12;
     const monthsLeft = monthsInSY - monthsCompleted;
     const projectedTotal = totalHours + avgHoursPerMonth * monthsLeft;
@@ -55,11 +53,11 @@ export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`ÃÂ¡ÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂ´ ${stats.serviceYear}: ${formatHM(stats.totalHours)} ÃÂÃÂ°ÃÂÃÂ¾ÃÂ² ÃÂ¸ÃÂÃÂ¾ÃÂ³ÃÂ¾`}
+      accessibilityLabel={`Service Year ${stats.serviceYear}: ${formatHM(stats.totalHours)} total hours`}
     >
       <View style={styles.header}>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>ÃÂ¡ÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂ´</Text>
+          <Text style={styles.title}>Service Year</Text>
           <Text style={styles.subtitle}>{stats.serviceYear}</Text>
         </View>
         <Text style={styles.totalHours}>{formatHM(stats.totalHours)}</Text>
@@ -70,15 +68,15 @@ export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
       <View style={styles.grid}>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{stats.monthsCompleted}/12</Text>
-          <Text style={styles.statLabel}>ÃÅÃÂµÃÂÃÂÃÂÃÂµÃÂ² ÃÂ·ÃÂ°ÃÂ²ÃÂµÃÂÃÂÃÂµÃÂ½ÃÂ¾</Text>
+          <Text style={styles.statLabel}>Months Completed</Text>
         </View>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{formatHM(stats.avgHoursPerMonth)}</Text>
-          <Text style={styles.statLabel}>ÃÂ¡ÃÂÃÂµÃÂ´ÃÂ½ÃÂµÃÂµ / ÃÂ¼ÃÂµÃÂ.</Text>
+          <Text style={styles.statLabel}>Avg Hours/Month</Text>
         </View>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{formatHM(stats.projectedTotal)}</Text>
-          <Text style={styles.statLabel}>ÃÂÃÂÃÂ¾ÃÂ³ÃÂ½ÃÂ¾ÃÂ· ÃÂ³ÃÂ¾ÃÂ´ÃÂ°</Text>
+          <Text style={styles.statLabel}>Year End Projection</Text>
         </View>
       </View>
 
@@ -87,11 +85,11 @@ export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
       <View style={styles.sourceRow}>
         <View style={styles.sourceItem}>
           <View style={[styles.sourceDot, { backgroundColor: COLORS.accent }]} />
-          <Text style={styles.sourceLabel}>{stats.sessionMonths} ÃÂ¼ÃÂµÃÂ. ÃÂÃÂµÃÂÃÂÃÂ¸ÃÂ¹</Text>
+          <Text style={styles.sourceLabel}>{stats.sessionMonths} mo. sessions</Text>
         </View>
         <View style={styles.sourceItem}>
           <View style={[styles.sourceDot, { backgroundColor: COLORS.muted }]} />
-          <Text style={styles.sourceLabel}>{stats.legacyMonths} ÃÂ¼ÃÂµÃÂ. ÃÂ»ÃÂµÃÂ³ÃÂ°ÃÂÃÂ¸</Text>
+          <Text style={styles.sourceLabel}>{stats.legacyMonths} mo. legacy</Text>
         </View>
       </View>
     </Pressable>

@@ -19,7 +19,7 @@ export function MonthlyStatsCard({ onPress }: MonthlyStatsCardProps) {
 
     const pct = MONTHLY_GOAL > 0 ? Math.round((p.hoursDone / MONTHLY_GOAL) * 100) : 0;
     const statusColor = p.status === "ahead" ? COLORS.green : p.status === "behind" ? COLORS.danger : COLORS.warn;
-    const statusLabel = p.status === "ahead" ? "ÐÐ¿ÐµÑÐµÐ¶ÐµÐ½Ð¸Ðµ" : p.status === "behind" ? "ÐÑÑÑÐ°Ð²Ð°Ð½Ð¸Ðµ" : "Ð Ð³ÑÐ°ÑÐ¸ÐºÐµ";
+    const statusLabel = p.status === "ahead" ? "Ahead" : p.status === "behind" ? "Behind" : "On Track";
 
     return {
       year: now.getFullYear(),
@@ -41,16 +41,16 @@ export function MonthlyStatsCard({ onPress }: MonthlyStatsCardProps) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Ð¢ÐµÐºÑÑÐ¸Ð¹ Ð¼ÐµÑÑÑ: ${formatHM(stats.hoursDone)} Ð¸Ð· ${MONTHLY_GOAL} Ñ. ${stats.statusLabel}`}
+      accessibilityLabel={`Current month: ${formatHM(stats.hoursDone)} of ${MONTHLY_GOAL} hrs. ${stats.statusLabel}`}
     >
       <View style={styles.header}>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>Ð¢ÐµÐºÑÑÐ¸Ð¹ Ð¼ÐµÑÑÑ</Text>
-          <Text style={[styles.subtitle, { color: stats.statusColor }]}>{stats.statusLabel} Ð¾Ñ ÑÐµÐ»Ð¸</Text>
+          <Text style={styles.title}>Current Month</Text>
+          <Text style={[styles.subtitle, { color: stats.statusColor }]}>{stats.statusLabel} from goal</Text>
         </View>
         <View style={styles.pctWrap}>
           <Text style={[styles.pctValue, { color: stats.statusColor }]}>{stats.pct}%</Text>
-          <Text style={styles.pctSub}>Ð´Ð¾ ÑÐµÐ»Ð¸</Text>
+          <Text style={styles.pctSub}>to goal</Text>
         </View>
       </View>
 
@@ -59,23 +59,23 @@ export function MonthlyStatsCard({ onPress }: MonthlyStatsCardProps) {
       <View style={styles.mainRow}>
         <View style={styles.bigValue}>
           <Text style={styles.hoursDone}>{formatHM(stats.hoursDone)}</Text>
-          <Text style={styles.ofGoal}>/ {MONTHLY_GOAL} Ñ.</Text>
+          <Text style={styles.ofGoal}>/ {MONTHLY_GOAL} hrs</Text>
         </View>
         <View style={styles.chips}>
           <View style={[styles.chip, { borderColor: COLORS.green }]}>
-            <Text style={styles.chipLabel}>ÐÐ¾ ÑÐµÐ»Ð¸ Ð¾ÑÑÐ°Ð»Ð¾ÑÑ</Text>
+            <Text style={styles.chipLabel}>Remaining to goal</Text>
             <Text style={styles.chipValue}>
-              {stats.hoursRemaining > 0 ? formatHM(stats.hoursRemaining) : "Ð¦ÐµÐ»Ñ Ð´Ð¾ÑÑÐ¸Ð³Ð½ÑÑÐ°"}
+              {stats.hoursRemaining > 0 ? formatHM(stats.hoursRemaining) : "Goal reached"}
             </Text>
           </View>
           <View style={[styles.chip, { borderColor: COLORS.warn }]}>
-            <Text style={styles.chipLabel}>ÐÑÑÐ°Ð»Ð¾ÑÑ Ð´Ð½ÐµÐ¹</Text>
-            <Text style={styles.chipValue}>{stats.daysLeft} Ð´Ð½.</Text>
+            <Text style={styles.chipLabel}>Days left</Text>
+            <Text style={styles.chipValue}>{stats.daysLeft} days</Text>
           </View>
           {stats.pace > 0 && (
             <View style={[styles.chip, { borderColor: COLORS.accent }]}>
-              <Text style={styles.chipLabel}>Ð¢ÐµÐ¼Ð¿ (7 Ð´Ð½.)</Text>
-              <Text style={styles.chipValue}>{formatHM(stats.pace7 / 60)} / Ð´Ð½.</Text>
+              <Text style={styles.chipLabel}>Pace (7d)</Text>
+              <Text style={styles.chipValue}>{formatHM(stats.pace7 / 60)} / day</Text>
             </View>
           )}
         </View>

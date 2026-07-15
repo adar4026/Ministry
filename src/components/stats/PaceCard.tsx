@@ -1,73 +1,70 @@
+import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { COLORS, formatHM } from "@/data/constants";
+import { COLORS } from "@/data/constants";
+import { trailingPace } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import { useMemo } from "react";
 
-interface PaceCardProps {
-  onPress?: () => void;
-}
-
-export function PaceCard({ onPress }: PaceCardProps) {
+export function PaceCard() {
   const { sessions } = useStore();
 
   const pace = useMemo(() => {
     const now = new Date();
-    const pace7 = trailingPace(sessions, now, 7);
-    const pace30 = trailingPace(sessions, now, 30);
-    const pace90 = trailingPace(sessions, now, 90);
+    const pace7 = trailingPace(sessions, 7, now);
+    const pace30 = trailingPace(sessions, 30, now);
+    const pace60 = trailingPace(sessions, 60, now);
+    const trend = pace7 - pace30;
 
-    return { pace7, pace30, pace90 };
+    return {
+      avg7d: pace7 / 60,
+      avg30d: pace30 / 60,
+      avg60d: pace60 / 60,
+      trend: trend / 60,
+    };
   }, [sessions]);
 
-  function trailingPace(sessions: any[], now: Date, days: number): number {
-    const cutoff = new Date(now);
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffISO = cutoff.toISOString().split("T")[0];
-    const windowSessions = sessions.filter((s) => s.date >= cutoffISO);
-    if (windowSessions.length === 0) return 0;
-    const totalMinutes = windowSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
-    const elapsedDays = Math.max(1, Math.ceil((now.getTime() - cutoff.getTime()) / 86400000));
-    return Math.round(totalMinutes / elapsedDays);
-  }
+  const avg7 = pace.avg7d;
+  const avg30 = pace.avg30d;
+  const avg60 = pace.avg60d;
+  const trend = pace.trend;
+  const isImproving = trend > 0;
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`ÃÂ¢ÃÂµÃÂ¼ÃÂ¿: 7 ÃÂ´ÃÂ½. ${pace.pace7 ? formatHM(pace.pace7 / 60) + " / ÃÂ´ÃÂ½." : "ÃÂ½ÃÂµÃâ ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ãâ¹Ãâ¦"}, 30 ÃÂ´ÃÂ½. ${pace.pace30 ? formatHM(pace.pace30 / 60) + " / ÃÂ´ÃÂ½." : "ÃÂ½ÃÂµÃâ ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ãâ¹Ãâ¦"}, 90 ÃÂ´ÃÂ½. ${pace.pace90 ? formatHM(pace.pace90 / 60) + " / ÃÂ´ÃÂ½." : "ÃÂ½ÃÂµÃâ ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ãâ¹Ãâ¦"}`}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>ÃÂ¢ÃÂµÃÂ¼ÃÂ¿ ÃÂÃÂ»ÃÆÃÂ¶ÃÂµÃÂ½ÃÂ¸ÃÂ</Text>
-        <Text style={styles.subtitle}>ÃÂ¡Ãâ¬ÃÂµÃÂ´ÃÂ½ÃÂ¸ÃÂµ ÃÂ¼ÃÂ¸ÃÂ½ÃÆÃâÃâ¹ / ÃÂ´ÃÂµÃÂ½ÃÅ</Text>
+        <Text style={styles.title}>Pace</Text>
+        <Text style={styles.subtitle}>Average daily hours</Text>
       </View>
 
       <View style={styles.grid}>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>7 ÃÂ´ÃÂ½.</Text>
-          <Text style={styles.value}>{pace.pace7 > 0 ? formatHM(pace.pace7 / 60) : "Ã¢â¬â"}</Text>
-          <Text style={styles.unit}>/ ÃÂ´ÃÂµÃÂ½ÃÅ</Text>
+          <Text style={styles.period}>7d</Text>
+          <Text style={styles.value}>{avg7.toFixed(1)}</Text>
+          <Text style={styles.unit}>h/day</Text>
         </View>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>30 ÃÂ´ÃÂ½.</Text>
-          <Text style={styles.value}>{pace.pace30 > 0 ? formatHM(pace.pace30 / 60) : "Ã¢â¬â"}</Text>
-          <Text style={styles.unit}>/ ÃÂ´ÃÂµÃÂ½ÃÅ</Text>
+          <Text style={styles.period}>30d</Text>
+          <Text style={styles.value}>{avg30.toFixed(1)}</Text>
+          <Text style={styles.unit}>h/day</Text>
         </View>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>90 ÃÂ´ÃÂ½.</Text>
-          <Text style={styles.value}>{pace.pace90 > 0 ? formatHM(pace.pace90 / 60) : "Ã¢â¬â"}</Text>
-          <Text style={styles.unit}>/ ÃÂ´ÃÂµÃÂ½ÃÅ</Text>
+          <Text style={styles.period}>60d</Text>
+          <Text style={styles.value}>{avg60.toFixed(1)}</Text>
+          <Text style={styles.unit}>h/day</Text>
         </View>
       </View>
 
-      {pace.pace7 > 0 && pace.pace30 > 0 && (
-        <View style={styles.trend}>
-          <Text style={styles.trendLabel}>ÃÂ¢Ãâ¬ÃÂµÃÂ½ÃÂ´ (7 vs 30):</Text>
-          <Text style={[styles.trendValue, { color: pace.pace7 >= pace.pace30 ? COLORS.green : COLORS.danger }]}>
-            {pace.pace7 >= pace.pace30 ? "Ã¢â â" : "Ã¢â â"} {Math.abs(pace.pace7 - pace.pace30)} ÃÂ¼ÃÂ¸ÃÂ½.
-          </Text>
-        </View>
-      )}
+      <View style={styles.trend}>
+        <Text style={styles.trendLabel}>Trend (7 vs 30)</Text>
+        <Text style={[styles.trendValue, isImproving ? styles.trendUp : styles.trendDown]}>
+          {isImproving ? "+" : ""}{trend.toFixed(1)} h/day
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -97,4 +94,8 @@ const styles = StyleSheet.create({
   trend: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   trendLabel: { fontSize: 12, fontWeight: "600", color: COLORS.muted },
   trendValue: { fontSize: 14, fontWeight: "700" },
+  trendUp: { color: COLORS.green },
+  trendDown: { color: COLORS.danger },
 });
+
+export default PaceCard;

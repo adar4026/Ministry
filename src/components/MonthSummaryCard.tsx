@@ -25,19 +25,19 @@ export function MonthSummaryCard({
   const filledSegments = Math.round((Math.min(100, pct) / 100) * 7);
 
   const statusColor = p.status === "ahead" ? COLORS.green : p.status === "behind" ? COLORS.danger : COLORS.warn;
-  const statusLabel = p.status === "ahead" ? "ÐÐ¿ÐµÑÑÐ´" : p.status === "behind" ? "ÐÑÑÑÐ°ÑÑ" : "Ð Ð³ÑÐ°ÑÐ¸ÐºÐµ";
+  const statusLabel = p.status === "ahead" ? "Ahead" : p.status === "behind" ? "Behind" : "On Track";
 
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Ð§Ð°ÑÑ Ð½Ð° Ð½Ð°ÑÐ°Ð»Ð¾: ${formatHM(p.hoursDone)} Ð¸Ð· ${goal} Ñ. ${statusLabel}`}
+      accessibilityLabel={`Hours this month: ${formatHM(p.hoursDone)} of ${goal} hrs. ${statusLabel}`}
     >
       <View style={styles.topRow}>
         <View style={styles.left}>
           <Text style={styles.totalHours}>{formatHM(p.hoursDone)}</Text>
-          <Text style={styles.subLabel}>Ð·Ð° ÑÑÐ¾Ñ Ð¼ÐµÑÑÑ</Text>
+          <Text style={styles.subLabel}>this month</Text>
           <View style={styles.segmentedBar}>
             {Array.from({ length: 7 }).map((_, i) => (
               <View
@@ -51,7 +51,7 @@ export function MonthSummaryCard({
           </View>
           <Text style={styles.pctLine}>
             <Text style={[styles.pctValue, { color: statusColor }]}>{pct}%</Text>{" "}
-            Ð´Ð¾ Ð¼ÐµÑÑÑÐ½Ð¾Ð¹ ÑÐµÐ»Ð¸
+            to monthly goal
           </Text>
         </View>
         <View style={styles.ringWrapper}>
@@ -79,7 +79,7 @@ export function MonthSummaryCard({
           </Svg>
           <View style={styles.ringCenter}>
             <Text style={styles.ringPct}>
-              {pct}% <Text style={styles.ringSub}>/ {goal} Ñ</Text>
+              {pct}% <Text style={styles.ringSub}>/ {goal} hrs</Text>
             </Text>
           </View>
         </View>
@@ -91,16 +91,16 @@ export function MonthSummaryCard({
         <View style={[styles.chip, { borderColor: COLORS.green }]}>
           <View style={[styles.chipDot, { backgroundColor: COLORS.green }]} />
           <View style={styles.chipText}>
-            <Text style={styles.chipLabel}>ÐÐ¾ ÑÐµÐ»Ð¸ Ð¾ÑÑÐ°Ð»Ð¾ÑÑ</Text>
+            <Text style={styles.chipLabel}>Remaining to goal</Text>
             <Text style={styles.chipValue}>
-              {hoursRemaining > 0 ? formatHM(hoursRemaining) : "Ð¦ÐµÐ»Ñ Ð´Ð¾ÑÑÐ¸Ð³Ð½ÑÑÐ°"}
+              {hoursRemaining > 0 ? formatHM(hoursRemaining) : "Goal reached"}
             </Text>
           </View>
         </View>
         <View style={[styles.chip, { borderColor: COLORS.warn }]}>
           <View style={[styles.chipDot, { backgroundColor: COLORS.warn }]} />
           <View style={styles.chipText}>
-            <Text style={styles.chipLabel}>ÐÑÑÐ°Ð»Ð¾ÑÑ Ð´Ð½ÐµÐ¹</Text>
+            <Text style={styles.chipLabel}>Days left</Text>
             <Text style={styles.chipValue}>{daysLeft} {dayWord(daysLeft)}</Text>
           </View>
         </View>
@@ -112,7 +112,7 @@ export function MonthSummaryCard({
         </View>
         {pace > 0 && (
           <Text style={styles.paceText}>
-            Ð¢ÐµÐ¼Ð¿: {formatHM(pace / 60)} Ð² Ð´ÐµÐ½Ñ
+            Pace: {formatHM(pace / 60)} / day
           </Text>
         )}
       </View>
