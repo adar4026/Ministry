@@ -1,0 +1,129 @@
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { COLORS, formatHM, svcYear, serviceYearAggregation } from "@/data/constants";
+import { useStore } from "@/store/StoreContext";
+import { useMemo } from "react";
+
+interface ServiceYearStatsCardProps {
+  onPress?: () => void;
+}
+
+export function ServiceYearStatsCard({ onPress }: ServiceYearStatsCardProps) {
+  const { records, sessions } = useStore();
+
+  const stats = useMemo(() => {
+    const groups = serviceYearAggregation(records, sessions);
+    const currentSY = groups[groups.length - 1];
+    if (!currentSY) return null;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    // Months completed in this service year so far
+    const completedMonths = currentSY.months.filter((m) => {
+      const isPast = m.year < currentYear || (m.year === currentYear && m.month < currentMonth);
+      const isCurrent = m.year === currentYear && m.month === currentMonth;
+      return isPast || isCurrent;
+    });
+
+    const monthsCompleted = completedMonths.length;
+    const totalHours = completedMonths.reduce((sum, m) => sum + m.hours, 0);
+    const avgHoursPerMonth = monthsCompleted > 0 ? totalHours / monthsCompleted : 0;
+    const sessionMonths = completedMonths.filter((m) => m.source === "session").length;
+
+    // Projected year-end
+    const monthsInSY = 12;
+    const monthsLeft = monthsInSY - monthsCompleted;
+    const projectedTotal = totalHours + avgHoursPerMonth * monthsLeft;
+
+    return {
+      serviceYear: currentSY.sy,
+      totalHours: currentSY.total,
+      monthsCompleted,
+      monthsLeft,
+      avgHoursPerMonth,
+      projectedTotal,
+      sessionMonths,
+      legacyMonths: monthsCompleted - sessionMonths,
+    };
+  }, [records, sessions]);
+
+  if (!stats) return null;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`ÃÂ¡ÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂ´ ${stats.serviceYear}: ${formatHM(stats.totalHours)} ÃÂÃÂ°ÃÂÃÂ¾ÃÂ² ÃÂ¸ÃÂÃÂ¾ÃÂ³ÃÂ¾`}
+    >
+      <View style={styles.header}>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title}>ÃÂ¡ÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂ´</Text>
+          <Text style={styles.subtitle}>{stats.serviceYear}</Text>
+        </View>
+        <Text style={styles.totalHours}>{formatHM(stats.totalHours)}</Text>
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.grid}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{stats.monthsCompleted}/12</Text>
+          <Text style={styles.statLabel}>ÃÅÃÂµÃÂÃÂÃÂÃÂµÃÂ² ÃÂ·ÃÂ°ÃÂ²ÃÂµÃÂÃÂÃÂµÃÂ½ÃÂ¾</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{formatHM(stats.avgHoursPerMonth)}</Text>
+          <Text style={styles.statLabel}>ÃÂ¡ÃÂÃÂµÃÂ´ÃÂ½ÃÂµÃÂµ / ÃÂ¼ÃÂµÃÂ.</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{formatHM(stats.projectedTotal)}</Text>
+          <Text style={styles.statLabel}>ÃÂÃÂÃÂ¾ÃÂ³ÃÂ½ÃÂ¾ÃÂ· ÃÂ³ÃÂ¾ÃÂ´ÃÂ°</Text>
+        </View>
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.sourceRow}>
+        <View style={styles.sourceItem}>
+          <View style={[styles.sourceDot, { backgroundColor: COLORS.accent }]} />
+          <Text style={styles.sourceLabel}>{stats.sessionMonths} ÃÂ¼ÃÂµÃÂ. ÃÂÃÂµÃÂÃÂÃÂ¸ÃÂ¹</Text>
+        </View>
+        <View style={styles.sourceItem}>
+          <View style={[styles.sourceDot, { backgroundColor: COLORS.muted }]} />
+          <Text style={styles.sourceLabel}>{stats.legacyMonths} ÃÂ¼ÃÂµÃÂ. ÃÂ»ÃÂµÃÂ³ÃÂ°ÃÂÃÂ¸</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  pressed: { opacity: 0.9 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  titleWrap: { flex: 1 },
+  title: { fontSize: 18, fontWeight: "800", color: COLORS.text },
+  subtitle: { fontSize: 12, fontWeight: "600", color: COLORS.muted, marginTop: 2 },
+  totalHours: { fontSize: 28, fontWeight: "800", color: COLORS.navy },
+  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
+  grid: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  stat: { flex: 1 },
+  statValue: { fontSize: 22, fontWeight: "800", color: COLORS.navy, letterSpacing: -0.4 },
+  statLabel: { fontSize: 11, fontWeight: "600", color: COLORS.muted, marginTop: 2 },
+  sourceRow: { flexDirection: "row", justifyContent: "space-around" },
+  sourceItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sourceDot: { width: 10, height: 10, borderRadius: 5 },
+  sourceLabel: { fontSize: 12, fontWeight: "600", color: COLORS.muted },
+});

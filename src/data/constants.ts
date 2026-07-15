@@ -1,4 +1,13 @@
 import type { Category, HourRecord, MinistryEvent, Session, Talk } from "@/types";
+import type { Session as SessionType } from "@/types";
+
+// Re-export stats helpers for backward compatibility with existing imports
+export {
+  trailingPace,
+  projectMonthEnd,
+  projectServiceYearEnd,
+  monthCellsForSY,
+} from "./stats";
 
 // Color palette (ported from the web prototype).
 export const COLORS = {

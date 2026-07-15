@@ -1,27 +1,59 @@
-import { SafeAreaView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { COLORS } from "@/data/constants";
+import { MonthlyStatsCard } from "@/components/stats/MonthlyStatsCard";
+import { ServiceYearStatsCard } from "@/components/stats/ServiceYearStatsCard";
+import { TrendChart } from "@/components/stats/TrendChart";
+import { PaceCard } from "@/components/stats/PaceCard";
+import { ProjectionCard } from "@/components/stats/ProjectionCard";
+import { HeatMap } from "@/components/HeatMap";
+import { monthCellsForSY, svcYear } from "@/data/constants";
+import { useStore } from "@/store/StoreContext";
+import { useMemo } from "react";
 
 export default function StatsScreen() {
+  const { records, sessions } = useStore();
+
+  const syLabel = useMemo(() => {
+    const now = new Date();
+    return svcYear(now.getFullYear(), now.getMonth() + 1);
+  }, []);
+
+  const syCells = useMemo(() => monthCellsForSY(records, sessions, syLabel), [records, sessions, syLabel]);
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-          <Text style={styles.backText}>Ã¢ÂÂ¹ ÃÂÃÂ°ÃÂ·ÃÂ°ÃÂ´</Text>
+          <Text style={styles.backText}>â¹ ÐÐ°Ð·Ð°Ð´</Text>
         </Pressable>
-        <Text style={styles.title}>ÃÂ¡ÃÂÃÂ°ÃÂÃÂ¸ÃÂÃÂÃÂ¸ÃÂºÃÂ°</Text>
+        <Text style={styles.title}>Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.placeholderCard}>
-          <Text style={styles.placeholderTitle}>ÃÂ¡ÃÂÃÂ°ÃÂÃÂ¸ÃÂÃÂÃÂ¸ÃÂºÃÂ°</Text>
-          <Text style={styles.placeholderSubtitle}>
-            ÃÂÃÂ¾ÃÂÃÂ²ÃÂ¸ÃÂÃÂÃÂ ÃÂ² TASK_005E
-          </Text>
-          <Text style={styles.placeholderDetails}>
-            ÃÂÃÂºÃÂ»ÃÂÃÂÃÂ¸ÃÂ: ÃÂ¼ÃÂµÃÂÃÂÃÂÃÂ½ÃÂÃÂ ÃÂ¸ ÃÂÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ ÃÂÃÂÃÂ°ÃÂÃÂ¸ÃÂÃÂÃÂ¸ÃÂºÃÂ, ÃÂ³ÃÂÃÂ°ÃÂÃÂ¸ÃÂº ÃÂÃÂÃÂµÃÂ½ÃÂ´ÃÂ° ÃÂ·ÃÂ° 12 ÃÂ¼ÃÂµÃÂÃÂÃÂÃÂµÃÂ²,{'\n'}
-            ÃÂ¿ÃÂ¾ÃÂ»ÃÂ½ÃÂÃÂ ÃÂÃÂµÃÂ¿ÃÂ»ÃÂ¾ÃÂ²ÃÂÃÂ ÃÂºÃÂ°ÃÂÃÂÃÂ, ÃÂÃÂµÃÂ¼ÃÂ¿ ÃÂ¸ ÃÂ¿ÃÂÃÂ¾ÃÂ³ÃÂ½ÃÂ¾ÃÂ· ÃÂºÃÂ¾ÃÂ½ÃÂÃÂ° ÃÂ¼ÃÂµÃÂÃÂÃÂÃÂ°.
-          </Text>
+        <MonthlyStatsCard onPress={() => router.push(`/hours/month/${syLabel.split("â")[0]}-${String(new Date().getMonth() + 1).padStart(2, "0")}` as any)} />
+
+        <ServiceYearStatsCard />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ð¢ÑÐµÐ½Ð´ 12 Ð¼ÐµÑÑÑÐµÐ²</Text>
+          <TrendChart
+            height={200}
+            onPressMonth={(date, value) => {
+              if (value > 0) router.push(`/hours/month/${date}`);
+            }}
+          />
+        </View>
+
+        <PaceCard />
+
+        <ProjectionCard />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ð¢ÐµÐ¿Ð»Ð¾Ð²Ð°Ñ ÐºÐ°ÑÑÐ° ÑÐ»ÑÐ¶ÐµÐ±Ð½Ð¾Ð³Ð¾ Ð³Ð¾Ð´Ð°</Text>
+          <HeatMap cells={syCells} granularity="month" cellSize={30} gap={4} onPressCell={(date, value) => {
+            if (value > 0) router.push(`/hours/month/${date}`);
+          }} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -40,16 +72,7 @@ const styles = StyleSheet.create({
   back: { paddingVertical: 6, paddingRight: 12 },
   backText: { fontSize: 14, fontWeight: "600", color: COLORS.blue },
   title: { fontSize: 16, fontWeight: "800", color: COLORS.text },
-  content: { padding: 16, paddingTop: 4 },
-  placeholderCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  placeholderTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginBottom: 8 },
-  placeholderSubtitle: { fontSize: 16, fontWeight: "600", color: COLORS.accent, marginBottom: 16 },
-  placeholderDetails: { fontSize: 13, color: COLORS.muted, textAlign: "center", lineHeight: 20 },
+  content: { padding: 16, paddingTop: 4, gap: 16 },
+  section: { gap: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.text },
 });
