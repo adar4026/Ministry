@@ -94,7 +94,7 @@ export default function HistoryScreen() {
                   row.kind === "session" ? (
                     <Pressable
                       key={row.session.id}
-                      onPress={() => router.push(`/entry?id=${row.session.id}`)}
+                      onPress={() => router.push(`/hours/entry?id=${row.session.id}`)}
                       onLongPress={() => confirmDeleteSession(row.session.id)}
                       style={({ pressed }) => [styles.sessionRow, pressed && styles.pressed]}
                     >

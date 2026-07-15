@@ -1,0 +1,238 @@
+import { router, useLocalSearchParams } from "expo-router";
+import { useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal } from "@/components/Modal";
+import { HeatMap } from "@/components/HeatMap";
+import { MonthHeader } from "@/components/MonthHeader";
+import { RecordForm } from "@/components/forms/RecordForm";
+import { SectionHeader } from "@/components/dashboard/SectionHeader";
+import {
+  COLORS,
+  formatHM,
+  formatDateDMY,
+  MF,
+  MONTHLY_GOAL,
+  monthTotal,
+  sessionsForMonth,
+  svcYear,
+  toISODate,
+} from "@/data/constants";
+import { useStore } from "@/store/StoreContext";
+import type { HourRecord, Session } from "@/types";
+
+export default function MonthDetailsScreen() {
+  const { key } = useLocalSearchParams<{ key?: string }>();
+  const { records, sessions, saveRecord, deleteRecord, deleteSession } = useStore();
+
+  if (!key) return null;
+
+  const [year, month] = key.split("-").map(Number);
+  if (!year || !month) return null;
+
+  const monthSessions = useMemo(() => sessionsForMonth(sessions, year, month), [sessions, year, month]);
+  const totalHours = useMemo(() => monthTotal(records, sessions, year, month), [records, sessions, year, month]);
+  const source = monthSessions.length > 0 ? "session" : "legacy";
+  const legacyRecord = records.find((r) => r.year === year && r.month === month);
+
+  const [editRec, setEditRec] = useState<HourRecord | null>(null);
+  const [showAddSession, setShowAddSession] = useState(false);
+  const [addSessionDate, setAddSessionDate] = useState(toISODate(new Date(year, month - 1, 1)));
+
+  function confirmDeleteRecord(id: string) {
+    Alert.alert("Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ?", "Ð­ÑÐ¾ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ Ð½ÐµÐ»ÑÐ·Ñ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ.", [
+      { text: "ÐÑÐ¼ÐµÐ½Ð°", style: "cancel" },
+      { text: "Ð£Ð´Ð°Ð»Ð¸ÑÑ", style: "destructive", onPress: () => { deleteRecord(id); setEditRec(null); } },
+    ]);
+  }
+
+  function handleAddSession() {
+    setShowAddSession(true);
+    setAddSessionDate(toISODate(new Date(year, month - 1, 1)));
+  }
+
+  function handleMonthPress(m: { id: string; year: number; month: number; hours: number; source: "session" | "legacy" }) {
+    if (m.source === "session") {
+      Alert.alert(
+        "Ð­ÑÐ¾Ñ Ð¼ÐµÑÑÑ Ð²ÐµÐ´ÑÑÑÑ Ð² ÑÐ°Ð·Ð´ÐµÐ»Ðµ Â«Ð§Ð°ÑÑÂ»",
+        "Ð§Ð°ÑÑ Ð·Ð° ÑÑÐ¾Ñ Ð¼ÐµÑÑÑ ÑÑÐ¸ÑÑÐ²Ð°ÑÑÑÑ Ð¿Ð¾ Ð·Ð°Ð¿Ð¸ÑÑÐ¼ Ð²ÑÐµÐ¼ÐµÐ½Ð¸. Ð ÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°Ð½Ð¸Ðµ Ð¿Ð¾ÑÐ²Ð¸ÑÑÑ Ð² ÑÐ°Ð·Ð´ÐµÐ»Ðµ Â«Ð§Ð°ÑÑÂ».",
+      );
+      return;
+    }
+    const rec = records.find((r) => r.year === m.year && r.month === m.month);
+    if (rec) setEditRec(rec);
+  }
+
+  // Build daily cells for HeatMap (day granularity)
+  const dailyCells = useMemo(() => {
+    if (monthSessions.length === 0) return [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dayMap = new Map<number, number>();
+    monthSessions.forEach((s) => {
+      const day = parseInt(s.date.split("-")[2], 10);
+      dayMap.set(day, (dayMap.get(day) || 0) + s.durationMinutes);
+    });
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => ({
+      date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      value: dayMap.get(day) || 0,
+    }));
+  }, [monthSessions, year, month]);
+
+  // Build monthly cells for the service-year HeatMap (not used here, but MonthDetails could show it)
+  const handleLegacyMonthPress = (m: { id: string; year: number; month: number; hours: number; source: "session" | "legacy" }) => {
+    if (m.source === "legacy") {
+      const rec = records.find((r) => r.year === m.year && r.month === m.month);
+      if (rec) setEditRec(rec);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <MonthHeader
+        year={year}
+        month={month}
+        totalHours={totalHours}
+        source={source}
+        sessions={monthSessions}
+        onPressAddSession={handleAddSession}
+      />
+
+      {source === "session" && dailyCells.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="Ð¢ÐµÐ¿Ð»Ð¾Ð²Ð°Ñ ÐºÐ°ÑÑÐ° Ð´Ð½Ñ" />
+          <HeatMap cells={dailyCells} granularity="day" cellSize={24} gap={3} />
+        </View>
+      )}
+
+      {source === "legacy" && (
+        <View style={styles.legacyEmptyState}>
+          <Text style={styles.legacyTitle}>ÐÐµÑÑÑ Ð±ÐµÐ· ÑÐµÑÑÐ¸Ð¹</Text>
+          <Text style={styles.legacySubtitle}>
+            Ð§Ð°ÑÑ Ð·Ð° ÑÑÐ¾Ñ Ð¼ÐµÑÑÑ Ð·Ð°Ð¿Ð¸ÑÐ°Ð½Ñ Ð¸Ð· Ð¼ÐµÑÑÑÐ½Ð¾Ð¹ Ð¸ÑÐ¾Ð³Ð¾Ð²Ð¾Ð¹ Ð·Ð°Ð¿Ð¸ÑÐ¸ (legacy).
+          </Text>
+          {legacyRecord && (
+            <View style={styles.legacyTotal}>
+              <Text style={styles.legacyLabel}>ÐÑÐµÐ³Ð¾ ÑÐ°ÑÐ¾Ð² (legacy):</Text>
+              <Text style={styles.legacyValue}>{formatHM(legacyRecord.hours)}</Text>
+            </View>
+          )}
+          <Pressable style={styles.addSessionBtn} onPress={handleAddSession} accessibilityRole="button">
+            <Text style={styles.addSessionBtnText}>+ ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ Ð¿ÐµÑÐ²ÑÑ ÑÐµÑÑÐ¸Ñ</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {monthSessions.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="Ð¡ÐµÑÑÐ¸Ð¸" />
+          <View style={styles.sessionList}>
+            {monthSessions
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map((session) => (
+                <Pressable
+                  key={session.id}
+                  onPress={() => router.push(`/hours/entry?id=${session.id}`)}
+                  onLongPress={() => Alert.alert("Ð£Ð´Ð°Ð»Ð¸ÑÑ?", "Ð­ÑÐ¾ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ Ð½ÐµÐ»ÑÐ·Ñ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ.", [
+                    { text: "ÐÑÐ¼ÐµÐ½Ð°", style: "cancel" },
+                    { text: "Ð£Ð´Ð°Ð»Ð¸ÑÑ", style: "destructive", onPress: () => deleteSession(session.id) },
+                  ])}
+                  style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}
+                >
+                  <Text style={styles.sessionDate}>{formatDateDMY(session.date)}</Text>
+                  <Text style={styles.sessionDuration}>{formatHM(session.durationMinutes / 60)}</Text>
+                  {session.note ? <Text style={styles.sessionNote}>{session.note}</Text> : null}
+                </Pressable>
+              ))}
+          </View>
+        </View>
+      )}
+
+      <Modal
+        visible={editRec !== null}
+        title="Ð ÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ (legacy)"
+        onClose={() => setEditRec(null)}
+      >
+        {editRec && (
+          <RecordForm
+            initial={editRec}
+            sessions={sessions}
+            onSave={(input) => { saveRecord(input); setEditRec(null); }}
+            onDelete={() => confirmDeleteRecord(editRec.id)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        visible={showAddSession}
+        title="ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ ÑÐµÑÑÐ¸Ñ"
+        onClose={() => setShowAddSession(false)}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalLabel}>ÐÐ°ÑÐ°</Text>
+          <Text style={styles.modalDateValue}>{formatDateDMY(addSessionDate)}</Text>
+          <Pressable
+            style={styles.modalActionBtn}
+            onPress={() => {
+              router.push(`/hours/entry?date=${addSessionDate}`);
+              setShowAddSession(false);
+            }}
+          >
+            <Text style={styles.modalActionBtnText}>Ð¡Ð¾Ð·Ð´Ð°ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ Ð´Ð»Ñ ÑÑÐ¾Ð¹ Ð´Ð°ÑÑ</Text>
+          </Pressable>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLORS.groupedBg },
+  content: { padding: 16, gap: 20 },
+  section: { gap: 10 },
+  sessionList: { gap: 8 },
+  sessionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sessionRowPressed: { opacity: 0.7 },
+  sessionDate: { fontSize: 13, fontWeight: "600", color: COLORS.text, minWidth: 60 },
+  sessionDuration: { fontSize: 13, fontWeight: "700", color: COLORS.blue },
+  sessionNote: { fontSize: 12, color: COLORS.muted, flex: 1 },
+  legacyEmptyState: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: 8,
+  },
+  legacyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 6 },
+  legacySubtitle: { fontSize: 13, color: COLORS.muted, textAlign: "center", marginBottom: 16 },
+  legacyTotal: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 16 },
+  legacyLabel: { fontSize: 13, color: COLORS.muted },
+  legacyValue: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  addSessionBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.blue,
+    borderRadius: 10,
+  },
+  addSessionBtnText: { color: COLORS.card, fontSize: 14, fontWeight: "700" },
+  modalContent: { padding: 16, gap: 16 },
+  modalLabel: { fontSize: 12, fontWeight: "600", color: COLORS.muted },
+  modalDateValue: { fontSize: 20, fontWeight: "700", color: COLORS.text },
+  modalActionBtn: {
+    paddingVertical: 14,
+    backgroundColor: COLORS.blue,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalActionBtnText: { color: COLORS.card, fontSize: 16, fontWeight: "700" },
+});

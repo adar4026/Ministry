@@ -5,10 +5,10 @@ import { COLORS } from "@/data/constants";
 
 // TASK_002 Phase 1 placeholder. Sections are wired up in Phase 2.
 const SECTIONS = [
-  { key: "add", label: "Добавить время", hint: "Ручной ввод часов и минут" },
-  { key: "timer", label: "Таймер", hint: "Старт / пауза / стоп" },
-  { key: "history", label: "История", hint: "Записи за текущий месяц" },
-  { key: "stats", label: "Статистика", hint: "Прогресс за месяц и служебный год" },
+  { key: "add", label: "ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ Ð²ÑÐµÐ¼Ñ", hint: "Ð ÑÑÐ½Ð¾Ð¹ Ð²Ð²Ð¾Ð´ ÑÐ°ÑÐ¾Ð² Ð¸ Ð¼Ð¸Ð½ÑÑ" },
+  { key: "timer", label: "Ð¢Ð°Ð¹Ð¼ÐµÑ", hint: "Ð¡ÑÐ°ÑÑ / Ð¿Ð°ÑÐ·Ð° / ÑÑÐ¾Ð¿" },
+  { key: "history", label: "ÐÑÑÐ¾ÑÐ¸Ñ", hint: "ÐÐ°Ð¿Ð¸ÑÐ¸ Ð·Ð° ÑÐµÐºÑÑÐ¸Ð¹ Ð¼ÐµÑÑÑ" },
+  { key: "stats", label: "Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°", hint: "ÐÑÐ¾Ð³ÑÐµÑÑ Ð·Ð° Ð¼ÐµÑÑÑ Ð¸ ÑÐ»ÑÐ¶ÐµÐ±Ð½ÑÐ¹ Ð³Ð¾Ð´" },
 ] as const;
 
 export default function ServiceScreen() {
@@ -16,9 +16,9 @@ export default function ServiceScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-          <Text style={styles.backText}>‹ Назад</Text>
+          <Text style={styles.backText}>â¹ ÐÐ°Ð·Ð°Ð´</Text>
         </Pressable>
-        <Text style={styles.title}>Служение</Text>
+        <Text style={styles.title}>Ð¡Ð»ÑÐ¶ÐµÐ½Ð¸Ðµ</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -26,10 +26,10 @@ export default function ServiceScreen() {
           <Pressable
             key={s.key}
             onPress={() => {
-              if (s.key === "add") return router.push("/entry");
-              if (s.key === "history") return router.push("/history");
-              if (s.key === "timer") return router.push("/timer");
-              Alert.alert(s.label, "Появится в Фазе 2");
+              if (s.key === "add") return router.push("/hours/entry");
+              if (s.key === "history") return router.push("/hours/history");
+              if (s.key === "timer") return router.push("/hours/timer");
+              if (s.key === "stats") return router.push("/hours/stats");
             }}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
           >
@@ -37,7 +37,7 @@ export default function ServiceScreen() {
               <Text style={styles.cardLabel}>{s.label}</Text>
               <Text style={styles.cardHint}>{s.hint}</Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Text style={styles.chevron}>âº</Text>
           </Pressable>
         ))}
       </ScrollView>

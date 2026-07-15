@@ -58,7 +58,7 @@ export function HoursHeroCard({ state = "idle" }: { state?: HeroState }) {
         />
       </View>
 
-      <HeroAction state={state} onStart={() => router.push("/timer")} />
+      <HeroAction state={state} onStart={() => router.push("/hours/timer")} />
     </View>
   );
 }

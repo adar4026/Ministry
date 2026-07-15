@@ -18,6 +18,12 @@ export const COLORS = {
   danger: "#dc2626",
   dangerBg: "#fee2e2",
   warn: "#f59e0b",
+  green: "#22c55e",
+  greenBg: "#dcfce7",
+  teal: "#14b8a6",
+  tealBg: "#ccfbf1",
+  shadow: "#1e3a5f",
+  onAccent: "#ffffff",
 };
 
 // Category metadata: label + badge background / text / timeline dot colors.

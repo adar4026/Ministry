@@ -1,5 +1,5 @@
 // Unit tests for the History screen's grouping logic (TASK_005B).
-import { buildHistory } from "../history";
+import { buildHistory } from "../(tabs)/hours/history";
 import type { HourRecord, Session } from "@/types";
 
 function record(year: number, month: number, hours: number, id = `r-${year}-${month}`): HourRecord {
