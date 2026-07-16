@@ -6,6 +6,8 @@
 
 **Scope:** Hours Dashboard, Month Details, nested Stack navigator, route migration, service.tsx retirement.
 
+**Completion note (July 2026):** The planned `app/service.tsx` retirement was completed by replacing the legacy screen with a compatibility redirect to `/hours`.
+
 **Out of scope (TASK_005E):** Statistics screen, charts, pace/projection, full-year HeatMap, charting library selection.
 
 ---

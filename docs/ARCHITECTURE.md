@@ -31,8 +31,7 @@ ministry/
 │   │   ├── timeline.tsx        # События (вкл. публичные речи)
 │   │   ├── profile.tsx         # Профиль
 │   │   └── _layout.tsx         # Tab navigator (5 вкладок)
-│   ├── service.tsx             # Легаси-маршрут (без входящих ссылок,
-│   │                           #   см. STATUS — решение об удалении)
+│   ├── service.tsx             # Легаси-маршрут: redirect к /hours
 │   └── _layout.tsx             # Root layout
 │
 ├── src/
