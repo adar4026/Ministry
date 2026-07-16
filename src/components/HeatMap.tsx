@@ -120,7 +120,7 @@ export function HeatMap({
       <View style={styles.container}>
         {/* Weekday headers */}
         <View style={styles.weekdayRow}>
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+          {["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"].map((d, i) => (
             <Text key={i} style={styles.weekdayLabel}>{d}</Text>
           ))}
         </View>

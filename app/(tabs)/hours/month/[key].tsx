@@ -39,9 +39,9 @@ export default function MonthDetailsScreen() {
   const [addSessionDate, setAddSessionDate] = useState(toISODate(new Date(year, month - 1, 1)));
 
   function confirmDeleteRecord(id: string) {
-    Alert.alert("Ð£Ð´Ð°Ð»Ð¸ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ?", "Ð­ÑÐ¾ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ Ð½ÐµÐ»ÑÐ·Ñ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ.", [
-      { text: "ÐÑÐ¼ÐµÐ½Ð°", style: "cancel" },
-      { text: "Ð£Ð´Ð°Ð»Ð¸ÑÑ", style: "destructive", onPress: () => { deleteRecord(id); setEditRec(null); } },
+    Alert.alert("Удалить запись?", "Это действие нельзя отменить.", [
+      { text: "Отмена", style: "cancel" },
+      { text: "Удалить", style: "destructive", onPress: () => { deleteRecord(id); setEditRec(null); } },
     ]);
   }
 
@@ -53,8 +53,8 @@ export default function MonthDetailsScreen() {
   function handleMonthPress(m: { id: string; year: number; month: number; hours: number; source: "session" | "legacy" }) {
     if (m.source === "session") {
       Alert.alert(
-        "Ð­ÑÐ¾Ñ Ð¼ÐµÑÑÑ Ð²ÐµÐ´ÑÑÑÑ Ð² ÑÐ°Ð·Ð´ÐµÐ»Ðµ Â«Ð§Ð°ÑÑÂ»",
-        "Ð§Ð°ÑÑ Ð·Ð° ÑÑÐ¾Ñ Ð¼ÐµÑÑÑ ÑÑÐ¸ÑÑÐ²Ð°ÑÑÑÑ Ð¿Ð¾ Ð·Ð°Ð¿Ð¸ÑÑÐ¼ Ð²ÑÐµÐ¼ÐµÐ½Ð¸. Ð ÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°Ð½Ð¸Ðµ Ð¿Ð¾ÑÐ²Ð¸ÑÑÑ Ð² ÑÐ°Ð·Ð´ÐµÐ»Ðµ Â«Ð§Ð°ÑÑÂ».",
+        "Этот месяц ведётся в разделе «Часы»",
+        "Часы за этот месяц учитываются по записям времени. Редактирование появится в разделе «Часы».",
       );
       return;
     }
@@ -98,32 +98,32 @@ export default function MonthDetailsScreen() {
 
       {source === "session" && dailyCells.length > 0 && (
         <View style={styles.section}>
-          <SectionHeader title="Ð¢ÐµÐ¿Ð»Ð¾Ð²Ð°Ñ ÐºÐ°ÑÑÐ° Ð´Ð½Ñ" />
+          <SectionHeader title="Тепловая карта дня" />
           <HeatMap cells={dailyCells} granularity="day" cellSize={24} gap={3} />
         </View>
       )}
 
       {source === "legacy" && (
         <View style={styles.legacyEmptyState}>
-          <Text style={styles.legacyTitle}>ÐÐµÑÑÑ Ð±ÐµÐ· ÑÐµÑÑÐ¸Ð¹</Text>
+          <Text style={styles.legacyTitle}>Месяц без сессий</Text>
           <Text style={styles.legacySubtitle}>
-            Ð§Ð°ÑÑ Ð·Ð° ÑÑÐ¾Ñ Ð¼ÐµÑÑÑ Ð·Ð°Ð¿Ð¸ÑÐ°Ð½Ñ Ð¸Ð· Ð¼ÐµÑÑÑÐ½Ð¾Ð¹ Ð¸ÑÐ¾Ð³Ð¾Ð²Ð¾Ð¹ Ð·Ð°Ð¿Ð¸ÑÐ¸ (legacy).
+            Часы за этот месяц записаны из месячной итоговой записи (legacy).
           </Text>
           {legacyRecord && (
             <View style={styles.legacyTotal}>
-              <Text style={styles.legacyLabel}>ÐÑÐµÐ³Ð¾ ÑÐ°ÑÐ¾Ð² (legacy):</Text>
+              <Text style={styles.legacyLabel}>Всего часов (legacy):</Text>
               <Text style={styles.legacyValue}>{formatHM(legacyRecord.hours)}</Text>
             </View>
           )}
           <Pressable style={styles.addSessionBtn} onPress={handleAddSession} accessibilityRole="button">
-            <Text style={styles.addSessionBtnText}>+ ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ Ð¿ÐµÑÐ²ÑÑ ÑÐµÑÑÐ¸Ñ</Text>
+            <Text style={styles.addSessionBtnText}>+ Добавить первую сессию</Text>
           </Pressable>
         </View>
       )}
 
       {monthSessions.length > 0 && (
         <View style={styles.section}>
-          <SectionHeader title="Ð¡ÐµÑÑÐ¸Ð¸" />
+          <SectionHeader title="Сессии" />
           <View style={styles.sessionList}>
             {monthSessions
               .sort((a, b) => b.date.localeCompare(a.date))
@@ -131,9 +131,9 @@ export default function MonthDetailsScreen() {
                 <Pressable
                   key={session.id}
                   onPress={() => router.push(`/hours/entry?id=${session.id}`)}
-                  onLongPress={() => Alert.alert("Ð£Ð´Ð°Ð»Ð¸ÑÑ?", "Ð­ÑÐ¾ Ð´ÐµÐ¹ÑÑÐ²Ð¸Ðµ Ð½ÐµÐ»ÑÐ·Ñ Ð¾ÑÐ¼ÐµÐ½Ð¸ÑÑ.", [
-                    { text: "ÐÑÐ¼ÐµÐ½Ð°", style: "cancel" },
-                    { text: "Ð£Ð´Ð°Ð»Ð¸ÑÑ", style: "destructive", onPress: () => deleteSession(session.id) },
+                  onLongPress={() => Alert.alert("Удалить?", "Это действие нельзя отменить.", [
+                    { text: "Отмена", style: "cancel" },
+                    { text: "Удалить", style: "destructive", onPress: () => deleteSession(session.id) },
                   ])}
                   style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}
                 >
@@ -148,7 +148,7 @@ export default function MonthDetailsScreen() {
 
       <Modal
         visible={editRec !== null}
-        title="Ð ÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ (legacy)"
+        title="Редактировать запись (legacy)"
         onClose={() => setEditRec(null)}
       >
         {editRec && (
@@ -163,11 +163,11 @@ export default function MonthDetailsScreen() {
 
       <Modal
         visible={showAddSession}
-        title="ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ ÑÐµÑÑÐ¸Ñ"
+        title="Добавить сессию"
         onClose={() => setShowAddSession(false)}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.modalLabel}>ÐÐ°ÑÐ°</Text>
+          <Text style={styles.modalLabel}>Дата</Text>
           <Text style={styles.modalDateValue}>{formatDateDMY(addSessionDate)}</Text>
           <Pressable
             style={styles.modalActionBtn}
@@ -176,7 +176,7 @@ export default function MonthDetailsScreen() {
               setShowAddSession(false);
             }}
           >
-            <Text style={styles.modalActionBtnText}>Ð¡Ð¾Ð·Ð´Ð°ÑÑ Ð·Ð°Ð¿Ð¸ÑÑ Ð´Ð»Ñ ÑÑÐ¾Ð¹ Ð´Ð°ÑÑ</Text>
+            <Text style={styles.modalActionBtnText}>Создать запись для этой даты</Text>
           </Pressable>
         </View>
       </Modal>

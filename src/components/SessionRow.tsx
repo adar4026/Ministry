@@ -15,12 +15,12 @@ export function SessionRow({ session, onPress, onLongPress }: SessionRowProps) {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete session?",
-      "This action cannot be undone.",
+      "Удалить запись?",
+      "Это действие нельзя отменить.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Отмена", style: "cancel" },
         {
-          text: "Delete",
+          text: "Удалить",
           style: "destructive",
           onPress: () => {
             deleteSession(session.id);
@@ -37,8 +37,8 @@ export function SessionRow({ session, onPress, onLongPress }: SessionRowProps) {
       onLongPress={handleDelete}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={`Session ${formatDateDMY(session.date)}, ${formatHM(session.durationMinutes / 60)}`}
-      accessibilityHint="Double tap to edit. Long press to delete."
+      accessibilityLabel={`Сессия ${formatDateDMY(session.date)}, ${formatHM(session.durationMinutes / 60)}`}
+      accessibilityHint="Дважды нажмите для редактирования. Долгое нажатие для удаления."
     >
       <View style={styles.content}>
         <Text style={styles.date}>{formatDateDMY(session.date)}</Text>
@@ -46,7 +46,7 @@ export function SessionRow({ session, onPress, onLongPress }: SessionRowProps) {
         {session.note && <Text style={styles.note}>{session.note}</Text>}
       </View>
       <View style={styles.sourceBadge}>
-        <Text style={styles.sourceText}>{session.source === "timer" ? "Timer" : "Manual"}</Text>
+        <Text style={styles.sourceText}>{session.source === "timer" ? "Таймер" : "Ручной"}</Text>
       </View>
     </Pressable>
   );

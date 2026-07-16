@@ -25,18 +25,18 @@ export default function StatsScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-          <Text style={styles.backText}>â¹ ÐÐ°Ð·Ð°Ð´</Text>
+          <Text style={styles.backText}>‹ Назад</Text>
         </Pressable>
-        <Text style={styles.title}>Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°</Text>
+        <Text style={styles.title}>Статистика</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <MonthlyStatsCard onPress={() => router.push(`/hours/month/${syLabel.split("â")[0]}-${String(new Date().getMonth() + 1).padStart(2, "0")}` as any)} />
+        <MonthlyStatsCard onPress={() => router.push(`/hours/month/${syLabel.split("–")[0]}-${String(new Date().getMonth() + 1).padStart(2, "0")}` as any)} />
 
         <ServiceYearStatsCard />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ð¢ÑÐµÐ½Ð´ 12 Ð¼ÐµÑÑÑÐµÐ²</Text>
+          <Text style={styles.sectionTitle}>Тренд 12 месяцев</Text>
           <TrendChart
             height={200}
             onPressMonth={(date, value) => {
@@ -50,7 +50,7 @@ export default function StatsScreen() {
         <ProjectionCard />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ð¢ÐµÐ¿Ð»Ð¾Ð²Ð°Ñ ÐºÐ°ÑÑÐ° ÑÐ»ÑÐ¶ÐµÐ±Ð½Ð¾Ð³Ð¾ Ð³Ð¾Ð´Ð°</Text>
+          <Text style={styles.sectionTitle}>Тепловая карта служебного года</Text>
           <HeatMap cells={syCells} granularity="month" cellSize={30} gap={4} onPressCell={(date, value) => {
             if (value > 0) router.push(`/hours/month/${date}`);
           }} />

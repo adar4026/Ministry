@@ -54,27 +54,27 @@ export function ProjectionCard({ onPress }: ProjectionCardProps) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Month end projection: 7-day pace ${formatHM(projection.proj7)}, 30-day pace ${formatHM(projection.proj30)}. Goal ${projection.willMeetGoal7 ? "will be met" : "will not be met"} by end of month.`}
+      accessibilityLabel={`Прогноз конца месяца: 7-дн. прогноз ${formatHM(projection.proj7)}, 30-дн. ${formatHM(projection.proj30)}. Цель ${projection.willMeetGoal7 ? "будет достигнута" : "не будет достигнута"} до конца месяца.`}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Month End Projection</Text>
-        <Text style={styles.subtitle}>Based on 7- and 30-day pace</Text>
+        <Text style={styles.title}>Прогноз конца месяца</Text>
+        <Text style={styles.subtitle}>Базируется на темпе за 7 и 30 дней</Text>
       </View>
 
       <View style={styles.divider} />
 
       <View style={styles.projections}>
         <View style={styles.projCol}>
-          <Text style={styles.projLabel}>7-day pace ({formatHM(projection.pace7 / 60)} / day)</Text>
+          <Text style={styles.projLabel}>7-дн. темп ({formatHM(projection.pace7 / 60)} / дн.)</Text>
           <Text style={[styles.projValue, { color: projection.willMeetGoal7 ? COLORS.green : COLORS.danger }]}>
             {formatHM(projection.proj7)}
           </Text>
           <Text style={[styles.projSub, { color: projection.willMeetGoal7 ? COLORS.green : COLORS.danger }]}>
-            {projection.willMeetGoal7 ? "Goal will be reached" : "Goal will not be reached"}
+            {projection.willMeetGoal7 ? "✅ Цель будет достигнута" : "❌ Цель не будет достигнута"}
           </Text>
           {projection.daysToGoal7 && (
             <Text style={styles.detail}>
-              {projection.daysToGoal7 <= projection.daysLeft ? "Can reach" : "Cannot reach"} {projection.daysToGoal7} days to goal
+              {projection.daysToGoal7 <= projection.daysLeft ? "Справимся" : "Нет"} {projection.daysToGoal7} дн. до цели
             </Text>
           )}
         </View>
@@ -82,16 +82,16 @@ export function ProjectionCard({ onPress }: ProjectionCardProps) {
         <View style={[styles.projCol, styles.projColDivider]} />
 
         <View style={styles.projCol}>
-          <Text style={styles.projLabel}>30-day pace ({formatHM(projection.pace30 / 60)} / day)</Text>
+          <Text style={styles.projLabel}>30-дн. темп ({formatHM(projection.pace30 / 60)} / дн.)</Text>
           <Text style={[styles.projValue, { color: projection.willMeetGoal30 ? COLORS.green : COLORS.danger }]}>
             {formatHM(projection.proj30)}
           </Text>
           <Text style={[styles.projSub, { color: projection.willMeetGoal30 ? COLORS.green : COLORS.danger }]}>
-            {projection.willMeetGoal30 ? "Goal will be reached" : "Goal will not be reached"}
+            {projection.willMeetGoal30 ? "✅ Цель будет достигнута" : "❌ Цель не будет достигнута"}
           </Text>
           {projection.daysToGoal30 && (
             <Text style={styles.detail}>
-              {projection.daysToGoal30 <= projection.daysLeft ? "Can reach" : "Cannot reach"} {projection.daysToGoal30} days to goal
+              {projection.daysToGoal30 <= projection.daysLeft ? "Справимся" : "Нет"} {projection.daysToGoal30} дн. до цели
             </Text>
           )}
         </View>
@@ -101,15 +101,15 @@ export function ProjectionCard({ onPress }: ProjectionCardProps) {
 
       <View style={styles.footer}>
         <View style={styles.footerItem}>
-          <Text style={styles.footerLabel}>Days left</Text>
+          <Text style={styles.footerLabel}>Осталось дн.ей</Text>
           <Text style={styles.footerValue}>{projection.daysLeft}</Text>
         </View>
         <View style={styles.footerItem}>
-          <Text style={styles.footerLabel}>To goal</Text>
+          <Text style={styles.footerLabel}>До цели</Text>
           <Text style={styles.footerValue}>{formatHM(projection.hoursRemaining)}</Text>
         </View>
         <View style={styles.footerItem}>
-          <Text style={styles.footerLabel}>Month ends</Text>
+          <Text style={styles.footerLabel}>Конец месяца</Text>
           <Text style={styles.footerValue}>{projection.goalDate.split("-").reverse().join(".")}</Text>
         </View>
       </View>

@@ -1,5 +1,5 @@
 // Unit tests for TASK_005E stats helpers
-// Pure functions Ã¢ÂÂ no React, no StoreContext, no RN needed.
+// Pure functions — no React, no StoreContext, no RN needed.
 import {
   trailingPace,
   projectMonthEnd,
@@ -48,7 +48,7 @@ describe("trailingPace", () => {
       session("2026-06-12", 90),
       session("2026-06-14", 30),
     ];
-    // 180 min / 7 days Ã¢ÂÂ 25.7 min/day
+    // 180 min / 7 days ≈ 25.7 min/day
     const pace = trailingPace(sessions, 7, now);
     expect(pace).toBeCloseTo(180 / 7, 1);
   });
@@ -113,13 +113,13 @@ describe("monthCellsForSY", () => {
     session("2026-01-10", 300), // 5h
   ];
 
-  it("returns 12 cells for SepÃ¢ÂÂAug service year", () => {
-    const cells = monthCellsForSY(RECORDS, sessions, "2025Ã¢ÂÂ2026");
+  it("returns 12 cells for Sep–Aug service year", () => {
+    const cells = monthCellsForSY(RECORDS, sessions, "2025–2026");
     expect(cells).toHaveLength(12);
   });
 
   it("orders months Sep, Oct, Nov, Dec, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug", () => {
-    const cells = monthCellsForSY(RECORDS, sessions, "2025Ã¢ÂÂ2026");
+    const cells = monthCellsForSY(RECORDS, sessions, "2025–2026");
     expect(cells.map((c) => c.date)).toEqual([
       "2025-09",
       "2025-10",
@@ -137,7 +137,7 @@ describe("monthCellsForSY", () => {
   });
 
   it("uses Session totals when sessions exist for month (authoritative)", () => {
-    const cells = monthCellsForSY(RECORDS, sessions, "2025Ã¢ÂÂ2026");
+    const cells = monthCellsForSY(RECORDS, sessions, "2025–2026");
     const sep = cells.find((c) => c.date === "2025-09")!;
     const oct = cells.find((c) => c.date === "2025-10")!;
     const jan = cells.find((c) => c.date === "2026-01")!;
@@ -147,14 +147,14 @@ describe("monthCellsForSY", () => {
   });
 
   it("falls back to HourRecord when no sessions for month", () => {
-    const cells = monthCellsForSY(RECORDS, sessions, "2025Ã¢ÂÂ2026");
+    const cells = monthCellsForSY(RECORDS, sessions, "2025–2026");
     // May 2026 has record 43h, no sessions
     const may = cells.find((c) => c.date === "2026-05")!;
     expect(may.value).toBe(43);
   });
 
   it("returns 0 for months with neither sessions nor records", () => {
-    const cells = monthCellsForSY(RECORDS, sessions, "2025Ã¢ÂÂ2026");
+    const cells = monthCellsForSY(RECORDS, sessions, "2025–2026");
     const feb = cells.find((c) => c.date === "2026-02")!;
     expect(feb.value).toBe(0);
   });
@@ -162,7 +162,7 @@ describe("monthCellsForSY", () => {
   it("Session wins over HourRecord for same month", () => {
     // Add a session for June 2026 (which has 54h record)
     const sessionsWithJun = [...sessions, session("2026-06-01", 600)]; // 10h
-    const cells = monthCellsForSY(RECORDS, sessionsWithJun, "2025Ã¢ÂÂ2026");
+    const cells = monthCellsForSY(RECORDS, sessionsWithJun, "2025–2026");
     const jun = cells.find((c) => c.date === "2026-06")!;
     expect(jun.value).toBe(10); // Session 10h wins over record 54h
   });

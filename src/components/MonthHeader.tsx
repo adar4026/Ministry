@@ -36,7 +36,7 @@ export function MonthHeader({
         </View>
         <View style={[styles.sourceBadge, { backgroundColor: source === "session" ? COLORS.light : COLORS.warn }]}>
           <Text style={[styles.sourceText, { color: source === "session" ? COLORS.accent : COLORS.warn }]}>
-            {source === "session" ? "Sessions" : "Legacy"}
+            {source === "session" ? "Сессии" : "Легаси"}
           </Text>
         </View>
       </View>
@@ -44,19 +44,19 @@ export function MonthHeader({
       <View style={styles.statsRow}>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{formatHM(totalHours)}</Text>
-          <Text style={styles.statLabel}>Total this month</Text>
+          <Text style={styles.statLabel}>Всего за месяц</Text>
         </View>
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: isAhead ? COLORS.green : COLORS.danger }]}>
             {isAhead ? "+" : ""}{formatHM(Math.abs(delta))}
           </Text>
-          <Text style={styles.statLabel}>From goal ({goal} hrs)</Text>
+          <Text style={styles.statLabel}>От цели ({goal} ч)</Text>
         </View>
       </View>
 
       {onPressAddSession && (
         <Pressable style={styles.addBtn} onPress={onPressAddSession} accessibilityRole="button">
-          <Text style={styles.addBtnText}>+ Add Session to This Month</Text>
+          <Text style={styles.addBtnText}>+ Добавить сессию в этот месяц</Text>
         </Pressable>
       )}
     </View>

@@ -37,32 +37,32 @@ export function PaceCard() {
       ]}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Pace</Text>
-        <Text style={styles.subtitle}>Average daily hours</Text>
+        <Text style={styles.title}>Темп служения</Text>
+        <Text style={styles.subtitle}>Средние часы в день</Text>
       </View>
 
       <View style={styles.grid}>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>7d</Text>
+          <Text style={styles.period}>7 дн.</Text>
           <Text style={styles.value}>{avg7.toFixed(1)}</Text>
-          <Text style={styles.unit}>h/day</Text>
+          <Text style={styles.unit}>ч/день</Text>
         </View>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>30d</Text>
+          <Text style={styles.period}>30 дн.</Text>
           <Text style={styles.value}>{avg30.toFixed(1)}</Text>
-          <Text style={styles.unit}>h/day</Text>
+          <Text style={styles.unit}>ч/день</Text>
         </View>
         <View style={styles.paceItem}>
-          <Text style={styles.period}>60d</Text>
+          <Text style={styles.period}>60 дн.</Text>
           <Text style={styles.value}>{avg60.toFixed(1)}</Text>
-          <Text style={styles.unit}>h/day</Text>
+          <Text style={styles.unit}>ч/день</Text>
         </View>
       </View>
 
       <View style={styles.trend}>
-        <Text style={styles.trendLabel}>Trend (7 vs 30)</Text>
+        <Text style={styles.trendLabel}>Тренд (7 vs 30)</Text>
         <Text style={[styles.trendValue, isImproving ? styles.trendUp : styles.trendDown]}>
-          {isImproving ? "+" : ""}{trend.toFixed(1)} h/day
+          {isImproving ? "+" : ""}{trend.toFixed(1)} ч/день
         </Text>
       </View>
     </Pressable>

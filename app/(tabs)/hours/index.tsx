@@ -62,7 +62,7 @@ export default function HoursDashboard() {
       <QuickActionsRow />
 
       <View style={styles.section}>
-        <SectionHeader title="ÃÂ¢ÃÂµÃÂ¿ÃÂ»ÃÂ¾ÃÂ²ÃÂ°ÃÂ ÃÂºÃÂ°ÃÂÃÂÃÂ° ÃÂÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂ¾ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂÃÂ´" />
+        <SectionHeader title="Тепловая карта служебной год" />
         <HeatMap cells={monthCells} granularity="month" cellSize={30} gap={4} onPressCell={(date, value) => {
           if (value > 0) router.push(`/hours/month/${date}`);
         }} />
@@ -70,7 +70,7 @@ export default function HoursDashboard() {
 
       {currentSY && (
         <View style={styles.section}>
-          <SectionHeader title={`ÃÂ¡ÃÂ»ÃÂÃÂ¶ÃÂµÃÂ±ÃÂ½ÃÂÃÂ¹ ÃÂ³ÃÂ¾ÃÂÃÂ´ ${currentSY.sy} (${formatHM(currentSY.total)})`} />
+          <SectionHeader title={`Служебный год ${currentSY.sy} (${formatHM(currentSY.total)})`} />
           <SummaryCard accent={COLORS.accent} meta={formatHM(currentSY.total)}>
             <View style={styles.monthGrid}>
               {currentSY.months.map((m) => (
