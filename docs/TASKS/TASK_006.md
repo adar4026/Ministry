@@ -1,6 +1,6 @@
 # TASK_006 — Home UI Polish: Title Hierarchy & Section Titles
 
-**Status:** READY TO START
+**Status:** COMPLETED (июль 2026, commit 6d8f68c)
 **Priority:** P3
 
 ## Background

@@ -4,49 +4,63 @@
 
 | Слой | Технология | Статус |
 |------|-----------|--------|
-| Платформа | Expo (React Native) | Цель |
-| Навигация | expo-router | Цель |
-| Хранилище | AsyncStorage | Цель |
-| Текущий прототип | React + localStorage | Есть |
-| Язык | JavaScript (→ TypeScript) | Планируется |
+| Платформа | Expo (React Native), SDK 54 | Есть |
+| Навигация | expo-router | Есть |
+| Хранилище | AsyncStorage | Есть |
+| Исходный прототип | React + localStorage (`prototype/`) | Архив |
+| Язык | TypeScript | Есть |
 
 ---
 
-## Структура папок (целевая)
+## Структура папок (актуальная)
 
 ```
 ministry/
 ├── app/                        # expo-router screens
 │   ├── (tabs)/
-│   │   ├── index.tsx           # Главная (Dashboard)
-│   │   ├── hours.tsx           # Часы
-│   │   ├── timeline.tsx        # События
-│   │   ├── talks.tsx           # Речи
-│   │   └── add.tsx             # Добавить
-│   └── _layout.tsx             # Root layout + Tab navigator
+│   │   ├── index.tsx           # Главная (TASK_007)
+│   │   ├── hours/              # Модуль «Часы» (TASK_005D)
+│   │   │   ├── _layout.tsx     # Вложенный Stack-навигатор
+│   │   │   ├── index.tsx       # Hours Dashboard
+│   │   │   ├── entry.tsx       # Manual Entry (Session)
+│   │   │   ├── history.tsx     # История сессий
+│   │   │   ├── timer.tsx       # Ministry Timer (TASK_005C)
+│   │   │   ├── stats.tsx       # Статистика (TASK_005E)
+│   │   │   └── month/[key].tsx # Детали месяца
+│   │   ├── add.tsx             # Добавить
+│   │   ├── timeline.tsx        # События (вкл. публичные речи)
+│   │   ├── profile.tsx         # Профиль
+│   │   └── _layout.tsx         # Tab navigator (5 вкладок)
+│   ├── service.tsx             # Легаси-маршрут (без входящих ссылок,
+│   │                           #   см. STATUS — решение об удалении)
+│   └── _layout.tsx             # Root layout
 │
 ├── src/
 │   ├── data/
-│   │   ├── seed.ts             # Все исторические данные
-│   │   └── constants.ts        # Цвета, категории, хелперы
+│   │   ├── seed.js / seed.ts   # Все исторические данные (неприкосновенны)
+│   │   ├── constants.ts        # Цвета, хелперы, агрегация (Session-first)
+│   │   ├── stats.ts            # Чистые функции статистики (TASK_005E)
+│   │   └── timer.ts            # Чистые функции таймера (TASK_005C)
 │   │
 │   ├── store/
 │   │   └── StoreContext.tsx    # Global state (Context API)
 │   │
 │   ├── hooks/
-│   │   └── useStorage.ts       # AsyncStorage wrapper
+│   │   ├── useStorage.ts       # AsyncStorage wrapper
+│   │   └── useTimer.ts         # Жизненный цикл mj_timer_v1
 │   │
 │   ├── components/             # Переиспользуемые компоненты
-│   │   ├── Badge.tsx
-│   │   ├── StatCard.tsx
-│   │   ├── MonthChip.tsx
-│   │   └── TalkRow.tsx
+│   │   ├── dashboard/          # Компоненты Главной (TASK_007)
+│   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
+│   │   ├── stats/              # Карточки статистики (TASK_005E)
+│   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
+│   │   └── TodayCard.tsx
 │   │
 │   └── types/
 │       └── index.ts            # TypeScript типы
 │
-├── docs/                       # Вся документация проекта
-├── App.tsx                     # Точка входа
+├── docs/                       # ARCHITECTURE · STATUS · DECISIONS ·
+│                               #   ADR/ · TASKS/ · AI_INFRASTRUCTURE.md
 └── package.json
 ```
 

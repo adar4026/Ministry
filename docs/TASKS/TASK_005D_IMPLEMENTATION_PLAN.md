@@ -1,5 +1,7 @@
 # TASK_005D — Implementation Plan
 
+**Status:** COMPLETED (июль 2026, commit b8d1a4d; русский UI восстановлен в b9fe019, релиз ожидается)
+
 **Goal:** Complete the Hours 2.0 structural migration per the FROZEN architecture (TASK_005_ARCHITECTURE.md §2–§3, §5–§6, §13 Phase D).
 
 **Scope:** Hours Dashboard, Month Details, nested Stack navigator, route migration, service.tsx retirement.
