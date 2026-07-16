@@ -297,30 +297,58 @@ TASK_008 must not, at any stage:
 
 ## 6. Acceptance Criteria
 
-**None of the following may be marked complete until implemented and verified. All are
-currently unmet — this is the starting state, not a completion record.**
+**Checked items below are verified complete as of implementation commit `073cd02` plus the
+Stage 5 documentation work in this same TASK_008 effort. Unchecked items are genuinely pending
+— not performed, not claimed. Nothing here is marked complete without the corresponding
+verification command or artifact having actually been run/produced.**
 
-- [ ] `app/(tabs)/hours/index.tsx` no longer aggregates `records`/`sessions` directly; it calls
-      `monthCellsForSY()`.
-- [ ] Month authority (Session vs. legacy) is decided by Session existence, not by summed
-      duration, at every call site.
-- [ ] `monthTotalFromSources()` is removed; `monthCellsForSY()` calls the canonical
-      `monthTotal()`.
-- [ ] `sessionsForMonth()`/`monthTotal()` relocated to `stats.ts`, re-exported unchanged from
-      `constants.ts`; repository-wide import search shows no broken consumer.
-- [ ] `HeatMap`'s month-granularity rendering resolves September–December to the service year's
+- [x] `app/(tabs)/hours/index.tsx` no longer aggregates `records`/`sessions` directly; it calls
+      `monthCellsForSY()`. (commit `073cd02`; verified by diff + `grep` sweep for direct
+      `.filter()`/`.reduce()` aggregation outside `src/data/`, zero matches)
+- [x] Month authority (Session vs. legacy) is decided by Session existence, not by summed
+      duration, at every call site. (verified by dedicated regression tests: zero-duration
+      Session still Session-authoritative, in both `monthTotal()` and `monthCellsForSY()`)
+- [x] `monthTotalFromSources()` is removed; `monthCellsForSY()` and `monthTotal()` both
+      delegate to a single private `resolveMonthTotal()` implementation in `stats.ts` — not
+      `monthCellsForSY()` calling the exported `monthTotal()` directly, since that would have
+      required changing `monthCellsForSY()`'s public parameter shape (corrected per review;
+      see this document's commit history / the conversation record for the reasoning).
+- [x] `sessionsForMonth()`/`monthTotal()` relocated to `stats.ts`, re-exported unchanged from
+      `constants.ts`; repository-wide import search confirmed no broken consumer, no changed
+      import path, no circular dependency (`stats.ts` imports only types from `@/types`).
+- [x] `HeatMap`'s month-granularity rendering resolves September–December to the service year's
       start calendar year and January–August to the following calendar year, verified by a
-      direct test of the extracted mapping helper.
-- [ ] `src/data/stats.ts` contains no mojibake (byte-verified against disk).
-- [ ] New regression tests (§Stage 4) exist and pass.
-- [ ] Full suite passes: `npm test -- --runInBand`.
-- [ ] `./node_modules/.bin/tsc --noEmit` is clean.
-- [ ] A safe, non-deploying production web export succeeds without modifying tracked files.
-- [ ] `docs/STATUS.md` accurately distinguishes tagged `v0.4.4` from unreleased `main`, records
+      direct test of the extracted `resolveMonthGridCells()` helper — including an empirical
+      replay of the pre-TASK_008 logic against the same fixture, confirmed to fail the same
+      assertions the new test makes.
+- [x] `src/data/stats.ts` contains no mojibake (byte-verified against disk both immediately
+      after the fix and again in the final Stage 5 sweep).
+- [x] New regression tests (§Stage 4) exist and pass: 12 new tests across
+      `aggregation.test.ts`, `stats.test.ts`, and the new `HeatMap.test.ts`.
+- [x] Full suite passes: `npm test -- --runInBand` — 10 suites, 117/117 tests.
+- [x] `./node_modules/.bin/tsc --noEmit` is clean.
+- [x] A safe, non-deploying production web export succeeds without modifying tracked files. —
+      ran `npx expo export --platform web` (the non-deploying half of the `npm run deploy`
+      script; `gh-pages -d dist --nojekyll` was not run). 23 routes exported to gitignored
+      `dist/`. `git status --porcelain` output identical before and after; `dist/` does not
+      appear in git status (correctly ignored, not staged).
+- [x] `docs/STATUS.md` accurately distinguishes tagged `v0.4.4` from unreleased `main`, records
       the retrospective ADR-007 findings, and claims no deploy/tag/device-verification.
-- [ ] `package-lock.json` Ministry version metadata reads `0.4.4` with no other lockfile churn.
-- [ ] `MonthlyHoursCard.tsx` orphan status is recorded, not acted on.
-- [ ] No regression to any currently-passing test.
+- [x] `package-lock.json` Ministry version metadata reads `0.4.4` with no other lockfile churn
+      (verified: exactly the two version-string lines changed, nothing else in the diff).
+- [x] `MonthlyHoursCard.tsx` orphan status is recorded (`docs/STATUS.md`), not acted on — the
+      file itself is untouched.
+- [x] No regression to any currently-passing test — all 105 pre-existing tests still pass
+      alongside the 12 new ones (117 total).
+
+**Still genuinely pending (not claimed complete anywhere in this document or in
+`docs/STATUS.md`):**
+- Push of any TASK_008 commit to `origin`.
+- Deploy, version bump, or new git tag.
+- Real-device (Expo Go / iPhone) verification.
+- Public-PWA privacy/access-control resolution.
+- `MonthlyHoursCard.tsx` disposition beyond "orphaned, deferred."
+- Hours/Home UX redesign.
 
 ---
 

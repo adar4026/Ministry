@@ -129,6 +129,16 @@ Stats Screen (ScrollView with all cards)
 | `npx expo export --platform web` | Success (23 routes) |
 | Architecture Review (ADR-007) | Passed |
 
+**TASK_008 historical note (retrospective, not a rewrite of the table above):** no standalone
+checklist-result evidence for this task's "Architecture Review (ADR-007) | Passed" claim could
+be located during the TASK_008 retrospective review (see
+`docs/TASKS/TASK_008_HOURS_INTEGRITY_AND_RELEASE_RECONCILIATION.md` §12). That review found
+this task's `src/data/stats.ts` carried both residual UTF-8 mojibake and a duplicate
+aggregation primitive (`monthTotalFromSources()`) that violated the frozen architecture's
+single-canonical-primitive rule — defects a passed checklist should have caught. TASK_008
+remediated both, on unreleased `main`, after `v0.4.4` had already shipped with this task's
+original code. The table above is left as originally written; this note does not alter it.
+
 ---
 
 ## Release

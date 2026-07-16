@@ -8,6 +8,18 @@
 
 **Completion note (July 2026):** The planned `app/service.tsx` retirement was completed by replacing the legacy screen with a compatibility redirect to `/hours`.
 
+**TASK_008 historical note (retrospective, not a rewrite of the above):** the Architecture
+Review Checklist (ADR-007) referenced by this document's §6 Phase 5.6 was not demonstrably
+completed before `v0.4.4` shipped — no standalone checklist-result evidence exists for this
+task, and this document's own §6 Definition-of-Done boxes were left unchecked. TASK_008
+performed a retrospective review (see
+`docs/TASKS/TASK_008_HOURS_INTEGRITY_AND_RELEASE_RECONCILIATION.md` §12) and found real
+correctness/architecture defects originating in this task's implementation (direct
+`HourRecord`/`Session` aggregation in the Hours Dashboard, sum-based instead of
+existence-based Session authority, and the HeatMap cross-year mapping defect). These were
+remediated afterward, on unreleased `main`, by TASK_008 — not retroactively fixed within this
+document, and not part of any release at the time this task originally shipped.
+
 **Out of scope (TASK_005E):** Statistics screen, charts, pace/projection, full-year HeatMap, charting library selection.
 
 ---
