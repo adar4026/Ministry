@@ -1,12 +1,21 @@
 import type { Category, HourRecord, MinistryEvent, Session, Talk } from "@/types";
 import type { Session as SessionType } from "@/types";
 
-// Re-export stats helpers for backward compatibility with existing imports
+// sessionsForMonth() and monthTotal() live in ./stats (TASK_008 relocation —
+// see that file's Aggregation Layer comment) so monthCellsForSY() can call
+// the canonical primitive directly without a circular import. Imported here
+// for local use (groupBySY, legacyEntryBlockReason, serviceYearAggregation,
+// hoursForMonth below) and re-exported unchanged for every existing
+// "@/data/constants" consumer.
+import { monthTotal, parseISOYearMonth, sessionsForMonth } from "./stats";
+
 export {
   trailingPace,
   projectMonthEnd,
   projectServiceYearEnd,
   monthCellsForSY,
+  monthTotal,
+  sessionsForMonth,
 } from "./stats";
 
 // Color palette (ported from the web prototype).
@@ -65,43 +74,6 @@ export const MF = [
 // Service year starts in September: Sep 2025 – Aug 2026 => "2025–2026".
 export function svcYear(year: number, month: number): string {
   return month >= 9 ? `${year}–${year + 1}` : `${year - 1}–${year}`;
-}
-
-// ---------------------------------------------------------------------------
-// Aggregation Layer (TASK_005A) — the single source for resolving how many
-// hours were spent in a given month across the two time-tracking sources:
-// legacy monthly HourRecord totals, and granular Session entries. See
-// docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8 for the authoritative rule this
-// implements: if any Session exists for a month, Sessions are authoritative
-// for that month; otherwise the legacy HourRecord is used. The two sources
-// are never merged or combined for the same month.
-// ---------------------------------------------------------------------------
-
-// "YYYY-MM-DD" -> { year, month }. Local parse, no Date/timezone involved.
-function parseISOYearMonth(iso: string): { year: number; month: number } {
-  const [y, m] = iso.split("-").map(Number);
-  return { year: y, month: m };
-}
-
-// All Sessions whose `date` falls within the given calendar month.
-export function sessionsForMonth(sessions: Session[], year: number, month: number): Session[] {
-  return sessions.filter((s) => {
-    const p = parseISOYearMonth(s.date);
-    return p.year === year && p.month === month;
-  });
-}
-
-// The authoritative hour total for one month: Session.sum() if at least one
-// Session exists for that month, otherwise the legacy HourRecord's hours (or
-// 0 if neither exists). This is the single primitive every other aggregation
-// function in this layer is built on — never duplicate this resolution logic
-// elsewhere.
-export function monthTotal(records: HourRecord[], sessions: Session[], year: number, month: number): number {
-  const monthSessions = sessionsForMonth(sessions, year, month);
-  if (monthSessions.length > 0) {
-    return monthSessions.reduce((sum, s) => sum + s.durationMinutes, 0) / 60;
-  }
-  return records.find((r) => r.year === year && r.month === month)?.hours ?? 0;
 }
 
 export type LegacyEntryBlockReason = "current" | "future" | "session";

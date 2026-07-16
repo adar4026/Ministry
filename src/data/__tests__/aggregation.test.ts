@@ -84,6 +84,38 @@ describe("monthTotal", () => {
   });
 });
 
+// TASK_008 regression: the Hours Dashboard used to decide month authority by
+// testing whether the Session total was > 0, not by testing whether a
+// Session existed. Under real product flows (SessionForm blocks
+// minutes <= 0; the Timer requires bankedSeconds > 0) that distinction is
+// currently unreachable through the UI — but StoreContext.saveSession()
+// performs no runtime validation, so the aggregation layer must not depend
+// on a guarantee the storage layer doesn't enforce. These tests construct
+// a zero-duration Session directly (bypassing the UI guards) to prove the
+// primitive itself is existence-based, independent of any UI validation.
+describe("monthTotal — TASK_008 Session-existence authority regression", () => {
+  it("a zero-duration Session still makes the month Session-authoritative (existence, not sum)", () => {
+    const records = [record(2026, 6, 54)];
+    const sessions = [session("2026-06-01", 0)];
+    // The old sum-based check (`sessionTotal > 0 ? sessionTotal : total`)
+    // would have fallen back to the legacy 54 here. Existence-based
+    // authority returns 0 — the Session's own (zero) total, never the
+    // legacy fallback.
+    expect(monthTotal(records, sessions, 2026, 6)).toBe(0);
+  });
+
+  it("legacy HourRecord is never consulted once any Session exists for the month, even a zero-duration one", () => {
+    const records = [record(2026, 6, 54)];
+    const sessions = [session("2026-06-01", 0), session("2026-06-15", 0)];
+    expect(monthTotal(records, sessions, 2026, 6)).toBe(0);
+  });
+
+  it("legacy-only months (no Session at all) still resolve from the legacy total", () => {
+    const records = [record(2026, 6, 54)];
+    expect(monthTotal(records, [], 2026, 6)).toBe(54);
+  });
+});
+
 describe("hoursForMonth (regression + session-aware)", () => {
   const now = new Date(2026, 5, 15); // June 2026
 

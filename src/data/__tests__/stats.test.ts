@@ -167,3 +167,42 @@ describe("monthCellsForSY", () => {
     expect(jun.value).toBe(10); // Session 10h wins over record 54h
   });
 });
+
+// TASK_008 regression: monthCellsForSY() itself resolved each month's
+// calendar year correctly even before TASK_008 (the year-picking arithmetic
+// was never the bug) — but no test asserted *values* at the September,
+// December, January, and August boundaries specifically, and no test
+// exercised monthCellsForSY() with a zero-duration Session. Both gaps are
+// closed here, independent of the presentation-layer defect (HeatMap.tsx)
+// covered separately in src/components/__tests__/HeatMap.test.ts.
+describe("monthCellsForSY — TASK_008 service-year boundary regression", () => {
+  it("resolves September and December of the start year, and January and August of the following year, with correct values", () => {
+    const records = [
+      { year: 2025, month: 12, hours: 40 }, // Dec of the start year, legacy-only
+      { year: 2026, month: 8, hours: 35 }, // Aug of the following year, legacy-only
+    ];
+    const boundarySessions = [
+      session("2025-09-05", 120), // Sep of the start year: 2h
+      session("2026-01-10", 180), // Jan of the following year: 3h
+    ];
+    const cells = monthCellsForSY(records, boundarySessions, "2025–2026");
+
+    const sep = cells.find((c) => c.date === "2025-09")!;
+    const dec = cells.find((c) => c.date === "2025-12")!;
+    const jan = cells.find((c) => c.date === "2026-01")!;
+    const aug = cells.find((c) => c.date === "2026-08")!;
+
+    expect(sep.value).toBe(2);
+    expect(dec.value).toBe(40);
+    expect(jan.value).toBe(3);
+    expect(aug.value).toBe(35);
+  });
+
+  it("a Session-authoritative month with a zero total is not replaced by the legacy record", () => {
+    const records = [{ year: 2025, month: 9, hours: 40 }]; // legacy total for September
+    const zeroSession = [session("2025-09-01", 0)]; // constructed directly, zero duration
+    const cells = monthCellsForSY(records, zeroSession, "2025–2026");
+    const sep = cells.find((c) => c.date === "2025-09")!;
+    expect(sep.value).toBe(0); // Session-authoritative (0), not the legacy fallback (40)
+  });
+});

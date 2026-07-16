@@ -45,6 +45,31 @@ function getColorForValue(value: number, maxValue: number): string {
   return interpolateColor(COLOR_STOPS[stopIndex], COLOR_STOPS[stopIndex + 1], localFactor);
 }
 
+// Fixed Sep-Aug service-year grid order (calendar month numbers, 1-12).
+const SERVICE_YEAR_MONTH_ORDER = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8];
+
+export type MonthGridPosition = {
+  month: number; // 1-12, the calendar month this grid position represents
+  cell?: { date: string; value: number };
+};
+
+// Maps the 12 fixed Sep-Aug grid positions to the supplied MonthCell (if
+// any) carrying that calendar month. Matches by each cell's own encoded
+// month, taken directly from its "YYYY-MM..." date string — never derives
+// or reuses a single shared year across positions. This is the TASK_008
+// fix for the cross-year defect: September-start-year cells and the
+// following-year January-August cells were previously resolved by
+// reconstructing every lookup key from one year read off the September
+// cell, which silently failed to find the correct January-August entries.
+export function resolveMonthGridCells(
+  cells: { date: string; value: number }[],
+): MonthGridPosition[] {
+  return SERVICE_YEAR_MONTH_ORDER.map((month) => ({
+    month,
+    cell: cells.find((c) => Number(c.date.slice(5, 7)) === month),
+  }));
+}
+
 export function HeatMap({
   cells,
   granularity,
@@ -61,8 +86,7 @@ export function HeatMap({
     // 12 months in a 3x4 grid (Sep-Aug service year order)
     const cols = MONTHS_PER_ROW;
     const rows = 3;
-    const monthOrder = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7]; // Sep-Aug
-    const year = cells[0]?.date ? new Date(cells[0].date).getFullYear() : new Date().getFullYear();
+    const gridPositions = resolveMonthGridCells(cells);
 
     return (
       <View style={styles.container}>
@@ -71,22 +95,21 @@ export function HeatMap({
             {Array.from({ length: cols }).map((_, col) => {
               const idx = row * cols + col;
               if (idx >= 12) return <View key={`empty-${row}-${col}`} style={{ width: size, height: size }} />;
-              const month = monthOrder[idx];
-              const date = `${year}-${String(month + 1).padStart(2, "0")}`;
-              const cell = cells.find((c) => c.date.startsWith(date));
+              const { month, cell } = gridPositions[idx];
               const value = cell?.value ?? 0;
+              const date = cell?.date ?? `missing-${month}`;
               const color = getColorForValue(value, max);
 
               return (
                 <Pressable
                   key={date}
-                  onPress={() => onPressCell?.(date, value)}
+                  onPress={() => onPressCell?.(cell?.date ?? "", value)}
                   style={({ pressed }) => [
                     styles.cell,
                     { width: size, height: size, backgroundColor: color },
                     pressed && { opacity: 0.8 },
                   ]}
-                  accessibilityLabel={`${month + 1} month: ${value > 0 ? value + "h" : "no data"}`}
+                  accessibilityLabel={`${month} month: ${value > 0 ? value + "h" : "no data"}`}
                 >
                   {value > 0 && <Text style={styles.cellValue}>{Math.round(value)}</Text>}
                 </Pressable>

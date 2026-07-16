@@ -7,7 +7,7 @@ import { MonthSummaryCard } from "@/components/MonthSummaryCard";
 import { QuickActionsRow } from "@/components/QuickActionsRow";
 import { SectionHeader } from "@/components/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/dashboard/SummaryCard";
-import { COLORS, formatHM, monthProgress, serviceYearAggregation, svcYear } from "@/data/constants";
+import { COLORS, formatHM, monthCellsForSY, monthProgress, serviceYearAggregation, svcYear } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
 export default function HoursDashboard() {
@@ -22,28 +22,13 @@ export default function HoursDashboard() {
   const groups = useMemo(() => serviceYearAggregation(records, sessions), [records, sessions]);
   const currentSY = groups[groups.length - 1];
 
-  // HeatMap cells for current service year (12 months: Sep-Aug)
-  const now = new Date();
-  const syStartYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-  const monthCells = useMemo(() => {
-    const cells: { date: string; value: number }[] = [];
-    const monthOrder = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7]; // Sep-Aug
-    monthOrder.forEach((month, idx) => {
-      const year = idx < 4 ? syStartYear : syStartYear + 1;
-      const total = records
-        .filter((r) => r.year === year && r.month === month + 1)
-        .reduce((sum, r) => sum + r.hours, 0);
-      const sessionTotal = sessions
-        .filter((s) => {
-          const [y, m] = s.date.split("-").map(Number);
-          return y === year && m === month + 1;
-        })
-        .reduce((sum, s) => sum + s.durationMinutes / 60, 0);
-      const hours = sessionTotal > 0 ? sessionTotal : total;
-      cells.push({ date: `${year}-${String(month + 1).padStart(2, "0")}`, value: hours });
-    });
-    return cells;
-  }, [records, sessions, syStartYear]);
+  // HeatMap cells for current service year (12 months: Sep-Aug), via the
+  // canonical aggregation layer — see monthCellsForSY() in src/data/stats.ts.
+  // Session-first authority (existence, not sum) is resolved there, not here.
+  const monthCells = useMemo(
+    () => (currentSY ? monthCellsForSY(records, sessions, currentSY.sy) : []),
+    [records, sessions, currentSY],
+  );
 
   function handleMonthPress(key: string) {
     router.push(`/hours/month/${key}`);
