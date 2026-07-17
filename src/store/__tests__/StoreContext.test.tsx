@@ -190,3 +190,93 @@ describe("StoreContext — TASK_009 empty-seed behavior", () => {
     });
   });
 });
+
+// TASK_013 production bug fix regression tests. Root cause: react-native-web's
+// Alert.alert() is a no-op (its entire implementation is `static alert() {}`),
+// so the button callback that used to trigger window.location.reload() after
+// a successful import never fired — the import wrote correct data to
+// AsyncStorage, but the already-mounted StoreContext's live state was never
+// refreshed, so Home kept rendering its stale (pre-import) empty state
+// forever. The fix: StoreContext.replaceAllData() applies imported data to
+// the live context directly, with no reload required. These tests guard
+// both halves of that fix: (a) the hydration guard that has always prevented
+// a premature empty-array write from clobbering real storage, and (b)
+// replaceAllData actually updating and persisting the four collections.
+describe("StoreContext — TASK_013 replaceAllData / import rehydration", () => {
+  const REAL_RECORD = { id: "real-r1", year: 2026, month: 3, hours: 20, note: "real" };
+
+  it("never persists the initial empty seed before hydration completes", async () => {
+    await AsyncStorage.setItem("mj_records_v1", JSON.stringify([REAL_RECORD]));
+    // AsyncStorage.setItem is already a jest.fn() (see
+    // @react-native-async-storage/async-storage/jest/async-storage-mock.js),
+    // so jest.spyOn returns that same object rather than wrapping it — its
+    // call history persists across every earlier test in this file (clear it
+    // so only this test's calls are inspected below), and mockRestore() on
+    // such an object strips its implementation entirely instead of reverting
+    // it (breaking every later test's real setItem calls) — since we never
+    // override the implementation here, just don't call mockRestore() at all.
+    const setItemSpy = jest.spyOn(AsyncStorage, "setItem");
+    setItemSpy.mockClear();
+
+    await renderStore();
+
+    // Every setItem call for mj_records_v1 must carry the real (non-empty)
+    // value — none may have written "[]" while hydration was still pending
+    // (that would be the empty-initial-state-overwrite race described in
+    // the bug report).
+    const recordsCalls = setItemSpy.mock.calls.filter(([key]) => key === "mj_records_v1");
+    expect(recordsCalls.length).toBeGreaterThan(0);
+    for (const [, value] of recordsCalls) {
+      expect(JSON.parse(value as string)).toEqual([REAL_RECORD]);
+    }
+  });
+
+  it("existing storage survives StoreContext mount unchanged", async () => {
+    await AsyncStorage.setItem("mj_records_v1", JSON.stringify([REAL_RECORD]));
+    const { get } = await renderStore();
+    expect(get().records).toEqual([REAL_RECORD]);
+    expect(JSON.parse((await AsyncStorage.getItem("mj_records_v1"))!)).toEqual([REAL_RECORD]);
+  });
+
+  it("replaceAllData updates all four active context collections", async () => {
+    const { get } = await renderStore();
+    const newRecord = { id: "new-r1", year: 2026, month: 7, hours: 8, note: "" };
+    const newEvent = { id: "new-e1", date: "2026-07-01", title: "New event", category: "personal" as const };
+    const newTalk = { id: "new-t1", date: "2026-07-02", number: 5, title: "New talk", location: "Hall" };
+    const newSession = {
+      id: "new-s1",
+      date: "2026-07-03",
+      durationMinutes: 60,
+      note: "",
+      source: "manual" as const,
+      createdAt: "2026-07-03T10:00:00.000Z",
+      updatedAt: "2026-07-03T10:00:00.000Z",
+    };
+
+    await act(async () => {
+      get().replaceAllData({ records: [newRecord], events: [newEvent], talks: [newTalk], sessions: [newSession] });
+    });
+
+    expect(get().records).toEqual([newRecord]);
+    expect(get().events).toEqual([newEvent]);
+    expect(get().talks).toEqual([newTalk]);
+    expect(get().sessions).toEqual([newSession]);
+  });
+
+  it("imported data applied via replaceAllData persists and survives a simulated remount/reload", async () => {
+    const { get } = await renderStore();
+    const newRecord = { id: "persist-r1", year: 2026, month: 8, hours: 15, note: "" };
+
+    await act(async () => {
+      get().replaceAllData({ records: [newRecord], events: [], talks: [], sessions: [] });
+    });
+    await act(async () => {
+      await Promise.resolve(); // flush the persistence effect
+    });
+
+    // Simulate a full page reload: mount a brand new StoreProvider instance
+    // against the same (mocked) AsyncStorage backing store.
+    const remounted = await renderStore();
+    expect(remounted.get().records).toEqual([newRecord]);
+  });
+});

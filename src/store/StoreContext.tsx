@@ -50,6 +50,20 @@ export type SessionInput = {
   source: Session["source"];
 };
 
+// Full-replace input for TASK_013 backup restore (see
+// src/data/backupImport.ts / src/components/settings/BackupSection.tsx).
+// Bypasses the per-item save*() helpers — the caller has already validated
+// and persisted these exact arrays to AsyncStorage; this only needs to make
+// the *live* context match what's on disk so already-mounted screens
+// (Home, Hours, etc.) re-render with the restored data immediately, without
+// requiring a page reload.
+export type ReplaceAllDataInput = {
+  records: HourRecord[];
+  events: MinistryEvent[];
+  talks: Talk[];
+  sessions: Session[];
+};
+
 type StoreValue = {
   records: HourRecord[];
   events: MinistryEvent[];
@@ -64,6 +78,7 @@ type StoreValue = {
   deleteTalk: (id: string) => void;
   saveSession: (input: SessionInput) => void;
   deleteSession: (id: string) => void;
+  replaceAllData: (data: ReplaceAllDataInput) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -139,6 +154,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSessions((ss) => ss.filter((x) => x.id !== id));
   }
 
+  function replaceAllData(data: ReplaceAllDataInput) {
+    setRecords(data.records);
+    setEvents(data.events);
+    setTalks(data.talks);
+    setSessions(data.sessions);
+  }
+
   const value: StoreValue = {
     records,
     events,
@@ -153,6 +175,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteTalk,
     saveSession,
     deleteSession,
+    replaceAllData,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

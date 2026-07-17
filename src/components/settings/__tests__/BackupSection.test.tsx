@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, create } from "react-test-renderer";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { StoreProvider, STORAGE_KEYS, useStore } from "@/store/StoreContext";
 import { buildBackup } from "@/data/backup";
@@ -8,9 +8,7 @@ import { PrimaryButton, DangerButton } from "@/components/ui";
 import type { HourRecord, MinistryEvent, Session, Talk } from "@/types";
 
 jest.mock("@/data/backupFile");
-import { pickBackupFile, saveBackupFile, reloadApp } from "@/data/backupFile";
-
-jest.spyOn(Alert, "alert").mockImplementation(() => {});
+import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 
 const RECORD: HourRecord = { id: "r1", year: 2026, month: 6, hours: 12, note: "" };
 const EVENT: MinistryEvent = { id: "e1", date: "2026-06-01", title: "Test event", category: "personal" };
@@ -25,23 +23,27 @@ const SESSION: Session = {
   updatedAt: "2026-06-03T10:00:00.000Z",
 };
 
-function Harness() {
-  useStore(); // ensures the provider is mounted before children read from it
+type Store = ReturnType<typeof useStore>;
+
+function Harness({ onReady }: { onReady?: (store: Store) => void }) {
+  const store = useStore();
+  onReady?.(store);
   return <BackupSection />;
 }
 
 async function renderSection() {
+  let latest: Store | null = null;
   let renderer!: ReturnType<typeof create>;
   await act(async () => {
     renderer = create(
       <StoreProvider>
-        <Harness />
+        <Harness onReady={(s) => { latest = s; }} />
       </StoreProvider>,
     );
     await Promise.resolve();
     await Promise.resolve();
   });
-  return renderer;
+  return { renderer, getStore: () => latest as unknown as Store };
 }
 
 // react-native's Pressable doesn't reliably match findAllByType across this
@@ -58,9 +60,16 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
+function feedbackTexts(renderer: ReturnType<typeof create>): string[] {
+  return renderer.root
+    .findAllByType(Text)
+    .map((n) => n.props.children)
+    .filter((c): c is string => typeof c === "string");
+}
+
 describe("BackupSection — export", () => {
   it("has an accessible export button that triggers saveBackupFile", async () => {
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     const btn = pressableFor(renderer.root, "Экспортировать данные");
     expect(btn).toBeTruthy();
     await act(async () => {
@@ -80,7 +89,7 @@ describe("BackupSection — import preview", () => {
     const backup = buildBackup({ records: [], events: [EVENT], talks: [TALK], sessions: [SESSION] });
     (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
 
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
     await act(async () => {
       importBtn!.props.onPress();
@@ -100,7 +109,7 @@ describe("BackupSection — import preview", () => {
     const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
     (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
 
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     // StoreProvider seeds mj_records_v1 with "[]" on first hydration — capture
     // that baseline so we can prove cancel writes nothing, rather than
     // asserting the key stays absent (it never was).
@@ -120,11 +129,15 @@ describe("BackupSection — import preview", () => {
     expect(await AsyncStorage.getItem(STORAGE_KEYS.records)).toBe(before);
   });
 
-  it("confirmed import replaces supported keys and reloads the app", async () => {
-    const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
+  it("confirmed import replaces supported keys, updates the live StoreContext, and shows success — no reload required", async () => {
+    const backup = buildBackup({ records: [RECORD], events: [EVENT], talks: [TALK], sessions: [SESSION] });
     (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
 
-    const renderer = await renderSection();
+    const { renderer, getStore } = await renderSection();
+    // Sanity: live context starts empty (fresh install), matching the bug
+    // report's "installed PWA starts empty" scenario.
+    expect(getStore().records).toEqual([]);
+
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
     await act(async () => {
       importBtn!.props.onPress();
@@ -138,19 +151,25 @@ describe("BackupSection — import preview", () => {
       await Promise.resolve();
     });
 
+    // 1. Storage holds the imported data.
     expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
-    expect(reloadApp).toHaveBeenCalledTimes(0); // reload fires from the Alert's OK callback, not immediately
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "Импорт завершён",
-      expect.any(String),
-      expect.arrayContaining([expect.objectContaining({ text: "ОК" })]),
-    );
+    // 2. THE ACTUAL FIX: the live StoreContext also reflects it, with no
+    //    reload — this is what was missing before (Alert.alert's onPress
+    //    callback, which used to trigger reload, never fires on web).
+    expect(getStore().records).toEqual([RECORD]);
+    expect(getStore().events).toEqual([EVENT]);
+    expect(getStore().talks).toEqual([TALK]);
+    expect(getStore().sessions).toEqual([SESSION]);
+    // 3. Success is shown via inline UI (Alert.alert is a no-op on web and
+    //    is no longer used for this).
+    const texts = feedbackTexts(renderer);
+    expect(texts).toContain("Импорт завершён");
   });
 
   it("rejects invalid JSON without showing a preview or writing anything", async () => {
     (pickBackupFile as jest.Mock).mockResolvedValue("{not valid json");
 
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     const before = await AsyncStorage.getItem(STORAGE_KEYS.records);
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
     await act(async () => {
@@ -159,14 +178,14 @@ describe("BackupSection — import preview", () => {
       await Promise.resolve();
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith("Не удалось импортировать", expect.any(String));
+    expect(feedbackTexts(renderer)).toContain("Не удалось импортировать");
     expect(await AsyncStorage.getItem(STORAGE_KEYS.records)).toBe(before);
   });
 
-  it("silently ignores a cancelled file picker (no error alert)", async () => {
+  it("silently ignores a cancelled file picker (no error feedback)", async () => {
     (pickBackupFile as jest.Mock).mockRejectedValue(new Error("no-file-selected"));
 
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
     await act(async () => {
       importBtn!.props.onPress();
@@ -174,7 +193,7 @@ describe("BackupSection — import preview", () => {
       await Promise.resolve();
     });
 
-    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(feedbackTexts(renderer)).not.toContain("Не удалось выбрать файл");
   });
 
   it("re-enables the import button after a cancelled pick (fallback cancellation doesn't strand the UI)", async () => {
@@ -182,7 +201,7 @@ describe("BackupSection — import preview", () => {
     // "cancelled" once the native picker is dismissed without a `change`.
     (pickBackupFile as jest.Mock).mockRejectedValueOnce(new Error("cancelled"));
 
-    const renderer = await renderSection();
+    const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
     await act(async () => {
       importBtn!.props.onPress();

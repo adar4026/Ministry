@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import { buildBackup, formatBackupFilename, validateBackupJSON, type MinistryBackup } from "@/data/backup";
 import { performImport, readCurrentData, BackupImportError } from "@/data/backupImport";
-import { pickBackupFile, reloadApp, saveBackupFile } from "@/data/backupFile";
+import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 import { Modal } from "@/components/Modal";
 import { DangerButton, PrimaryButton } from "@/components/ui";
 
@@ -18,16 +18,20 @@ function formatBackupTimestamp(iso: string): string {
 const PLATFORM_UNSUPPORTED_MESSAGE =
   "Резервное копирование пока доступно только в веб-версии Ministry (Safari или установленное приложение на экране «Домой»).";
 
+type Feedback = { kind: "success" | "error"; title: string; message: string };
+
 export function BackupSection() {
-  const { records, events, talks, sessions } = useStore();
+  const { records, events, talks, sessions, replaceAllData } = useStore();
   const [exporting, setExporting] = useState(false);
   const [picking, setPicking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<MinistryBackup | null>(null);
   const [currentCounts, setCurrentCounts] = useState<MinistryBackup["counts"] | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   async function handleExport() {
     if (exporting) return;
+    setFeedback(null);
     setExporting(true);
     try {
       const backup = buildBackup({ records, events, talks, sessions });
@@ -38,7 +42,7 @@ export function BackupSection() {
         e instanceof Error && e.message === "platform-unsupported"
           ? PLATFORM_UNSUPPORTED_MESSAGE
           : "Попробуйте ещё раз.";
-      Alert.alert("Не удалось создать резервную копию", message);
+      setFeedback({ kind: "error", title: "Не удалось создать резервную копию", message });
     } finally {
       setExporting(false);
     }
@@ -46,12 +50,13 @@ export function BackupSection() {
 
   async function handlePickImport() {
     if (picking || importing) return;
+    setFeedback(null);
     setPicking(true);
     try {
       const json = await pickBackupFile();
       const result = validateBackupJSON(json);
       if (!result.ok) {
-        Alert.alert("Не удалось импортировать", result.error);
+        setFeedback({ kind: "error", title: "Не удалось импортировать", message: result.error });
         return;
       }
       const current = await readCurrentData();
@@ -65,7 +70,7 @@ export function BackupSection() {
     } catch (e) {
       const message = e instanceof Error ? e.message : "";
       if (message === "no-file-selected" || message === "cancelled") return; // user cancelled — no-op
-      Alert.alert("Не удалось выбрать файл", PLATFORM_UNSUPPORTED_MESSAGE);
+      setFeedback({ kind: "error", title: "Не удалось выбрать файл", message: PLATFORM_UNSUPPORTED_MESSAGE });
     } finally {
       setPicking(false);
     }
@@ -81,15 +86,32 @@ export function BackupSection() {
     if (!preview || importing) return;
     setImporting(true);
     try {
-      await performImport(preview);
+      // performImport writes + verifies on disk (validate-before-write,
+      // snapshot/rollback — see backupImport.ts), then — as the final step
+      // of that SAME transaction — calls replaceAllData to apply the
+      // verified data to the live StoreContext. This is the fix for the
+      // production bug: previously, success relied on react-native-web's
+      // Alert.alert() calling an onPress callback that triggered
+      // window.location.reload() — but Alert.alert is a total no-op on web
+      // (react-native-web's implementation is an empty function), so that
+      // callback never fired. The import silently wrote correct data to
+      // storage while the already-mounted app kept rendering its stale
+      // (pre-import) in-memory state forever, with no visible error and no
+      // way to reach the new data short of the user manually reloading the
+      // tab. Applying to context directly makes Home (and every other
+      // screen — all of them read reactively from useStore(), never cache
+      // records/events/talks/sessions locally) reflect the imported data
+      // immediately, with no reload required. Routing the apply step
+      // through performImport (rather than calling replaceAllData here
+      // separately) means a failure there rolls back the storage write too
+      // — storage and the live app can never end up disagreeing.
+      await performImport(preview, replaceAllData);
       setPreview(null);
       setCurrentCounts(null);
-      Alert.alert("Импорт завершён", "Данные восстановлены. Приложение сейчас перезагрузится.", [
-        { text: "ОК", onPress: reloadApp },
-      ]);
+      setFeedback({ kind: "success", title: "Импорт завершён", message: "Данные восстановлены." });
     } catch (e) {
       const message = e instanceof BackupImportError ? e.message : "Не удалось импортировать данные.";
-      Alert.alert("Импорт не выполнен", message);
+      setFeedback({ kind: "error", title: "Импорт не выполнен", message });
     } finally {
       setImporting(false);
     }
@@ -103,6 +125,36 @@ export function BackupSection() {
         Создайте резервную копию, чтобы перенести данные между Safari и приложением на экране «Домой» или
         восстановить их позже.
       </Text>
+
+      {feedback && (
+        <View style={[styles.feedback, feedback.kind === "success" ? styles.feedbackSuccess : styles.feedbackError]}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.feedbackTitle,
+                feedback.kind === "success" ? styles.feedbackSuccessText : styles.feedbackErrorText,
+              ]}
+            >
+              {feedback.title}
+            </Text>
+            <Text
+              style={[
+                styles.feedbackMessage,
+                feedback.kind === "success" ? styles.feedbackSuccessText : styles.feedbackErrorText,
+              ]}
+            >
+              {feedback.message}
+            </Text>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Закрыть сообщение" onPress={() => setFeedback(null)} hitSlop={8}>
+            <Text
+              style={[styles.feedbackClose, feedback.kind === "success" ? styles.feedbackSuccessText : styles.feedbackErrorText]}
+            >
+              ✕
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.buttonRow}>
         <Pressable
@@ -187,6 +239,21 @@ export function BackupSection() {
 const styles = StyleSheet.create({
   container: { paddingVertical: 16 },
   description: { fontSize: 12, color: COLORS.muted, marginBottom: 12, lineHeight: 17 },
+  feedback: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  feedbackSuccess: { backgroundColor: COLORS.greenBg },
+  feedbackError: { backgroundColor: COLORS.dangerBg },
+  feedbackTitle: { fontSize: 13, fontWeight: "700", marginBottom: 2 },
+  feedbackMessage: { fontSize: 12, lineHeight: 16 },
+  feedbackSuccessText: { color: "#166534" },
+  feedbackErrorText: { color: COLORS.danger },
+  feedbackClose: { fontSize: 16, fontWeight: "700", paddingHorizontal: 2 },
   buttonRow: { flexDirection: "row", gap: 10, paddingBottom: 4 },
   exportBtn: {
     flex: 1,

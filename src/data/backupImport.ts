@@ -34,8 +34,21 @@ async function restoreSnapshot(snapshot: readonly [string, string | null][]): Pr
  * of `backup`. Snapshots the previous values first and rolls back on any
  * write or verification failure — success is only reported once the
  * written values have been read back and confirmed to match.
+ *
+ * `applyToLiveStore`, when given, is called with the verified data as the
+ * final step of the SAME transaction — this is how a successful import
+ * reaches the already-mounted app (StoreContext.replaceAllData) without
+ * requiring a page reload. If it throws, that is treated exactly like a
+ * write/verification failure: the storage snapshot is rolled back and a
+ * BackupImportError is thrown, so storage and the live app can never end up
+ * disagreeing (storage holding the import while the UI still shows stale
+ * data, or vice versa) — see docs/TASKS/TASK_013_BACKUP_EXPORT_IMPORT.md §12
+ * for the production bug this fixes.
  */
-export async function performImport(backup: MinistryBackup): Promise<void> {
+export async function performImport(
+  backup: MinistryBackup,
+  applyToLiveStore?: (data: MinistryBackupData) => void,
+): Promise<void> {
   const keys = keysInOrder();
   const snapshot = (await AsyncStorage.multiGet(keys)) as [string, string | null][];
 
@@ -56,6 +69,14 @@ export async function performImport(backup: MinistryBackup): Promise<void> {
     for (const c of CATEGORY_KEY_ORDER) {
       if (verifyMap.get(STORAGE_KEYS[c]) !== serialized[c]) {
         throw new BackupImportError("Проверка после импорта не удалась.");
+      }
+    }
+
+    if (applyToLiveStore) {
+      try {
+        applyToLiveStore(backup.data);
+      } catch {
+        throw new BackupImportError("Не удалось применить импортированные данные в приложении.");
       }
     }
   } catch {
@@ -87,4 +108,37 @@ export async function readCurrentData(): Promise<MinistryBackupData> {
     talks: parse(STORAGE_KEYS.talks),
     sessions: parse(STORAGE_KEYS.sessions),
   };
+}
+
+export type StorageKeyDiagnostic = {
+  key: string;
+  exists: boolean;
+  byteLength: number;
+  /** Parsed array length, or null if the value isn't valid JSON / not an array. */
+  itemCount: number | null;
+};
+
+/**
+ * Content-free diagnostics for the 4 supported keys — existence, serialized
+ * byte length, and parsed item count only. Never returns or logs actual
+ * record/event/talk/session field values (dates, notes, titles, locations).
+ * Intended for diagnosing storage/import issues (e.g. TASK_013's
+ * production "import succeeded but Home stayed empty" bug) without risking
+ * exposure of personal data — see the "no backup content is logged"
+ * requirement in docs/TASKS/TASK_013_BACKUP_EXPORT_IMPORT.md §7.
+ */
+export async function diagnoseStorageKeys(): Promise<StorageKeyDiagnostic[]> {
+  const keys = keysInOrder();
+  const pairs = (await AsyncStorage.multiGet(keys)) as [string, string | null][];
+  return pairs.map(([key, raw]) => {
+    if (raw == null) return { key, exists: false, byteLength: 0, itemCount: null };
+    let itemCount: number | null = null;
+    try {
+      const parsed = JSON.parse(raw);
+      itemCount = Array.isArray(parsed) ? parsed.length : null;
+    } catch {
+      itemCount = null;
+    }
+    return { key, exists: true, byteLength: raw.length, itemCount };
+  });
 }

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { buildBackup } from "@/data/backup";
-import { BackupImportError, performImport, readCurrentData } from "@/data/backupImport";
+import { BackupImportError, diagnoseStorageKeys, performImport, readCurrentData } from "@/data/backupImport";
 import { STORAGE_KEYS } from "@/store/StoreContext";
 import type { HourRecord, MinistryEvent, Session, Talk } from "@/types";
 
@@ -99,5 +99,76 @@ describe("performImport", () => {
 
     await expect(performImport(backup)).rejects.toBeInstanceOf(BackupImportError);
     expect(await AsyncStorage.getItem(STORAGE_KEYS.sessions)).toBeNull();
+  });
+
+  // TASK_013 production bug fix: applyToLiveStore is how a successful import
+  // reaches the live StoreContext (via replaceAllData) as part of the SAME
+  // transaction as the storage write — see the doc comment on performImport.
+  describe("applyToLiveStore (StoreContext rehydration)", () => {
+    it("is called with the verified backup data after a successful write", async () => {
+      const backup = buildBackup({ records: [RECORD], events: [EVENT], talks: [TALK], sessions: [SESSION] });
+      const apply = jest.fn();
+
+      await performImport(backup, apply);
+
+      expect(apply).toHaveBeenCalledTimes(1);
+      expect(apply).toHaveBeenCalledWith({ records: [RECORD], events: [EVENT], talks: [TALK], sessions: [SESSION] });
+    });
+
+    it("rolls back storage and never calls applyToLiveStore if the write fails", async () => {
+      await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([RECORD]));
+      const backup = buildBackup({ records: [], events: [], talks: [], sessions: [] });
+      const apply = jest.fn();
+      (AsyncStorage.multiSet as jest.Mock).mockRejectedValueOnce(new Error("disk full"));
+
+      await expect(performImport(backup, apply)).rejects.toBeInstanceOf(BackupImportError);
+
+      expect(apply).not.toHaveBeenCalled();
+      expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
+    });
+
+    it("rolls back storage if applyToLiveStore itself throws (rehydration failure)", async () => {
+      await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([RECORD]));
+      const backup = buildBackup({ records: [], events: [], talks: [], sessions: [] });
+      const apply = jest.fn(() => {
+        throw new Error("StoreContext not ready");
+      });
+
+      await expect(performImport(backup, apply)).rejects.toBeInstanceOf(BackupImportError);
+
+      // Storage rolled back to the pre-import snapshot — never left holding
+      // the imported data while the live app failed to pick it up.
+      expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
+    });
+
+    it("still works when applyToLiveStore is omitted (backward compatible)", async () => {
+      const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
+      await expect(performImport(backup)).resolves.toBeUndefined();
+      expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
+    });
+  });
+});
+
+describe("diagnoseStorageKeys", () => {
+  it("reports existence, byte length, and item count without exposing content", async () => {
+    await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([RECORD, { ...RECORD, id: "r2" }]));
+    // events/talks/sessions left unset.
+
+    const result = await diagnoseStorageKeys();
+    const records = result.find((d) => d.key === STORAGE_KEYS.records)!;
+    const events = result.find((d) => d.key === STORAGE_KEYS.events)!;
+
+    expect(records.exists).toBe(true);
+    expect(records.itemCount).toBe(2);
+    expect(records.byteLength).toBeGreaterThan(0);
+    expect(events.exists).toBe(false);
+    expect(events.itemCount).toBeNull();
+    expect(events.byteLength).toBe(0);
+
+    // Content-free: the diagnostic object never contains the actual record
+    // fields (id/year/month/hours/note) — only key/exists/byteLength/itemCount.
+    for (const d of result) {
+      expect(Object.keys(d).sort()).toEqual(["byteLength", "exists", "itemCount", "key"]);
+    }
   });
 });
