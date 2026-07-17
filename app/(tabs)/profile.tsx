@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
+import { BackupSection } from "@/components/settings/BackupSection";
 import { COLORS } from "@/data/constants";
 
 const PROFILE = {
@@ -16,7 +17,6 @@ const PROFILE = {
 const APP_VERSION = "0.4.4";
 
 const SETTINGS = ["Уведомления", "Цели", "Календарь служения", "Статистика", "Оформление", "Язык"];
-const DATA = ["Экспорт", "Импорт", "Резервная копия", "Восстановление"];
 
 function soon(label: string) {
   Alert.alert(label, "Появится позже");
@@ -88,14 +88,11 @@ export default function ProfileScreen() {
       </SectionCard>
 
       <SectionCard title="Данные">
-        {DATA.map((label) => (
-          <Row key={label} label={label} onPress={() => soon(label)} />
-        ))}
-        <Row
-          label="Синхронизация"
-          subtitle="Скоро — через A-Lex Core"
-          last
-        />
+        <Row label="Синхронизация" subtitle="Скоро — через A-Lex Core" last />
+      </SectionCard>
+
+      <SectionCard title="Резервная копия данных">
+        <BackupSection />
       </SectionCard>
 
       <SectionCard title="О приложении">

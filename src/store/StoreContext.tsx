@@ -13,6 +13,10 @@ const KEYS = {
   sessions: "mj_sessions_v1",
 } as const;
 
+// Re-exported for src/data/backupImport.ts (TASK_013) — single source of
+// truth for the storage keys the backup/restore flow is allowed to touch.
+export const STORAGE_KEYS = KEYS;
+
 const SEED_SESSIONS: Session[] = [];
 
 // Inputs accepted by the save* functions (id absent => create, id present => update).
