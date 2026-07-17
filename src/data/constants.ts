@@ -246,6 +246,37 @@ export function formatHM(hours: number): string {
   return m === 0 ? `${h} ч` : `${h} ч ${m} м`;
 }
 
+// Russian plural form selection (one/few/many) for a non-negative integer.
+function pluralRu(n: number, [one, few, many]: [string, string, string]): string {
+  const n100 = n % 100;
+  const n10 = n100 % 10;
+  if (n100 > 10 && n100 < 20) return many;
+  if (n10 === 1) return one;
+  if (n10 >= 2 && n10 <= 4) return few;
+  return many;
+}
+
+// "N час/часа/часов" for the hours wheel (TASK_011).
+export function formatHoursWord(n: number): string {
+  return `${n} ${pluralRu(n, ["час", "часа", "часов"])}`;
+}
+
+// "N минута/минуты/минут" for the minutes wheel (TASK_011).
+export function formatMinutesWord(n: number): string {
+  return `${n} ${pluralRu(n, ["минута", "минуты", "минут"])}`;
+}
+
+// Rounds a total-minutes duration to the nearest 5-minute step (the
+// hour/minute wheel's only granularity — TASK_011). Standard round-half-up:
+// remainder 0–2 rounds down, 3–4 rounds up; a remainder of 58 correctly
+// rolls over into the next hour (58 -> 60). Used only for existing
+// records whose stored duration isn't itself a multiple of 5 (e.g. a timer
+// session, durationMinutes = ceil(bankedSeconds/60)) — new manual entries
+// are always built from 5-minute wheel values already.
+export function roundDurationToNearestFive(totalMinutes: number): number {
+  return Math.round(totalMinutes / 5) * 5;
+}
+
 export type MonthProgress = {
   daysInMonth: number;
   daysLeft: number; // remaining days including today

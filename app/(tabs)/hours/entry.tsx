@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -5,13 +6,18 @@ import { SessionForm } from "@/components/forms/SessionForm";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
-// Manual Time Entry (TASK_005B) — a dedicated flat route, sibling of
-// service.tsx, reusing its header style. Create when no ?id, edit when
-// ?id matches an existing Session.
+const NOOP_STATE = { canSubmit: false, submit: () => {} };
+
+// Manual Time Entry (TASK_005B; redesigned TASK_011) — a dedicated flat
+// route, sibling of service.tsx. Create when no ?id, edit when ?id matches
+// an existing Session. The Отмена/Добавить header lives here (not inside
+// SessionForm) so it stays fixed above the scrollable cards; SessionForm
+// reports its live validity/submit trigger up via `onStateChange`.
 export default function EntryScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { sessions, saveSession, deleteSession } = useStore();
   const initial = id ? sessions.find((s) => s.id === id) : undefined;
+  const [formState, setFormState] = useState(NOOP_STATE);
 
   function confirmDelete() {
     if (!initial) return;
@@ -30,12 +36,17 @@ export default function EntryScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-          <Text style={styles.backText}>‹ Назад</Text>
+      <View style={styles.topRow}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={styles.cancel}>Отмена</Text>
         </Pressable>
-        <Text style={styles.title}>{initial ? "Редактировать запись" : "Добавить время"}</Text>
+        <Pressable onPress={formState.submit} disabled={!formState.canSubmit} hitSlop={10}>
+          <Text style={[styles.action, !formState.canSubmit && styles.actionDisabled]}>
+            {initial ? "Сохранить" : "Добавить"}
+          </Text>
+        </Pressable>
       </View>
+      <Text style={styles.heading}>{initial ? "Редактировать запись" : "Добавить время"}</Text>
 
       <ScrollView contentContainerStyle={styles.content}>
         <SessionForm
@@ -45,6 +56,7 @@ export default function EntryScreen() {
             router.back();
           }}
           onDelete={initial ? confirmDelete : undefined}
+          onStateChange={setFormState}
         />
       </ScrollView>
     </SafeAreaView>
@@ -53,15 +65,23 @@ export default function EntryScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
-  header: {
+  topRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 12,
   },
-  back: { paddingVertical: 6, paddingRight: 12 },
-  backText: { fontSize: 14, fontWeight: "600", color: COLORS.blue },
-  title: { fontSize: 16, fontWeight: "800", color: COLORS.text },
+  cancel: { fontSize: 16, fontWeight: "500", color: COLORS.muted },
+  action: { fontSize: 16, fontWeight: "700", color: COLORS.blue },
+  actionDisabled: { color: COLORS.muted },
+  heading: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: COLORS.text,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
   content: { padding: 16 },
 });
