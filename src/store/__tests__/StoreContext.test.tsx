@@ -105,3 +105,88 @@ describe("StoreContext — Session CRUD", () => {
     expect(parsed[0].durationMinutes).toBe(45);
   });
 });
+
+// TASK_009: src/data/seed.js's SEED_RECORDS/SEED_EVENTS/SEED_TALKS are now
+// empty arrays. These tests prove existing device data still loads ahead of
+// the empty seed, that a fresh install starts empty, and that a second
+// launch neither duplicates nor resets data.
+describe("StoreContext — TASK_009 empty-seed behavior", () => {
+  const FIXTURE_RECORD = { id: "fx-r1", year: 2030, month: 1, hours: 5, note: "fixture" };
+  const FIXTURE_EVENT = { id: "fx-e1", date: "2030-01-01", title: "Fixture Event", category: "other" };
+  const FIXTURE_TALK = { id: "fx-t1", date: "2030-01-01", number: 1, title: "Fixture Talk", location: "Fixture" };
+
+  describe("existing-data preservation", () => {
+    beforeEach(async () => {
+      await AsyncStorage.setItem("mj_records_v1", JSON.stringify([FIXTURE_RECORD]));
+      await AsyncStorage.setItem("mj_events_v1", JSON.stringify([FIXTURE_EVENT]));
+      await AsyncStorage.setItem("mj_talks_v1", JSON.stringify([FIXTURE_TALK]));
+    });
+
+    it("loads stored records/events/talks unchanged instead of the empty seed", async () => {
+      const { get } = await renderStore();
+      expect(get().loaded).toBe(true);
+      expect(get().records).toEqual([FIXTURE_RECORD]);
+      expect(get().events).toEqual([FIXTURE_EVENT]);
+      expect(get().talks).toEqual([FIXTURE_TALK]);
+    });
+
+    it("does not overwrite stored data with the empty seed after hydration", async () => {
+      const { get } = await renderStore();
+      await act(async () => {
+        await Promise.resolve();
+      });
+      const rawRecords = await AsyncStorage.getItem("mj_records_v1");
+      const rawEvents = await AsyncStorage.getItem("mj_events_v1");
+      const rawTalks = await AsyncStorage.getItem("mj_talks_v1");
+      expect(JSON.parse(rawRecords as string)).toEqual([FIXTURE_RECORD]);
+      expect(JSON.parse(rawEvents as string)).toEqual([FIXTURE_EVENT]);
+      expect(JSON.parse(rawTalks as string)).toEqual([FIXTURE_TALK]);
+      expect(get().records).toEqual([FIXTURE_RECORD]);
+    });
+  });
+
+  describe("empty first run", () => {
+    it("starts records/events/talks/sessions all empty with storage cleared", async () => {
+      const { get } = await renderStore();
+      expect(get().loaded).toBe(true);
+      expect(get().records).toEqual([]);
+      expect(get().events).toEqual([]);
+      expect(get().talks).toEqual([]);
+      expect(get().sessions).toEqual([]);
+    });
+
+    it("persists empty-array JSON for records/events/talks on first run", async () => {
+      await renderStore();
+      const rawRecords = await AsyncStorage.getItem("mj_records_v1");
+      const rawEvents = await AsyncStorage.getItem("mj_events_v1");
+      const rawTalks = await AsyncStorage.getItem("mj_talks_v1");
+      expect(JSON.parse(rawRecords as string)).toEqual([]);
+      expect(JSON.parse(rawEvents as string)).toEqual([]);
+      expect(JSON.parse(rawTalks as string)).toEqual([]);
+    });
+  });
+
+  describe("second launch", () => {
+    it("stays empty, non-duplicated, and non-reset across a remount against the same storage", async () => {
+      const first = await renderStore();
+      expect(first.get().records).toEqual([]);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      const second = await renderStore();
+      expect(second.get().loaded).toBe(true);
+      expect(second.get().records).toEqual([]);
+      expect(second.get().events).toEqual([]);
+      expect(second.get().talks).toEqual([]);
+      expect(second.get().sessions).toEqual([]);
+
+      const rawRecords = await AsyncStorage.getItem("mj_records_v1");
+      const rawEvents = await AsyncStorage.getItem("mj_events_v1");
+      const rawTalks = await AsyncStorage.getItem("mj_talks_v1");
+      expect(JSON.parse(rawRecords as string)).toEqual([]);
+      expect(JSON.parse(rawEvents as string)).toEqual([]);
+      expect(JSON.parse(rawTalks as string)).toEqual([]);
+    });
+  });
+});

@@ -4,7 +4,7 @@ import { COLORS } from "@/data/constants";
 // Placeholder avatar: initials on a navy circle. Photo support comes later.
 export function Avatar({
   size = 40,
-  initials = "АТ",
+  initials = "M",
   onPress,
 }: {
   size?: number;

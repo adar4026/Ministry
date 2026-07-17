@@ -4,12 +4,12 @@ import { Avatar } from "@/components/Avatar";
 import { COLORS } from "@/data/constants";
 
 const PROFILE = {
-  name: "Алексей Ткач",
+  name: "Пользователь",
   facts: [
-    ["Крещён", "12.04.1992"],
-    ["Пионер с", "Март 2008"],
-    ["Стаж", "17 лет 9 мес."],
-    ["G-8", "до 12.03.2027"],
+    ["Крещён", "—"],
+    ["Пионер с", "—"],
+    ["Стаж", "—"],
+    ["G-8", "—"],
   ] as [string, string][],
 };
 

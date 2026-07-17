@@ -50,7 +50,7 @@ export function TalkForm({
         <TextField value={title} onChangeText={setTitle} placeholder="Необязательно" />
       </Field>
       <Field label="Место / Собрание">
-        <TextField value={location} onChangeText={setLocation} placeholder="Напр. Хихон" />
+        <TextField value={location} onChangeText={setLocation} />
       </Field>
       <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
         <PrimaryButton label="Сохранить" onPress={submit} />
