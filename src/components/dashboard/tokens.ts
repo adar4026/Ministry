@@ -17,6 +17,9 @@ export const DS = {
   segOff: "#dfe3ee",
   ringTrack: "#e7e9ef",
   divider: "rgba(22,41,77,0.10)",
+  // Near-white base under the Home gradient overlay (TASK_010) — matches
+  // HOME_GRADIENT's final stop so the flat area below the gradient blends in.
+  homeBase: "#fbfdfc",
   teal: "#2fb3c9",
   tealInk: "#0d7488",
   green: "#34c759",
@@ -29,3 +32,12 @@ export const DS = {
 
 // Gradient stops for the goal ring (blue -> green -> amber).
 export const RING_STOPS = ["#4a7dff", "#34c759", "#ffb02e"] as const;
+
+// Home's ring (TASK_010): a single Ministry accent hue, not the multicolor
+// ring above — a restrained gradient within the same blue family.
+export const ACCENT_RING_STOPS = ["#8fadf7", DS.accent, "#2d55c7"] as const;
+
+// Home-only background gradient (TASK_010): muted sage/gray-turquoise,
+// fading to near-white. Deliberately not Apple's exact green. Local to the
+// Home screen — does not affect global COLORS or other screens.
+export const HOME_GRADIENT = ["#dbe9e2", "#eef4f1", "#fbfdfc"] as const;

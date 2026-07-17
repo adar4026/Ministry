@@ -6,8 +6,8 @@ import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
-import { DS, EventCard, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
-import { COLORS, formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
+import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
+import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
 
@@ -68,78 +68,88 @@ export default function Dashboard() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <Text style={styles.pageTitle}>Христианская жизнь</Text>
-          <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
+    <View style={styles.screen}>
+      <HomeBackground />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerText}>
+            <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              Христианская жизнь
+            </Text>
+            <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
+          </View>
+          <Avatar size={40} onPress={() => router.push("/profile")} />
         </View>
-        <Avatar size={46} onPress={() => router.push("/profile")} />
-      </View>
 
-      <HoursHeroCard />
+        <HoursHeroCard />
 
-      <View style={styles.section}>
-        <SectionHeader title="Ближайшие события" />
-        <UpcomingEventsCard />
-      </View>
-
-      {curYear && (
         <View style={styles.section}>
-          <SectionHeader title="Текущий служебный год" />
-          <SummaryCard title={curYear.sy} accent={DS.tealInk} meta={formatHM(curYear.total)}>
-            <View style={styles.grid}>
-              {curYear.months.map((m) => (
-                <View key={m.id} style={styles.gridItem}>
-                  <MonthChip record={m} onPress={() => handleMonthPress(m)} />
-                </View>
-              ))}
-            </View>
-          </SummaryCard>
+          <SectionHeader title="Ближайшие события" />
+          <UpcomingEventsCard />
         </View>
-      )}
 
-      <View style={styles.section}>
-        <SectionHeader title="Последние события" />
-        <View style={styles.eventList}>
-          {recentEvents.map((ev) => (
-            <EventCard key={ev.id} event={ev} />
-          ))}
-        </View>
-      </View>
-
-      <Modal
-        visible={editRec !== null}
-        title="Редактировать запись"
-        onClose={() => setEditRec(null)}
-      >
-        {editRec && (
-          <RecordForm
-            initial={editRec}
-            sessions={sessions}
-            onSave={(input) => { saveRecord(input); setEditRec(null); }}
-            onDelete={() => confirmDelete(editRec.id)}
-          />
+        {curYear && (
+          <View style={styles.section}>
+            <SectionHeader title="Текущий служебный год" />
+            <SummaryCard title={curYear.sy} accent={DS.tealInk} meta={formatHM(curYear.total)}>
+              <View style={styles.grid}>
+                {curYear.months.map((m) => (
+                  <View key={m.id} style={styles.gridItem}>
+                    <MonthChip record={m} onPress={() => handleMonthPress(m)} />
+                  </View>
+                ))}
+              </View>
+            </SummaryCard>
+          </View>
         )}
-      </Modal>
-    </ScrollView>
+
+        <View style={styles.section}>
+          <SectionHeader title="Последние события" />
+          <View style={styles.eventList}>
+            {recentEvents.map((ev) => (
+              <EventCard key={ev.id} event={ev} />
+            ))}
+          </View>
+        </View>
+
+        <Modal
+          visible={editRec !== null}
+          title="Редактировать запись"
+          onClose={() => setEditRec(null)}
+        >
+          {editRec && (
+            <RecordForm
+              initial={editRec}
+              sessions={sessions}
+              onSave={(input) => { saveRecord(input); setEditRec(null); }}
+              onDelete={() => confirmDelete(editRec.id)}
+            />
+          )}
+        </Modal>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Home-only screen background (Apple systemGroupedBackground); the shared
-  // Tabs sceneStyle bg is untouched, so Hours/Events/Add/Profile are unaffected.
-  screen: { backgroundColor: COLORS.groupedBg },
+  // Home-only screen background (TASK_010): near-white base under the
+  // HomeBackground gradient overlay; the shared Tabs sceneStyle bg is
+  // untouched, so Hours/Events/Add/Profile are unaffected.
+  screen: { flex: 1, backgroundColor: DS.homeBase },
+  // Bounded height so the ScrollView scrolls on native now that it is nested
+  // inside the screen View (was the tab-screen root before TASK_010); on web
+  // this is a no-op. Mirrors the Hours screen's flex:1 scroll container.
+  scroll: { flex: 1 },
   content: { padding: 16, gap: 28 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 46,
+    minHeight: 40,
   },
-  headerText: { flex: 1 },
-  pageTitle: { fontSize: 30, fontWeight: "800", color: DS.navy, letterSpacing: -0.4 },
-  pageDate: { fontSize: 16, color: DS.subText, fontWeight: "600", marginTop: 4 },
+  headerText: { flex: 1, marginRight: 12 },
+  pageTitle: { fontSize: 22, fontWeight: "800", color: DS.navy, letterSpacing: -0.3 },
+  pageDate: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 2 },
   // Title-to-content grouping: tighter than the gap between section blocks.
   section: { gap: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

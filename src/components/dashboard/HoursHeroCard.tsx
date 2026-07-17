@@ -2,104 +2,75 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useStore } from "@/store/StoreContext";
 import { MONTHLY_GOAL, dayWord, formatHM, monthProgress } from "@/data/constants";
+import { PlusIcon } from "@/components/icons";
 import { DS } from "./tokens";
 import { GoalRing } from "./GoalRing";
 
-// UI state of the hero card. v1 implements only "idle"; the other states are
-// declared so the timer can drive this card later WITHOUT a redesign — only
-// the action region (see HeroAction) changes per state, never the body. UI
-// state is passed in; it is deliberately kept separate from the month
-// progress (business data), which is read from the store below.
-export type HeroState = "idle" | "running" | "paused" | "completed";
-
-const SEGMENTS = 7;
-
-// Home hero card (TASK_007): current-month hours vs. the monthly goal, with a
-// progress ring, a segmented bar and two summary chips. Reads only through
-// useStore()/monthProgress()/MONTHLY_GOAL — no new calculation or aggregation.
-export function HoursHeroCard({ state = "idle" }: { state?: HeroState }) {
+// Home monthly-progress card (TASK_010: compact redesign; TASK_010 amendment
+// adds a quick "+" manual-entry shortcut). Sole purpose is to communicate
+// progress toward the monthly goal — no duplicate percentage text, no
+// color-coded chips. Starting ministry (the timer) lives on the Hours screen
+// (QuickActionsRow's "Таймер" action), which already existed there before
+// this task — the "+" here routes to the existing Manual Time Entry screen
+// (`/hours/entry`, TASK_005B), not the timer. Reads only through
+// useStore()/monthProgress()/MONTHLY_GOAL — no new calculation, no new form.
+export function HoursHeroCard() {
   const { records, sessions } = useStore();
   const p = monthProgress(records, new Date(), sessions);
-  const pct = MONTHLY_GOAL > 0 ? (p.hoursDone / MONTHLY_GOAL) * 100 : 0;
-  const filled = Math.round((Math.min(100, pct) / 100) * SEGMENTS);
+  const hasGoal = MONTHLY_GOAL > 0;
+  const pct = hasGoal ? (p.hoursDone / MONTHLY_GOAL) * 100 : 0;
+
+  const remainingText = !hasGoal
+    ? null
+    : p.hoursRemaining > 0
+      ? `Осталось ${formatHM(p.hoursRemaining)}`
+      : "Цель достигнута";
+  const daysText = `${p.daysLeft} ${dayWord(p.daysLeft)} до конца месяца`;
+
+  const a11yLabel = hasGoal
+    ? `За текущий месяц внесено ${formatHM(p.hoursDone)} из ${MONTHLY_GOAL}. Выполнено ${Math.round(pct)} процентов. ${remainingText === "Цель достигнута" ? "Цель достигнута." : `Осталось ${formatHM(p.hoursRemaining)}.`} ${daysText}.`
+    : `За текущий месяц внесено ${formatHM(p.hoursDone)}. Месячная цель не задана.`;
 
   return (
     <View style={styles.card}>
-      <View style={styles.top}>
-        <View style={styles.left}>
-          <Text style={styles.total}>{formatHM(p.hoursDone)}</Text>
-          <Text style={styles.sub}>за этот месяц</Text>
-          <View style={styles.seg}>
-            {Array.from({ length: SEGMENTS }).map((_, i) => (
-              <View key={i} style={[styles.segItem, i < filled ? styles.segOn : styles.segOff]} />
-            ))}
+      <View accessible accessibilityLabel={a11yLabel}>
+        <Text style={styles.label} importantForAccessibility="no">Этот месяц</Text>
+
+        <View style={styles.top}>
+          <View style={styles.left}>
+            <Text style={styles.total} importantForAccessibility="no">{formatHM(p.hoursDone)}</Text>
+            <Text style={styles.sub} importantForAccessibility="no">
+              {hasGoal ? `из ${MONTHLY_GOAL} ч` : "Месячная цель не задана"}
+            </Text>
           </View>
-          <Text style={styles.pctLine}>
-            <Text style={styles.pctB}>{Math.round(pct)}%</Text> до месячной цели
-          </Text>
+
+          {hasGoal && (
+            <GoalRing pct={pct} goalHours={MONTHLY_GOAL} size={96} showGoalLabel={false} tone="accent" />
+          )}
         </View>
-        <GoalRing pct={pct} goalHours={MONTHLY_GOAL} size={132} />
       </View>
 
-      <View style={styles.divider} />
+      <View style={styles.footer}>
+        <View style={styles.footerTextWrap} importantForAccessibility="no">
+          {hasGoal && (
+            <>
+              <Text style={styles.footerText} numberOfLines={1}>{remainingText}</Text>
+              <Text style={styles.footerText} numberOfLines={1}>{daysText}</Text>
+            </>
+          )}
+        </View>
 
-      <View style={styles.chips}>
-        <Chip
-          color={DS.green}
-          valueColor={DS.greenInk}
-          label="До цели осталось"
-          value={p.hoursRemaining > 0 ? formatHM(p.hoursRemaining) : "Цель достигнута"}
-        />
-        <Chip
-          color={DS.amber}
-          valueColor={DS.amberInk}
-          label="Осталось дней"
-          value={`${p.daysLeft} ${dayWord(p.daysLeft)}`}
-        />
-      </View>
-
-      <HeroAction state={state} onStart={() => router.push("/hours/timer")} />
-    </View>
-  );
-}
-
-// Action region — the only part that varies by UI state. v1 implements the
-// idle action ("Начать служение"); running/paused/completed will render their
-// own controls here later without touching the card body above.
-function HeroAction({ state, onStart }: { state: HeroState; onStart: () => void }) {
-  switch (state) {
-    case "idle":
-    default:
-      return (
+        {/* Quick manual time entry (TASK_010 amendment) — reuses the existing
+            Manual Time Entry screen/route/form/save flow; not the timer. */}
         <Pressable
-          style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-          onPress={onStart}
           accessibilityRole="button"
-          accessibilityLabel="Начать служение"
+          accessibilityLabel="Добавить часы"
+          hitSlop={8}
+          onPress={() => router.push("/hours/entry" as any)}
+          style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
         >
-          <Text style={styles.btnText}>Начать служение</Text>
+          <PlusIcon size={18} color={DS.onAccent} />
         </Pressable>
-      );
-  }
-}
-
-function Chip({
-  color,
-  valueColor,
-  label,
-  value,
-}: {
-  color: string;
-  valueColor: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.chip}>
-      <View style={[styles.chipDot, { backgroundColor: color }]} />
-      <View style={styles.chipText}>
-        <Text style={styles.chipLabel}>{label}</Text>
-        <Text style={[styles.chipValue, { color: valueColor }]}>{value}</Text>
       </View>
     </View>
   );
@@ -107,40 +78,34 @@ function Chip({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: DS.heroBg,
-    borderRadius: 28,
-    padding: 22,
+    backgroundColor: DS.cardBg,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DS.divider,
     shadowColor: DS.shadow,
-    shadowOpacity: 0.16,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
-  top: { flexDirection: "row", alignItems: "center", gap: 8 },
+  label: { fontSize: 13, color: DS.metaText, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
+  top: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 10 },
   left: { flex: 1 },
-  total: { fontSize: 40, fontWeight: "800", color: DS.navy, letterSpacing: -1 },
-  sub: { fontSize: 15, color: DS.subText, fontWeight: "600", marginTop: 4 },
-  seg: { flexDirection: "row", gap: 5, marginTop: 14 },
-  segItem: { flex: 1, height: 12, borderRadius: 6 },
-  segOn: { backgroundColor: DS.segOn },
-  segOff: { backgroundColor: DS.segOff },
-  pctLine: { fontSize: 15, color: DS.metaText, fontWeight: "600", marginTop: 10 },
-  pctB: { color: DS.accent, fontWeight: "800" },
-  divider: { height: 1, backgroundColor: DS.divider, marginVertical: 18 },
-  chips: { flexDirection: "row", gap: 12 },
-  chip: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  chipDot: { width: 12, height: 12, borderRadius: 6 },
-  chipText: { flex: 1 },
-  chipLabel: { fontSize: 13, color: DS.metaText, fontWeight: "600" },
-  chipValue: { fontSize: 17, fontWeight: "800", letterSpacing: -0.3, marginTop: 1 },
-  btn: {
-    marginTop: 18,
-    borderRadius: 24,
-    paddingVertical: 17,
-    backgroundColor: "#5b6ee8",
+  total: { fontSize: 30, fontWeight: "800", color: DS.navy, letterSpacing: -0.6 },
+  sub: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 2 },
+  footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 },
+  // Column stack (not the earlier row+dot) so the two lines never collide
+  // with the "+" button's reserved width on narrow phones (TASK_010 amendment).
+  footerTextWrap: { flex: 1, gap: 2, marginRight: 12 },
+  footerText: { fontSize: 13, color: DS.metaText, fontWeight: "600" },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: DS.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  btnPressed: { opacity: 0.85 },
-  btnText: { color: DS.onAccent, fontSize: 18, fontWeight: "700" },
+  addBtnPressed: { opacity: 0.85 },
 });
