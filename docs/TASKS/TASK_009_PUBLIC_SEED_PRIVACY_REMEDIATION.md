@@ -119,9 +119,10 @@ document.**
 2. `records.length === 260`, `events.length === 25`, `talks.length === 6`
    — matching the source counts confirmed by direct inspection of
    `src/data/seed.js` at the time this document was written.
-3. Key-field spot check: at least one known record (e.g. `r1`:
-   `{year:2003, month:9, hours:1, note:"Начало служения"}`), one known
-   event, and one known talk match the source exactly, field for field.
+3. Key-field spot check: at least one known record (e.g. the first record
+   in `SEED_RECORDS`, matched field for field, including its personal
+   note text), one known event, and one known talk match the source
+   exactly.
 4. The backup path is confirmed **not** to resolve under
    `git rev-parse --show-toplevel`'s output.
 5. `git status --porcelain` shows the backup file nowhere in the working
@@ -154,6 +155,14 @@ separate, owner-approved step.
   editing it (with a backup safeguard) rather than leaving it frozen.
   Flagging this explicitly rather than silently leaving stale documentation
   behind.
+- `app/(tabs)/profile.tsx`, `src/components/Avatar.tsx` — **identified
+  during this task's own verification sweep, not in the original request
+  list:** direct code inspection found these two files hardcoding real
+  personal values (owner full name, personal profile dates, a
+  legal-document expiration value, a personal initials fallback) that ship
+  in the production bundle independent of `seed.js`/`prototype/App.jsx`.
+  Remediated to neutral, non-personal defaults with no structural,
+  persistence, schema, or navigation change (§12).
 
 ## 6. Out-of-Scope Items
 
@@ -375,12 +384,13 @@ being committed, exactly as in TASK_008.
    not duplicated, not reset back to a seed value.
 4. **Repository-wide personal-marker search, correctly scoped**: search
    tracked files only (`git grep`, which inherently excludes `.git`
-   internals and anything gitignored) for known unique personal markers
-   (e.g. "Снежан", "Каневская", "Хихон", "Бенидорм", "Малага", "Саранск",
-   "Сочи", "G-8") — must return **zero matches** anywhere in the tracked
-   tree after Stages 2–3 (unlike the prior proposal, this is no longer
-   scoped to exclude `seed.js`, because `seed.js` itself will no longer
-   contain this text).
+   internals and anything gitignored) for known unique personal markers —
+   owner name fragments, the owner's personal city and other personal
+   locations from the former seed dataset, and representative private
+   ministry-record/talk strings — must return **zero matches** anywhere in
+   the tracked tree after Stages 2–3 (unlike the prior proposal, this is no
+   longer scoped to exclude `seed.js`, because `seed.js` itself will no
+   longer contain this text).
 5. **Confirmation of clean tracked files**: same search, run as a final
    check immediately before the Stage 2–4 commit, confirming no personal
    marker survives anywhere `git ls-files` would show.
@@ -403,9 +413,10 @@ investigation). Procedure:
    dist --nojekyll` is not run).
 2. Search the compiled bundle (`dist/_expo/static/js/web/*.js`) for the
    **Unicode-escaped** form of each known marker (e.g. Python:
-   `''.join('\\u%04x' % ord(c) for c in 'Снежан')`), not the literal
-   Cyrillic string — this is the check that actually matters, since it
-   proves the shipped bytes, not just the source.
+   `''.join('\\u%04x' % ord(c) for c in marker)` applied to each personal
+   name fragment, city, or record/talk string being checked), not the
+   literal Cyrillic string — this is the check that actually matters,
+   since it proves the shipped bytes, not just the source.
 3. Expect **zero matches** for every marker checked.
 4. `git status --porcelain` before and after export must be identical —
    confirms the export modified no tracked file; `dist/` remains
@@ -419,29 +430,63 @@ investigation). Procedure:
 verified — mirroring TASK_008's discipline of not claiming completion in
 advance.**
 
-- [ ] Private backup created, verified (§4.3), and its location explicitly
+- [x] Private backup created, verified (§4.3), and its location explicitly
       confirmed by the owner in chat.
-- [ ] `src/data/seed.js` exports `SEED_RECORDS = []`, `SEED_EVENTS = []`,
+- [x] `src/data/seed.js` exports `SEED_RECORDS = []`, `SEED_EVENTS = []`,
       `SEED_TALKS = []`, with its module interface otherwise unchanged.
-- [ ] `prototype/App.jsx` removed from the tracked tree.
-- [ ] `src/data/seed.ts`, `StoreContext.tsx`, `useStorage.ts` unchanged
+- [x] `prototype/App.jsx` removed from the tracked tree.
+- [x] `src/data/seed.ts`, `StoreContext.tsx`, `useStorage.ts` unchanged
       (zero diff).
-- [ ] No AsyncStorage key or persisted schema changed.
-- [ ] New regression tests (§12, items 1–3) exist and pass.
-- [ ] `git grep` for all known personal markers across tracked files
-      returns zero matches.
-- [ ] Safe production export succeeds; compiled-bundle search (§13) for
-      Unicode-escaped markers returns zero matches.
-- [ ] Full test suite passes (`npm test -- --runInBand`).
-- [ ] `tsc --noEmit` clean.
-- [ ] `git diff --check` clean.
-- [ ] `docs/ARCHITECTURE.md`, `docs/STATUS.md`, `CLAUDE.md` updated
+- [x] No AsyncStorage key or persisted schema changed.
+- [x] New regression tests (§12, items 1–3) exist and pass.
+- [x] `git grep` for all known `seed.js`/`prototype/App.jsx`-derived personal
+      markers (spouse name, relocation cities, pioneer-history notes, talk
+      titles/locations) across tracked files returns zero matches — the
+      original personal seed dataset itself is fully gone from the current
+      tree.
+- [x] The privacy correction pass (owner-directed, following this
+      document's initial implementation) removed the two documentation
+      exposures found in the first marker sweep: `docs/STATUS.md`'s
+      duplicated hours/talks/appointment tables (replaced with a generic
+      statement) and `CLAUDE.md`'s owner-identity line (anonymized to
+      "сопровождающий проекта Ministry"). The `TalkForm.tsx` location-field
+      placeholder (previously an owner-city example) was also removed.
+- [x] **Second correction pass, owner-directed:** the genuine exposure found
+      in `app/(tabs)/profile.tsx` (owner full name, personal profile dates,
+      a legal-document expiration value, all hardcoded and confirmed
+      present in the production bundle) has been remediated — the affected
+      constant now holds only a neutral generic display name and neutral
+      placeholder values for each fact row; no invented date, name, or
+      legal-document value was substituted. The related exposure in
+      `src/components/Avatar.tsx` (a personal-initials default fallback)
+      has also been remediated — the default is now a neutral,
+      non-personal value; explicit caller-provided initials are unaffected
+      (no call site passed personal initials explicitly; both existing
+      call sites relied on the default). No profile persistence, schema,
+      storage key, navigation, or unrelated styling was added or changed.
+      A small targeted regression test (`src/components/__tests__/Avatar.test.tsx`)
+      pins the neutral default and confirms caller-supplied initials still
+      override it.
+- [x] Safe production export succeeds; compiled-bundle search (§13) for
+      Unicode-escaped and literal markers returns zero matches for the
+      removed `seed.js` dataset, the prior `TalkForm.tsx` placeholder city,
+      the `profile.tsx` personal values, and the `Avatar.tsx` personal
+      initials fallback — all confirmed absent from the generated bundle
+      after this second correction pass.
+- [x] Full test suite passes (`npm test -- --runInBand`).
+- [x] `tsc --noEmit` clean.
+- [x] `git diff --check` clean.
+- [x] `docs/ARCHITECTURE.md`, `docs/STATUS.md`, `CLAUDE.md` updated
       truthfully (§17), including the git-history limitation and the
       TASK_010 renumbering note.
-- [ ] No claim anywhere that Git history has been cleaned, that the live
+- [x] No claim anywhere that Git history has been cleaned, that the live
       GitHub Pages deployment has been refreshed, or that any release
       action (deploy/tag/push beyond this task's own commits) has
       occurred.
+
+**Pending (owner decision, not part of this stage):** push, deploy,
+v0.4.5 release, tag, remote GitHub Pages verification, iPhone
+verification, Git-history rewrite.
 
 ---
 
