@@ -11,14 +11,15 @@ import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } fr
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
 
-// Home header date, e.g. "14 июля, понедельник" (genitive month + weekday).
+// Home header date (TASK_014): "Пятница, 17 июля" — capitalized weekday
+// first, then day + genitive month.
 const MONTHS_GEN = [
   "января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ];
-const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-function formatHomeDate(now: Date): string {
-  return `${now.getDate()} ${MONTHS_GEN[now.getMonth()]}, ${WEEKDAYS[now.getDay()]}`;
+const WEEKDAYS = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+export function formatHomeDate(now: Date): string {
+  return `${WEEKDAYS[now.getDay()]}, ${now.getDate()} ${MONTHS_GEN[now.getMonth()]}`;
 }
 
 export default function Dashboard() {
@@ -78,7 +79,7 @@ export default function Dashboard() {
             </Text>
             <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
           </View>
-          <Avatar size={40} onPress={() => router.push("/profile")} />
+          <Avatar size={35} onPress={() => router.push("/profile")} />
         </View>
 
         <HoursHeroCard />
@@ -145,11 +146,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 40,
+    minHeight: 35,
   },
   headerText: { flex: 1, marginRight: 12 },
-  pageTitle: { fontSize: 22, fontWeight: "800", color: DS.navy, letterSpacing: -0.3 },
-  pageDate: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 2 },
+  pageTitle: { fontSize: 21, fontWeight: "800", color: DS.navy, letterSpacing: -0.3 },
+  pageDate: { fontSize: 13, color: DS.subText, fontWeight: "600", marginTop: 1 },
   // Title-to-content grouping: tighter than the gap between section blocks.
   section: { gap: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

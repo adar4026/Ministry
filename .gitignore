@@ -43,3 +43,7 @@ yarn-error.*
 # local editor / tooling
 .vscode/
 .claude/
+
+# local, non-authoritative artifacts (e.g. verification screenshots) — never
+# part of the tracked source tree
+.local/

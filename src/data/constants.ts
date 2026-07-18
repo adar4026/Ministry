@@ -277,6 +277,21 @@ export function roundDurationToNearestFive(totalMinutes: number): number {
   return Math.round(totalMinutes / 5) * 5;
 }
 
+// "X ч Y м" for a fractional-hours duration, rounded to the nearest 5-minute
+// increment for DISPLAY ONLY (TASK_014, Home month card) — reuses
+// roundDurationToNearestFive() above so every duration shown in that card
+// shares one rounding rule instead of a second ad hoc one. The caller's own
+// stored/raw value (e.g. monthProgress()'s hoursDone/hoursRemaining/
+// requiredPerDay) is never mutated — rounding happens only on the minutes
+// total that goes straight into the returned string. Negative input clamps
+// to 0 (defensive; no current caller produces a negative duration here).
+export function formatHMRounded(hours: number): string {
+  const totalMinutes = roundDurationToNearestFive(Math.round(Math.max(0, hours) * 60));
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return m === 0 ? `${h} ч` : `${h} ч ${m} м`;
+}
+
 export type MonthProgress = {
   daysInMonth: number;
   daysLeft: number; // remaining days including today
