@@ -12,6 +12,15 @@ export function MonthChip({
   record: ServiceYearMonth;
   onPress: () => void;
 }) {
+  // Legacy monthly totals are always whole numbers (entered by hand), but a
+  // Session-authoritative month (monthTotal() = sum(durationMinutes)/60,
+  // see serviceYearAggregation() in src/data/constants.ts) can land on a
+  // long-tail float like 38.166666666666664 for an in-progress month. This
+  // tile has always shown a bare whole number with no unit suffix — round
+  // for DISPLAY ONLY here, same "round, never mutate the source" rule as
+  // formatHMRounded() elsewhere; record.hours itself is untouched.
+  const displayHours = Math.round(record.hours);
+
   return (
     <Pressable
       onPress={onPress}
@@ -20,7 +29,7 @@ export function MonthChip({
       <Text style={styles.month}>
         {MN[record.month - 1]} {record.year}
       </Text>
-      <Text style={styles.hours}>{record.hours}</Text>
+      <Text style={styles.hours}>{displayHours}</Text>
     </Pressable>
   );
 }
