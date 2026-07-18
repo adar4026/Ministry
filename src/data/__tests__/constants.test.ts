@@ -1,4 +1,4 @@
-import { formatHMRounded, roundDurationToNearestFive, upcomingItems } from "@/data/constants";
+import { dayWord, formatHMRounded, monthWord, relativeDays, roundDurationToNearestFive, upcomingItems } from "@/data/constants";
 import type { MinistryEvent, Talk } from "@/types";
 
 describe("roundDurationToNearestFive", () => {
@@ -29,6 +29,88 @@ describe("roundDurationToNearestFive", () => {
 
   it("handles the upper supported boundary (24h) without breaking rollover", () => {
     expect(roundDurationToNearestFive(24 * 60 - 2)).toBe(24 * 60);
+  });
+});
+
+describe("relativeDays (TASK_020 — calendar-based months + days, no rounding)", () => {
+  it("shows full months plus remaining days (2026-05-15 -> 2026-08-04)", () => {
+    const now = new Date(2026, 4, 15); // 15 мая 2026
+    expect(relativeDays("2026-08-04", now)).toBe("Через 2 месяца 20 дней");
+  });
+
+  it("shows 1 month and 1 day", () => {
+    const now = new Date(2026, 6, 18);
+    expect(relativeDays("2026-08-19", now)).toBe("Через 1 месяц 1 день");
+  });
+
+  it("shows days only when under a full calendar month", () => {
+    const now = new Date(2026, 6, 18);
+    expect(relativeDays("2026-08-07", now)).toBe("Через 20 дней");
+    expect(relativeDays("2026-07-19", now)).toBe("Через 1 день");
+  });
+
+  it("omits the day part for an exact number of full months (no '0 дней')", () => {
+    const now = new Date(2026, 6, 18);
+    const result = relativeDays("2026-09-18", now);
+    expect(result).toBe("Через 2 месяца");
+    expect(result).not.toContain("0 дней");
+  });
+
+  it("shows 'Сегодня' for an event occurring today", () => {
+    const now = new Date(2026, 6, 18);
+    expect(relativeDays("2026-07-18", now)).toBe("Сегодня");
+  });
+
+  it("handles a transition across the end of the year", () => {
+    const now = new Date(2026, 11, 20); // 20 декабря 2026
+    expect(relativeDays("2027-01-05", now)).toBe("Через 16 дней");
+    expect(relativeDays("2027-02-20", now)).toBe("Через 2 месяца");
+    expect(relativeDays("2027-02-25", now)).toBe("Через 2 месяца 5 дней");
+  });
+
+  it("clamps end-of-month overflow (Jan 31 + 1 month lands on Feb 28, non-leap)", () => {
+    const now = new Date(2025, 0, 31); // 31 января 2025 (non-leap year)
+    // Jan 31 + 1 calendar month clamps to Feb 28 (2025 is not a leap year) —
+    // that clamped anchor lands exactly on the target, so it's "1 month",
+    // not "28 days" (which a naive diff-in-days-then-round would show).
+    expect(relativeDays("2025-02-28", now)).toBe("Через 1 месяц");
+    expect(relativeDays("2025-03-02", now)).toBe("Через 1 месяц 2 дня");
+  });
+
+  it("handles February and leap years", () => {
+    const now = new Date(2024, 0, 29); // 29 января 2024 (leap year)
+    expect(relativeDays("2024-02-29", now)).toBe("Через 1 месяц");
+  });
+
+  it("is unaffected by time-of-day on either date", () => {
+    const now = new Date(2026, 4, 15, 23, 45);
+    expect(relativeDays("2026-08-04", now)).toBe("Через 2 месяца 20 дней");
+  });
+
+  it("uses correct Russian plural forms for months and days", () => {
+    const now = new Date(2026, 0, 1);
+    expect(relativeDays("2026-02-01", now)).toBe("Через 1 месяц");
+    expect(relativeDays("2026-03-01", now)).toBe("Через 2 месяца");
+    expect(relativeDays("2026-06-01", now)).toBe("Через 5 месяцев");
+    expect(relativeDays("2026-01-02", now)).toBe("Через 1 день");
+    expect(relativeDays("2026-01-03", now)).toBe("Через 2 дня");
+    expect(relativeDays("2026-01-06", now)).toBe("Через 5 дней");
+  });
+
+  it("uses correct Russian plural forms at the 11-14 and 21/22/25 boundaries", () => {
+    expect(monthWord(1)).toBe("месяц");
+    expect(monthWord(2)).toBe("месяца");
+    expect(monthWord(5)).toBe("месяцев");
+    expect(monthWord(21)).toBe("месяц");
+    expect(monthWord(22)).toBe("месяца");
+    expect(monthWord(25)).toBe("месяцев");
+
+    expect(dayWord(1)).toBe("день");
+    expect(dayWord(2)).toBe("дня");
+    expect(dayWord(5)).toBe("дней");
+    expect(dayWord(21)).toBe("день");
+    expect(dayWord(22)).toBe("дня");
+    expect(dayWord(25)).toBe("дней");
   });
 });
 

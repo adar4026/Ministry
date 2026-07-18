@@ -344,19 +344,52 @@ export function monthWord(n: number): string {
   return "месяцев";
 }
 
-// "Сегодня" / "Завтра" / "Через N дней" / "Через N месяцев" for a future
-// ISO date, relative to now. Assumes dateISO is today or later.
+// `start` plus `n` whole calendar months, clamping the day-of-month to the
+// target month's length (e.g. Jan 31 + 1 month = Feb 28/29, not a rollover
+// into March) — mirrors dateFormat.ts's addMonthsClamped, kept local here
+// since relativeDays doesn't need the years split that helper also does.
+function addMonthsClamped(start: Date, n: number): Date {
+  const firstOfTarget = new Date(start.getFullYear(), start.getMonth() + n, 1);
+  const daysInTargetMonth = new Date(firstOfTarget.getFullYear(), firstOfTarget.getMonth() + 1, 0).getDate();
+  const clampedDay = Math.min(start.getDate(), daysInTargetMonth);
+  return new Date(firstOfTarget.getFullYear(), firstOfTarget.getMonth(), clampedDay);
+}
+
+// UTC-normalized whole-day difference between two calendar dates — avoids
+// any DST/local-time-of-day skew in the millisecond subtraction.
+function daysBetweenUTC(a: Date, b: Date): number {
+  const aUTC = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const bUTC = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((bUTC - aUTC) / 86400000);
+}
+
+// "Сегодня" / "Через N месяцев" / "Через N месяцев M дней" / "Через M дней"
+// for a future ISO date, relative to now. Assumes dateISO is today or later.
+// Calendar-based (TASK_020): finds the largest whole number of calendar
+// months that, added to today (with end-of-month clamping), doesn't exceed
+// the target date, then expresses the remainder as exact calendar days —
+// not a division of the millisecond difference by an assumed 30-day month.
+// This keeps e.g. an event on 04/09 from a 07/18 "today" as "2 месяца 20
+// дней" (2 full months to 04/07... 04/09, +20 days), not a rounded "2
+// месяца"/"3 месяца".
 export function relativeDays(dateISO: string, now: Date = new Date()): string {
   const [y, m, d] = dateISO.split("-").map(Number);
   const target = new Date(y, m - 1, d);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
 
-  if (diffDays <= 0) return "Сегодня";
-  if (diffDays === 1) return "Завтра";
-  if (diffDays < 30) return `Через ${diffDays} ${dayWord(diffDays)}`;
-  const months = Math.round(diffDays / 30);
-  return `Через ${months} ${monthWord(months)}`;
+  if (target.getTime() <= today.getTime()) return "Сегодня";
+
+  let months = (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth());
+  while (addMonthsClamped(today, months).getTime() > target.getTime()) months -= 1;
+  while (addMonthsClamped(today, months + 1).getTime() <= target.getTime()) months += 1;
+
+  const monthAnchor = addMonthsClamped(today, months);
+  const days = daysBetweenUTC(monthAnchor, target);
+
+  const parts: string[] = [];
+  if (months > 0) parts.push(`${months} ${monthWord(months)}`);
+  if (days > 0 || months === 0) parts.push(`${days} ${dayWord(days)}`);
+  return `Через ${parts.join(" ")}`;
 }
 
 // Display title for a Talk (shared with the Events timeline).
