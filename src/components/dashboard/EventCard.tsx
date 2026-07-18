@@ -34,7 +34,10 @@ export function EventCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, padding: 14 },
+  // Radius unified with the rest of the Home card system (TASK_017): no
+  // override here anymore — SummaryCard's default (22) applies directly
+  // (was a one-off 18 before).
+  card: { padding: 14 },
   row: { flexDirection: "row", gap: 10, alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },
   body: { flex: 1 },

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Card } from "@/components/ui";
+import { SummaryCard } from "@/components/dashboard";
 import { COLORS, formatDateDMY, relativeDays, upcomingItems } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -12,8 +12,12 @@ export function UpcomingEventsCard() {
   // collections stay separate in StoreContext.
   const items = upcomingItems(events, talks, new Date(), LIMIT);
 
+  // Built on the same SummaryCard primitive as the rest of the Home card
+  // system (TASK_017) — was a separately-styled generic `Card` (still used
+  // elsewhere: forms, /add, /timeline, /hours/history), which drifted
+  // slightly from the other Home cards (24px radius vs 22px).
   return (
-    <Card style={styles.card}>
+    <SummaryCard style={styles.card}>
       {items.length === 0 ? (
         <Text style={styles.empty}>Нет предстоящих событий</Text>
       ) : (
@@ -31,20 +35,14 @@ export function UpcomingEventsCard() {
       <Pressable onPress={() => router.push("/timeline")} style={({ pressed }) => [styles.showAll, pressed && styles.pressed]}>
         <Text style={styles.showAllText}>Показать все →</Text>
       </Pressable>
-    </Card>
+    </SummaryCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
+  // Radius/shadow/background now come from SummaryCard's defaults
+  // (TASK_017) — only the wider padding this card always had is kept here.
+  card: { padding: 20 },
   empty: { fontSize: 14, color: COLORS.muted, paddingVertical: 8 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 12, gap: 8 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
