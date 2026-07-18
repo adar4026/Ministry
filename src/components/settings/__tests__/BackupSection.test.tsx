@@ -9,6 +9,31 @@ import type { HourRecord, MinistryEvent, Session, Talk } from "@/types";
 
 jest.mock("@/data/backupFile");
 import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
+import type { PickBackupFileCallbacks } from "@/data/backupFile.web";
+
+// pickBackupFile is now callback-based (TASK_013 iOS PWA follow-up) rather
+// than Promise-returning — these helpers drive the mock the same way the
+// real web implementation would invoke the callbacks it's given.
+function mockPickSelected(json: string) {
+  (pickBackupFile as jest.Mock).mockImplementation((callbacks: PickBackupFileCallbacks) => {
+    callbacks.onSelected(json);
+  });
+}
+function mockPickSelectedOnce(json: string) {
+  (pickBackupFile as jest.Mock).mockImplementationOnce((callbacks: PickBackupFileCallbacks) => {
+    callbacks.onSelected(json);
+  });
+}
+function mockPickError(err: Error) {
+  (pickBackupFile as jest.Mock).mockImplementation((callbacks: PickBackupFileCallbacks) => {
+    callbacks.onError(err);
+  });
+}
+function mockPickCancelledOnce() {
+  (pickBackupFile as jest.Mock).mockImplementationOnce((callbacks: PickBackupFileCallbacks) => {
+    callbacks.onCancelled();
+  });
+}
 
 const RECORD: HourRecord = { id: "r1", year: 2026, month: 6, hours: 12, note: "" };
 const EVENT: MinistryEvent = { id: "e1", date: "2026-06-01", title: "Test event", category: "personal" };
@@ -87,7 +112,7 @@ describe("BackupSection — import preview", () => {
   it("shows correct counts in the preview and performs no writes until confirmed", async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([RECORD]));
     const backup = buildBackup({ records: [], events: [EVENT], talks: [TALK], sessions: [SESSION] });
-    (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
+    mockPickSelected(JSON.stringify(backup));
 
     const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
@@ -107,7 +132,7 @@ describe("BackupSection — import preview", () => {
 
   it("cancel performs no writes and dismisses the preview", async () => {
     const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
-    (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
+    mockPickSelected(JSON.stringify(backup));
 
     const { renderer } = await renderSection();
     // StoreProvider seeds mj_records_v1 with "[]" on first hydration — capture
@@ -131,7 +156,7 @@ describe("BackupSection — import preview", () => {
 
   it("confirmed import replaces supported keys, updates the live StoreContext, and shows success — no reload required", async () => {
     const backup = buildBackup({ records: [RECORD], events: [EVENT], talks: [TALK], sessions: [SESSION] });
-    (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
+    mockPickSelected(JSON.stringify(backup));
 
     const { renderer, getStore } = await renderSection();
     // Sanity: live context starts empty (fresh install), matching the bug
@@ -167,7 +192,7 @@ describe("BackupSection — import preview", () => {
   });
 
   it("rejects invalid JSON without showing a preview or writing anything", async () => {
-    (pickBackupFile as jest.Mock).mockResolvedValue("{not valid json");
+    mockPickSelected("{not valid json");
 
     const { renderer } = await renderSection();
     const before = await AsyncStorage.getItem(STORAGE_KEYS.records);
@@ -183,7 +208,7 @@ describe("BackupSection — import preview", () => {
   });
 
   it("silently ignores a cancelled file picker (no error feedback)", async () => {
-    (pickBackupFile as jest.Mock).mockRejectedValue(new Error("no-file-selected"));
+    mockPickError(new Error("no-file-selected"));
 
     const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
@@ -197,9 +222,9 @@ describe("BackupSection — import preview", () => {
   });
 
   it("re-enables the import button after a cancelled pick (fallback cancellation doesn't strand the UI)", async () => {
-    // Simulates backupFile.web.ts's focus-fallback rejecting with
-    // "cancelled" once the native picker is dismissed without a `change`.
-    (pickBackupFile as jest.Mock).mockRejectedValueOnce(new Error("cancelled"));
+    // Simulates backupFile.web.ts's focus-idle heuristic calling onCancelled
+    // once the native picker is dismissed without a `change` ever arriving.
+    mockPickCancelledOnce();
 
     const { renderer } = await renderSection();
     const importBtn = pressableFor(renderer.root, "Импортировать данные");
@@ -215,13 +240,47 @@ describe("BackupSection — import preview", () => {
 
     // And it must be usable again immediately — a second pick attempt works.
     const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
-    (pickBackupFile as jest.Mock).mockResolvedValueOnce(JSON.stringify(backup));
+    mockPickSelectedOnce(JSON.stringify(backup));
     await act(async () => {
       importBtnAfter!.props.onPress();
       await Promise.resolve();
       await Promise.resolve();
     });
 
+    expect(renderer.root.findByType(DangerButton)).toBeTruthy();
+  });
+
+  it("a delayed onSelected arriving after onCancelled already fired still opens the preview (iOS PWA race)", async () => {
+    // Simulates the exact production bug: focus returns from Files, the
+    // focus-idle heuristic fires first (busy UI relaxed, button re-enabled),
+    // and only afterward does the real `change`/file-read outcome arrive.
+    const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
+    let captured: PickBackupFileCallbacks | undefined;
+    (pickBackupFile as jest.Mock).mockImplementation((callbacks: PickBackupFileCallbacks) => {
+      captured = callbacks;
+    });
+
+    const { renderer } = await renderSection();
+    const importBtn = pressableFor(renderer.root, "Импортировать данные");
+    await act(async () => {
+      importBtn!.props.onPress();
+    });
+
+    await act(async () => {
+      captured!.onCancelled();
+    });
+    // No preview yet, no error shown, button re-enabled.
+    expect(renderer.root.findAllByType(DangerButton).length).toBe(0);
+    expect(feedbackTexts(renderer)).not.toContain("Не удалось выбрать файл");
+    const importBtnAfterIdle = pressableFor(renderer.root, "Импортировать данные");
+    expect(importBtnAfterIdle!.props.disabled).toBe(false);
+
+    // The delayed selection arrives afterward — must still open the preview.
+    await act(async () => {
+      captured!.onSelected(JSON.stringify(backup));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(renderer.root.findByType(DangerButton)).toBeTruthy();
   });
 });

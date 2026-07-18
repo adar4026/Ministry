@@ -18,6 +18,7 @@ import type { HourRecord } from "@/types";
 
 jest.mock("@/data/backupFile");
 import { pickBackupFile } from "@/data/backupFile";
+import type { PickBackupFileCallbacks } from "@/data/backupFile.web";
 
 const mockReplaceAllData = jest.fn(() => {
   throw new Error("simulated rehydration failure");
@@ -70,7 +71,9 @@ beforeEach(async () => {
 test("rehydration failure: rolls back storage, does not show success, shows a clear error", async () => {
   await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([EXISTING_RECORD]));
   const backup = buildBackup({ records: [IMPORTED_RECORD], events: [], talks: [], sessions: [] });
-  (pickBackupFile as jest.Mock).mockResolvedValue(JSON.stringify(backup));
+  (pickBackupFile as jest.Mock).mockImplementation((callbacks: PickBackupFileCallbacks) => {
+    callbacks.onSelected(JSON.stringify(backup));
+  });
 
   let renderer!: ReturnType<typeof create>;
   await act(async () => {

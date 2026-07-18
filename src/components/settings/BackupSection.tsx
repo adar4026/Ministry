@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -29,6 +29,16 @@ export function BackupSection() {
   const [currentCounts, setCurrentCounts] = useState<MinistryBackup["counts"] | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
+  // pickBackupFile's callbacks can fire well after this component would
+  // otherwise have finished with a given pick attempt (delayed iOS `change`
+  // — see backupFile.web.ts), including potentially after unmount.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   async function handleExport() {
     if (exporting) return;
     setFeedback(null);
@@ -48,32 +58,45 @@ export function BackupSection() {
     }
   }
 
-  async function handlePickImport() {
+  function handlePickImport() {
     if (picking || importing) return;
     setFeedback(null);
     setPicking(true);
-    try {
-      const json = await pickBackupFile();
-      const result = validateBackupJSON(json);
-      if (!result.ok) {
-        setFeedback({ kind: "error", title: "Не удалось импортировать", message: result.error });
-        return;
-      }
-      const current = await readCurrentData();
-      setCurrentCounts({
-        records: current.records.length,
-        events: current.events.length,
-        talks: current.talks.length,
-        sessions: current.sessions.length,
-      });
-      setPreview(result.backup);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "";
-      if (message === "no-file-selected" || message === "cancelled") return; // user cancelled — no-op
-      setFeedback({ kind: "error", title: "Не удалось выбрать файл", message: PLATFORM_UNSUPPORTED_MESSAGE });
-    } finally {
-      setPicking(false);
-    }
+    // Callback-based rather than awaited: on iOS the real `change` event can
+    // arrive well after focus returns to the app (see backupFile.web.ts), so
+    // this cannot be a single await/try/finally that ties the busy indicator
+    // to one settlement point — `onCancelled` only relaxes the busy state,
+    // it never discards a selection that shows up afterward.
+    pickBackupFile({
+      onSelected: async (json) => {
+        if (!mountedRef.current) return;
+        setPicking(false);
+        const result = validateBackupJSON(json);
+        if (!result.ok) {
+          setFeedback({ kind: "error", title: "Не удалось импортировать", message: result.error });
+          return;
+        }
+        const current = await readCurrentData();
+        if (!mountedRef.current) return;
+        setCurrentCounts({
+          records: current.records.length,
+          events: current.events.length,
+          talks: current.talks.length,
+          sessions: current.sessions.length,
+        });
+        setPreview(result.backup);
+      },
+      onError: (e) => {
+        if (!mountedRef.current) return;
+        setPicking(false);
+        if (e.message === "no-file-selected") return; // treated the same as a cancel — no-op
+        setFeedback({ kind: "error", title: "Не удалось выбрать файл", message: PLATFORM_UNSUPPORTED_MESSAGE });
+      },
+      onCancelled: () => {
+        if (!mountedRef.current) return;
+        setPicking(false); // silent — explicit cancel, or the focus-return heuristic
+      },
+    });
   }
 
   function handleCancelPreview() {

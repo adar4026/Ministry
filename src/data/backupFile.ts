@@ -8,8 +8,14 @@ export async function saveBackupFile(_filename: string, _json: string): Promise<
   throw new Error("platform-unsupported");
 }
 
-export function pickBackupFile(): Promise<string> {
-  return Promise.reject(new Error("platform-unsupported"));
+export type PickBackupFileCallbacks = {
+  onSelected: (text: string) => void;
+  onError: (err: Error) => void;
+  onCancelled: () => void;
+};
+
+export function pickBackupFile(callbacks: PickBackupFileCallbacks): void {
+  callbacks.onError(new Error("platform-unsupported"));
 }
 
 export function reloadApp(): void {
