@@ -3,14 +3,13 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useStore } from "@/store/StoreContext";
 import { MONTHLY_GOAL, dayWord, formatHMRounded, formatHoursWord, monthProgress } from "@/data/constants";
+import { computePaceDeviation, formatDeviationLabel } from "@/data/cumulativeProgress";
 import { CalendarIcon, ChartIcon, ClockIcon, PlusIcon } from "@/components/icons";
 import { DS } from "./tokens";
-import { GoalRing } from "./GoalRing";
+import { HeroProgressRing } from "./HeroProgressRing";
 
-// Nominative month names for the card's dynamic "ИЮЛЬ 2026" header (TASK_014)
-// — distinct from Home header's genitive MONTHS_GEN (app/(tabs)/index.tsx),
-// which needs "17 июля", not "июль 17". Uppercase is applied via CSS
-// (textTransform), matching the label style already used elsewhere here.
+// Nominative month names, used only in the spoken accessibility label (no
+// visible month/year text in this card as of TASK_015 — see below).
 const MONTHS_NOM = [
   "январь", "февраль", "март", "апрель", "май", "июнь",
   "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
@@ -28,13 +27,18 @@ function StatItem({ icon, label, value }: { icon: ReactNode; label?: string; val
   );
 }
 
-// Home monthly-progress card ("Ministry Calm" redesign, TASK_014 — builds on
-// the compact card introduced in TASK_010). Sole purpose is to communicate
-// progress toward the monthly goal. Starting ministry (the timer) lives on
-// the Hours screen; the "+ Добавить" pill here routes to the existing Manual
-// Time Entry screen (`/hours/entry`, TASK_005B), not the timer. "Детали"
-// reuses the existing Month Details route (`/hours/month/[key]`). Reads only
-// through useStore()/monthProgress()/MONTHLY_GOAL — no new aggregation.
+// Home monthly-progress card ("Ministry Calm" redesign, TASK_014; pace-
+// deviation label TASK_015 — see docs/TASKS/TASK_015_HOME_MONTHLY_PACE_STATUS.md).
+// A cumulative line-chart direction was prototyped and implemented for this
+// card, then rejected in favor of keeping the original horizontal progress
+// bar with the new pace-status label added below it (see that doc's
+// "Rejected direction" section). Sole purpose is to communicate progress
+// toward the monthly goal. Starting ministry (the timer) lives on the Hours
+// screen; the "+ Добавить" pill here routes to the existing Manual Time
+// Entry screen (`/hours/entry`, TASK_005B), not the timer. "Детали" reuses
+// the existing Month Details route (`/hours/month/[key]`). Reads only
+// through useStore()/monthProgress()/MONTHLY_GOAL/computePaceDeviation() —
+// no new store, no second source of truth.
 //
 // All duration text in this card is rounded to the nearest 5 minutes for
 // DISPLAY ONLY via formatHMRounded() — the underlying monthProgress() values
@@ -42,13 +46,23 @@ function StatItem({ icon, label, value }: { icon: ReactNode; label?: string; val
 export function HoursHeroCard() {
   const { records, sessions } = useStore();
   const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
   const p = monthProgress(records, now, sessions);
   const hasGoal = MONTHLY_GOAL > 0;
   const pctRaw = hasGoal ? (p.hoursDone / MONTHLY_GOAL) * 100 : 0;
   const pctClamped = Math.max(0, Math.min(100, pctRaw));
 
-  const monthYearLabel = `${MONTHS_NOM[now.getMonth()]} ${now.getFullYear()}`;
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthYearLabel = `${MONTHS_NOM[now.getMonth()]} ${year}`;
+  const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+
+  // Pace-deviation label (TASK_015, kept): still uses the current month's
+  // real hoursDone/goal/daysInMonth/current day — unrelated to the bar
+  // above it, which only shows pctClamped.
+  const deviation = computePaceDeviation(p.hoursDone, MONTHLY_GOAL, p.daysInMonth, now.getDate());
+  const deviationLabel = formatDeviationLabel(deviation);
+  const deviationColor =
+    deviation.status === "ahead" ? DS.greenInk : deviation.status === "behind" ? DS.danger : DS.metaText;
 
   const remainingText = !hasGoal
     ? "—"
@@ -62,14 +76,12 @@ export function HoursHeroCard() {
   const paceText = !hasGoal || p.hoursRemaining <= 0 ? "—" : `${formatHMRounded(p.requiredPerDay)}/день`;
 
   const a11yLabel = hasGoal
-    ? `${monthYearLabel}: внесено ${formatHMRounded(p.hoursDone)} из цели ${formatHoursWord(MONTHLY_GOAL)}. Выполнено ${Math.round(pctRaw)} процентов. ${p.hoursRemaining > 0 ? `Осталось ${formatHMRounded(p.hoursRemaining)}.` : "Цель достигнута."} ${daysText} до конца месяца.`
+    ? `${monthYearLabel}: внесено ${formatHMRounded(p.hoursDone)} из цели ${formatHoursWord(MONTHLY_GOAL)}. Выполнено ${Math.round(pctRaw)} процентов. ${p.hoursRemaining > 0 ? `Осталось ${formatHMRounded(p.hoursRemaining)}.` : "Цель достигнута."} ${daysText} до конца месяца. ${deviationLabel}.`
     : `${monthYearLabel}: внесено ${formatHMRounded(p.hoursDone)}. Месячная цель не задана.`;
 
   return (
     <View style={styles.card}>
       <View accessible accessibilityLabel={a11yLabel}>
-        <Text style={styles.monthLabel} importantForAccessibility="no">{monthYearLabel}</Text>
-
         <View style={styles.top}>
           <View style={styles.left}>
             <Text style={styles.total} importantForAccessibility="no">{formatHMRounded(p.hoursDone)}</Text>
@@ -78,15 +90,19 @@ export function HoursHeroCard() {
             </Text>
           </View>
 
-          {hasGoal && (
-            <GoalRing pct={pctRaw} goalHours={MONTHLY_GOAL} size={72} showGoalLabel={false} tone="accent" />
-          )}
+          {hasGoal && <HeroProgressRing pct={pctRaw} size={48} />}
         </View>
 
         {hasGoal && (
           <View style={styles.track} importantForAccessibility="no">
             <View style={[styles.fill, { width: `${pctClamped}%` }]} />
           </View>
+        )}
+
+        {hasGoal && (
+          <Text style={[styles.deviationText, { color: deviationColor }]} importantForAccessibility="no">
+            {deviationLabel}
+          </Text>
         )}
       </View>
 
@@ -141,14 +157,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 1,
   },
-  monthLabel: { fontSize: 13, color: DS.metaText, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
-  top: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 10 },
+  top: { flexDirection: "row", alignItems: "center", gap: 10 },
   left: { flex: 1 },
-  total: { fontSize: 30, fontWeight: "800", color: DS.navy, letterSpacing: -0.6 },
-  sub: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 2 },
+  total: { fontSize: 24, fontWeight: "800", color: DS.navy, letterSpacing: -0.5 },
+  sub: { fontSize: 12, color: DS.subText, fontWeight: "600", marginTop: 1 },
   track: { height: 6, borderRadius: 3, backgroundColor: DS.ringTrack, marginTop: 16, overflow: "hidden" },
   fill: { height: "100%", borderRadius: 3, backgroundColor: DS.accent },
-  statsRow: { marginTop: 18, gap: 12 },
+  deviationText: { fontSize: 12, fontWeight: "700", marginTop: 8, textAlign: "left" },
+  statsRow: { marginTop: 10, gap: 12 },
   statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: DS.divider },
   statsGrid: { flexDirection: "row", alignItems: "center" },
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: DS.divider, marginHorizontal: 6 },

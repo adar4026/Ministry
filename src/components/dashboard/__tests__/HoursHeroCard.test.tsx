@@ -1,10 +1,15 @@
 // Component-level render test for HoursHeroCard ("Ministry Calm" redesign,
-// TASK_014). Verifies the card renders real month-progress data end-to-end
-// through StoreContext: the dynamic month/year header, the 5-minute-rounded
+// TASK_014; pace-status label TASK_015). Verifies the card renders real
+// month-progress data end-to-end through StoreContext: the 5-minute-rounded
 // primary metric (stored data itself stays exact), the three-item info row
-// (Осталось / days / В среднем), the "Детали" action (existing Month
-// Details route), and the "+ Добавить" action (existing Manual Time Entry
-// route) — not the timer.
+// (Осталось / days / В среднем), the pace-deviation label, the "Детали"
+// action (existing Month Details route), and the "+ Добавить" action
+// (existing Manual Time Entry route) — not the timer. TASK_015 removed the
+// visible month/year label from this card per the approved design (it
+// remains only in the spoken accessibility label); a cumulative line-chart
+// direction was also tried during TASK_015 and rejected in favor of keeping
+// the original horizontal progress bar — see
+// docs/TASKS/TASK_015_HOME_MONTHLY_PACE_STATUS.md §6.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { HoursHeroCard } from "@/components/dashboard/HoursHeroCard";
@@ -72,6 +77,19 @@ function storedHours(store: Store, year: number, month: number): number | undefi
   return store.records.find((r) => r.year === year && r.month === month)?.hours;
 }
 
+function toISODate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Adds a real Session — the current-month path monthProgress()/
+// computePaceDeviation() actually read, unlike setLegacyHours() above which
+// exercises the legacy-fallback branch that real users can't reach for the
+// current month (legacyEntryBlockReason() refuses it).
+function addSession(store: Store, date: string, durationMinutes: number) {
+  store.saveSession({ date, durationMinutes, source: "manual" });
+}
+
 const MONTHS_NOM = [
   "январь", "февраль", "март", "апрель", "май", "июнь",
   "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
@@ -87,11 +105,11 @@ describe("HoursHeroCard — TASK_014 Ministry Calm redesign", () => {
   const month = now.getMonth() + 1;
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-  it("renders the dynamic month/year header instead of the removed 'Этот месяц' label", async () => {
+  it("does not render a visible month/year label or 'Этот месяц' (TASK_015 removed both)", async () => {
     const { texts } = await renderCard();
     const rendered = texts();
     expect(rendered).not.toContain("Этот месяц");
-    expect(rendered.join(" ")).toContain(`${MONTHS_NOM[now.getMonth()]} ${year}`);
+    expect(rendered.join(" ")).not.toContain(`${MONTHS_NOM[now.getMonth()]} ${year}`);
   });
 
   it("renders normal progress: 5-minute-rounded hours done, goal label, and percentage", async () => {
@@ -180,6 +198,38 @@ describe("HoursHeroCard — TASK_014 Ministry Calm redesign", () => {
     });
     expect(mockRouter.push).toHaveBeenCalledWith("/hours/entry");
     expect(mockRouter.push).not.toHaveBeenCalledWith(expect.stringContaining("timer"));
+  });
+
+  it("shows an ahead-of-pace deviation label when cumulative hours clear the ideal pace (TASK_015)", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      // 51h in a single day is above any possible ideal-at-today value
+      // (max is the goal itself, 50h, on the month's last day) — ahead
+      // regardless of which real calendar day the test runs on.
+      addSession(store(), toISODate(now), 51 * 60);
+    });
+    const rendered = texts().join(" ");
+    expect(rendered).toContain("Опережение на");
+    expect(rendered).not.toContain("Отставание на");
+  });
+
+  it("shows a behind-of-pace deviation label when no hours have been logged yet (TASK_015)", async () => {
+    const { texts } = await renderCard();
+    const rendered = texts().join(" ");
+    // With 0 hours done, the ideal pace at any day >= 1 of a 50h goal is
+    // > 0, so this is deterministically "behind" regardless of today's date.
+    expect(rendered).toContain("Отставание на");
+    expect(rendered).not.toContain("Опережение на");
+  });
+
+  it("sums same-day Session entries into the displayed total correctly (TASK_015)", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      addSession(store(), toISODate(now), 60);
+      addSession(store(), toISODate(now), 30);
+    });
+    const rendered = texts();
+    expect(rendered).toContain("1 ч 30 м");
   });
 
   it("renders the 'Детали' action and navigates to the existing Month Details route", async () => {

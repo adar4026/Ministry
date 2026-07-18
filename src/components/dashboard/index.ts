@@ -7,4 +7,5 @@ export { GoalRing } from "./GoalRing";
 export { EventCard } from "./EventCard";
 export { HoursHeroCard } from "./HoursHeroCard";
 export { HomeBackground } from "./HomeBackground";
+export { HeroProgressRing } from "./HeroProgressRing";
 export { DS } from "./tokens";

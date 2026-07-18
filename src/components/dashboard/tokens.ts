@@ -28,6 +28,11 @@ export const DS = {
   amberInk: "#c2610a",
   shadow: "#3c5090",
   onAccent: "#ffffff",
+  // TASK_015: semantic "behind pace" color for the Home monthly card's
+  // pace-status label — mirrors COLORS.danger (src/data/constants.ts)
+  // exactly, kept as its own DS token rather than importing the global
+  // palette into Home-scoped tokens.
+  danger: "#dc2626",
 } as const;
 
 // Gradient stops for the goal ring (blue -> green -> amber).
