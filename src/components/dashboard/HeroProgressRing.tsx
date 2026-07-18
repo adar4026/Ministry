@@ -59,7 +59,9 @@ export function HeroProgressRing({ pct, size = 48 }: { pct: number; size?: numbe
   // Stroke scales with size (rather than a fixed 13px) so the white center
   // keeps the same proportional share of the ring as `size` shrinks —
   // otherwise a smaller ring leaves less room for the percentage text.
-  const stroke = Math.round(size * 0.23);
+  // Ratio tuned down slightly (TASK_016) for a leaner, less heavy arc that
+  // reads more as a precise indicator than a thick band.
+  const stroke = Math.round(size * 0.19);
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
   const dash = (clamped / 100) * circumference;

@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useStore } from "@/store/StoreContext";
 import { MONTHLY_GOAL, dayWord, formatHMRounded, formatHoursWord, monthProgress } from "@/data/constants";
 import { computePaceDeviation, formatDeviationLabel } from "@/data/cumulativeProgress";
-import { CalendarIcon, ChartIcon, ClockIcon, PlusIcon } from "@/components/icons";
+import { CalendarIcon, ClockIcon, PlusIcon } from "@/components/icons";
 import { DS } from "./tokens";
 import { HeroProgressRing } from "./HeroProgressRing";
 
@@ -71,9 +71,6 @@ export function HoursHeroCard() {
       : "Цель достигнута";
   const daysLeft = Math.max(0, p.daysLeft);
   const daysText = `${daysLeft} ${dayWord(daysLeft)}`;
-  // Once the goal is met, a required daily pace is no longer a meaningful
-  // number — an em dash avoids implying "0 ч" still needs to be done.
-  const paceText = !hasGoal || p.hoursRemaining <= 0 ? "—" : `${formatHMRounded(p.requiredPerDay)}/день`;
 
   const a11yLabel = hasGoal
     ? `${monthYearLabel}: внесено ${formatHMRounded(p.hoursDone)} из цели ${formatHoursWord(MONTHLY_GOAL)}. Выполнено ${Math.round(pctRaw)} процентов. ${p.hoursRemaining > 0 ? `Осталось ${formatHMRounded(p.hoursRemaining)}.` : "Цель достигнута."} ${daysText} до конца месяца. ${deviationLabel}.`
@@ -110,11 +107,9 @@ export function HoursHeroCard() {
         <View style={styles.statsRow} importantForAccessibility="no">
           <View style={styles.statsDivider} />
           <View style={styles.statsGrid}>
-            <StatItem icon={<ClockIcon size={14} color={DS.accent} />} label="Осталось" value={remainingText} />
+            <StatItem icon={<ClockIcon size={16} color={DS.accent} />} label="Осталось" value={remainingText} />
             <View style={styles.statDivider} />
-            <StatItem icon={<CalendarIcon size={14} color={DS.teal} />} value={daysText} />
-            <View style={styles.statDivider} />
-            <StatItem icon={<ChartIcon size={14} color={DS.accent} />} label="В среднем" value={paceText} />
+            <StatItem icon={<CalendarIcon size={16} color={DS.teal} />} value={daysText} />
           </View>
         </View>
       )}
@@ -164,14 +159,14 @@ const styles = StyleSheet.create({
   track: { height: 6, borderRadius: 3, backgroundColor: DS.ringTrack, marginTop: 16, overflow: "hidden" },
   fill: { height: "100%", borderRadius: 3, backgroundColor: DS.accent },
   deviationText: { fontSize: 12, fontWeight: "700", marginTop: 8, textAlign: "left" },
-  statsRow: { marginTop: 10, gap: 12 },
+  statsRow: { marginTop: 14, gap: 12 },
   statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: DS.divider },
-  statsGrid: { flexDirection: "row", alignItems: "center" },
-  statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: DS.divider, marginHorizontal: 6 },
-  statItem: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 1 },
+  statsGrid: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 34, backgroundColor: DS.divider, marginHorizontal: 14 },
+  statItem: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   statText: { flexShrink: 1 },
-  statLabel: { fontSize: 10, color: DS.metaText, fontWeight: "600" },
-  statValue: { fontSize: 12, color: DS.navy, fontWeight: "700", marginTop: 1 },
+  statLabel: { fontSize: 11, color: DS.metaText, fontWeight: "600" },
+  statValue: { fontSize: 15, color: DS.navy, fontWeight: "700", marginTop: 1 },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18 },
   pressed: { opacity: 0.85 },
   detailsBtn: { flexDirection: "row", alignItems: "center", gap: 2 },

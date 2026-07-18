@@ -136,14 +136,14 @@ describe("HoursHeroCard — TASK_014 Ministry Calm redesign", () => {
     expect(rendered.join(" ")).not.toContain("33 ч 37 м");
   });
 
-  it("renders the three-item info row: Осталось, days remaining, В среднем", async () => {
+  it("renders the two-item info row: Осталось and days remaining, without the removed В среднем item (TASK_016)", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
       setLegacyHours(store(), year, month, 12);
     });
     const rendered = texts();
     expect(rendered).toContain("Осталось");
-    expect(rendered).toContain("В среднем");
+    expect(rendered).not.toContain("В среднем");
     expect(rendered.some((t) => /^\d+ (день|дня|дней)$/.test(t))).toBe(true);
   });
 
