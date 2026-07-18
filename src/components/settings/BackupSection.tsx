@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { COLORS } from "@/data/constants";
+import { COLORS, formatDateDMY, toISODate } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import { buildBackup, formatBackupFilename, validateBackupJSON, type MinistryBackup } from "@/data/backup";
 import { performImport, readCurrentData, BackupImportError } from "@/data/backupImport";
@@ -8,11 +8,14 @@ import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 import { Modal } from "@/components/Modal";
 import { DangerButton, PrimaryButton } from "@/components/ui";
 
+// Date portion via the app-wide canonical formatter (TASK_022) — was a
+// locally-grown "DD.MM.YYYY" (dots); only the separator changes, the
+// HH:MM time portion (irrelevant to that formatter) is untouched.
 function formatBackupTimestamp(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${formatDateDMY(toISODate(d))} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 const PLATFORM_UNSUPPORTED_MESSAGE =

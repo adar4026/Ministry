@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { roundDurationToNearestFive, toISODate } from "@/data/constants";
+import { formatDateDMY, isValidDMY, parseDMYToISO } from "@/data/dateFormat";
 import type { SessionInput } from "@/store/StoreContext";
 import type { Session } from "@/types";
 import { Card, DangerButton, SectionTitle, TextField } from "@/components/ui";
@@ -42,7 +43,9 @@ export function SessionForm({
   onDelete?: () => void;
   onStateChange?: (state: { canSubmit: boolean; submit: () => void }) => void;
 }) {
-  const [date, setDate] = useState(initial?.date ?? toISODate(new Date()));
+  // Visible/editable value is DD-MM-YYYY (TASK_022) — the internal ISO
+  // value only exists momentarily, built at submit() from this field.
+  const [date, setDate] = useState(formatDateDMY(initial?.date ?? toISODate(new Date())));
   const [note, setNote] = useState(initial?.note ?? "");
 
   const initialDuration = initial?.durationMinutes ?? 0;
@@ -59,12 +62,12 @@ export function SessionForm({
   // saved can never disagree.
   const durationMinutes = hours * 60 + minutes;
 
-  const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const dateValid = isValidDMY(date);
   const canSubmit = dateValid && durationMinutes > 0;
 
   function submit() {
     if (!canSubmit) return;
-    onSave({ id: initial?.id, date, durationMinutes, note, source: "manual" });
+    onSave({ id: initial?.id, date: parseDMYToISO(date), durationMinutes, note, source: "manual" });
   }
 
   useEffect(() => {
@@ -79,7 +82,7 @@ export function SessionForm({
         <TextField
           value={date}
           onChangeText={setDate}
-          placeholder="ГГГГ-ММ-ДД"
+          placeholder="ДД-ММ-ГГГГ"
           style={styles.datePill}
         />
       </Card>

@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { formatDateDMY, isValidDMY, parseDMYToISO } from "@/data/dateFormat";
 import type { TalkInput } from "@/store/StoreContext";
 import type { Talk } from "@/types";
 import { DangerButton, Field, PrimaryButton, TextField } from "@/components/ui";
-
-const isISODate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export function TalkForm({
   initial,
@@ -15,17 +14,19 @@ export function TalkForm({
   onSave: (input: TalkInput) => void;
   onDelete?: () => void;
 }) {
-  const [date, setDate] = useState(initial?.date ?? "");
+  // Visible/editable value is DD-MM-YYYY (TASK_022) — the internal ISO
+  // value only exists momentarily, built at submit() from this field.
+  const [date, setDate] = useState(initial ? formatDateDMY(initial.date) : "");
   const [number, setNumber] = useState(initial?.number ? String(initial.number) : "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
 
   function submit() {
-    if (!isISODate(date)) return;
+    if (!isValidDMY(date)) return;
     const n = parseInt(number, 10);
     onSave({
       id: initial?.id,
-      date,
+      date: parseDMYToISO(date),
       number: Number.isFinite(n) ? n : null,
       title,
       location,
@@ -34,11 +35,11 @@ export function TalkForm({
 
   return (
     <View>
-      <Field label="Дата (ГГГГ-ММ-ДД)">
+      <Field label="Дата (ДД-ММ-ГГГГ)">
         <TextField
           value={date}
           onChangeText={setDate}
-          placeholder="2026-06-28"
+          placeholder="28-06-2026"
           autoCapitalize="none"
           keyboardType="numbers-and-punctuation"
         />

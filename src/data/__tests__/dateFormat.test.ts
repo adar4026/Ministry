@@ -1,8 +1,12 @@
 // TASK_018 — date-presentation helpers for the "Последние события" card.
+// TASK_022 — formatDateDMY became the app-wide canonical full-date display
+// formatter; parseDMYToISO/isValidDMY added for the Add/Edit forms.
 import {
   calendarElapsed,
   formatDateDMY,
   formatElapsedRu,
+  isValidDMY,
+  parseDMYToISO,
   pluralDaysRu,
   pluralMonthsRu,
   pluralYearsRu,
@@ -17,8 +21,70 @@ describe("formatDateDMY", () => {
     expect(formatDateDMY("2026-05-24")).toBe("24-05-2026");
   });
 
+  it("converts a mid-year date (task example)", () => {
+    expect(formatDateDMY("2026-05-12")).toBe("12-05-2026");
+  });
+
+  it("keeps leading zeroes for the first day/month of a year", () => {
+    expect(formatDateDMY("2026-01-01")).toBe("01-01-2026");
+  });
+
+  it("keeps leading zeroes for the last day of a year", () => {
+    expect(formatDateDMY("2026-12-31")).toBe("31-12-2026");
+  });
+
+  it("never uses dots or slashes as the separator", () => {
+    const out = formatDateDMY("2026-05-12");
+    expect(out).not.toMatch(/[./]/);
+  });
+
   it("returns malformed input unchanged instead of throwing", () => {
     expect(formatDateDMY("not-a-date")).toBe("not-a-date");
+  });
+});
+
+describe("parseDMYToISO", () => {
+  it("converts DD-MM-YYYY to YYYY-MM-DD", () => {
+    expect(parseDMYToISO("12-05-2026")).toBe("2026-05-12");
+  });
+
+  it("keeps leading zeroes", () => {
+    expect(parseDMYToISO("01-01-2026")).toBe("2026-01-01");
+  });
+
+  it("round-trips with formatDateDMY", () => {
+    expect(parseDMYToISO(formatDateDMY("2026-05-12"))).toBe("2026-05-12");
+    expect(formatDateDMY(parseDMYToISO("12-05-2026"))).toBe("12-05-2026");
+  });
+
+  it("returns malformed input unchanged instead of throwing", () => {
+    expect(parseDMYToISO("2026-05-12")).toBe("2026-05-12");
+    expect(parseDMYToISO("not-a-date")).toBe("not-a-date");
+  });
+});
+
+describe("isValidDMY", () => {
+  it("accepts a well-formed DD-MM-YYYY string", () => {
+    expect(isValidDMY("12-05-2026")).toBe(true);
+  });
+
+  it("rejects ISO order", () => {
+    expect(isValidDMY("2026-05-12")).toBe(false);
+  });
+
+  it("rejects dot or slash separators", () => {
+    expect(isValidDMY("12.05.2026")).toBe(false);
+    expect(isValidDMY("12/05/2026")).toBe(false);
+  });
+
+  it("rejects missing leading zeroes", () => {
+    expect(isValidDMY("1-5-2026")).toBe(false);
+  });
+
+  it("rejects a 2-digit year or otherwise malformed input", () => {
+    expect(isValidDMY("12-05-26")).toBe(false);
+    expect(isValidDMY("not-a-date")).toBe(false);
+    expect(isValidDMY("")).toBe(false);
   });
 });
 

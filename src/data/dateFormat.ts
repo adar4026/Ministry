@@ -3,11 +3,37 @@
 
 // "YYYY-MM-DD" -> "DD-MM-YYYY". Presentation only — storage format unchanged.
 // Malformed input is returned unchanged rather than crashing the Home screen.
+// The single canonical full-date display formatter for the whole app
+// (TASK_022) — every screen/component renders a user-facing calendar date
+// through this function (re-exported from src/data/constants.ts for the
+// call sites that already import from there) instead of a locally-grown
+// duplicate. String-only (regex + group reorder) — never goes through
+// `Date`, so there is no timezone-driven day shift.
 export function formatDateDMY(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return iso;
   const [, y, mo, d] = m;
   return `${d}-${mo}-${y}`;
+}
+
+// Inverse of formatDateDMY: "DD-MM-YYYY" -> "YYYY-MM-DD". Used only at a
+// form's submit boundary to convert the visible, user-typed date back to
+// the ISO value the rest of the app (storage, StoreContext, sorting)
+// requires (TASK_022). String-only, same as formatDateDMY — no `Date`
+// parsing, no timezone shift. Malformed input is returned unchanged.
+export function parseDMYToISO(dmy: string): string {
+  const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(dmy);
+  if (!m) return dmy;
+  const [, d, mo, y] = m;
+  return `${y}-${mo}-${d}`;
+}
+
+// Format-only validity check for a user-typed "DD-MM-YYYY" date (TASK_022)
+// — mirrors the format-only strictness of the ISO regex forms used before
+// this task (e.g. no rejection of a calendar-impossible "31-02-2026"), just
+// on the new visible shape.
+export function isValidDMY(s: string): boolean {
+  return /^\d{2}-\d{2}-\d{4}$/.test(s);
 }
 
 export type CalendarElapsed = {

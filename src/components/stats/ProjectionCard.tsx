@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { COLORS, formatHM, MONTHLY_GOAL, monthProgress, projectMonthEnd, toISODate, trailingPace } from "@/data/constants";
+import { COLORS, formatDateDMY, formatHM, MONTHLY_GOAL, monthProgress, projectMonthEnd, toISODate, trailingPace } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import { useMemo } from "react";
 
@@ -110,7 +110,7 @@ export function ProjectionCard({ onPress }: ProjectionCardProps) {
         </View>
         <View style={styles.footerItem}>
           <Text style={styles.footerLabel}>Конец месяца</Text>
-          <Text style={styles.footerValue}>{projection.goalDate.split("-").reverse().join(".")}</Text>
+          <Text style={styles.footerValue}>{formatDateDMY(projection.goalDate)}</Text>
         </View>
       </View>
     </Pressable>

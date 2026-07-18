@@ -130,6 +130,28 @@ describe("BackupSection — import preview", () => {
     expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
   });
 
+  // TASK_022: "Создана" must show the app-wide DD-MM-YYYY date format
+  // (dots were the previous, now-fixed formatBackupTimestamp() output).
+  it("shows the backup's creation date as DD-MM-YYYY in the preview, not dot-separated", async () => {
+    const backup = { ...buildBackup({ records: [], events: [], talks: [], sessions: [] }), createdAt: "2026-06-03T10:00:00.000Z" };
+    mockPickSelected(JSON.stringify(backup));
+
+    const { renderer } = await renderSection();
+    const importBtn = pressableFor(renderer.root, "Импортировать данные");
+    await act(async () => {
+      importBtn!.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const texts = renderer.root
+      .findAllByType(Text)
+      .map((n) => n.props.children)
+      .filter((c): c is string => typeof c === "string");
+    expect(texts.some((t) => /^03-06-2026 \d{2}:\d{2}$/.test(t))).toBe(true);
+    expect(texts.some((t) => t.includes("03.06.2026"))).toBe(false);
+  });
+
   it("cancel performs no writes and dismisses the preview", async () => {
     const backup = buildBackup({ records: [RECORD], events: [], talks: [], sessions: [] });
     mockPickSelected(JSON.stringify(backup));

@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { CAT, CATEGORY_KEYS } from "@/data/constants";
+import { formatDateDMY, isValidDMY, parseDMYToISO } from "@/data/dateFormat";
 import type { EventInput } from "@/store/StoreContext";
 import type { Category, MinistryEvent } from "@/types";
 import { ChipSelector, DangerButton, Field, PrimaryButton, TextField } from "@/components/ui";
 
 const CATEGORY_OPTIONS = CATEGORY_KEYS.map((k) => ({ value: k, label: CAT[k].label }));
-
-// Accepts an ISO calendar date: YYYY-MM-DD.
-const isISODate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export function EventForm({
   initial,
@@ -19,22 +17,24 @@ export function EventForm({
   onSave: (input: EventInput) => void;
   onDelete?: () => void;
 }) {
-  const [date, setDate] = useState(initial?.date ?? "");
+  // Visible/editable value is DD-MM-YYYY (TASK_022) — the internal ISO
+  // value only exists momentarily, built at submit() from this field.
+  const [date, setDate] = useState(initial ? formatDateDMY(initial.date) : "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [category, setCategory] = useState<Category>(initial?.category ?? "other");
 
   function submit() {
-    if (!isISODate(date) || !title.trim()) return;
-    onSave({ id: initial?.id, date, title: title.trim(), category });
+    if (!isValidDMY(date) || !title.trim()) return;
+    onSave({ id: initial?.id, date: parseDMYToISO(date), title: title.trim(), category });
   }
 
   return (
     <View>
-      <Field label="Дата (ГГГГ-ММ-ДД)">
+      <Field label="Дата (ДД-ММ-ГГГГ)">
         <TextField
           value={date}
           onChangeText={setDate}
-          placeholder="2026-06-28"
+          placeholder="28-06-2026"
           autoCapitalize="none"
           keyboardType="numbers-and-punctuation"
         />

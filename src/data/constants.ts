@@ -217,11 +217,13 @@ export function timeElapsed(isoDate: string, now: Date = new Date()): string {
   return `${years} лет ${remMonths} мес.`;
 }
 
-// Display-only: "YYYY-MM-DD" -> "DD/MM/YYYY". Stored dates stay ISO.
-export function formatDateDMY(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-");
-  return `${d}/${m}/${y}`;
-}
+// The one canonical full-date display formatter lives in dateFormat.ts
+// (TASK_022) — re-exported here so the many existing call sites that
+// already `import { formatDateDMY } from "@/data/constants"` keep working
+// unchanged. This used to be a second, independently-maintained
+// implementation that (bug) rendered "DD/MM/YYYY" instead of the app-wide
+// "DD-MM-YYYY" — removed in favor of the single canonical function.
+export { formatDateDMY } from "./dateFormat";
 
 // Monthly service goal in hours (TASK_002 Phase 1; shared with the Today card).
 export const MONTHLY_GOAL = 50;

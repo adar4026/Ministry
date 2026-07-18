@@ -80,7 +80,7 @@ describe("SessionForm", () => {
     const { hours, minutes } = wheels(renderer.root);
 
     act(() => {
-      date.props.onChangeText("2026-06-10");
+      date.props.onChangeText("10-06-2026");
       note.props.onChangeText("Territory 12");
       hours.props.onChange(2);
       minutes.props.onChange(30);
@@ -160,6 +160,27 @@ describe("SessionForm", () => {
       renderer.root.findByType(DangerButton).props.onPress();
     });
     expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  // TASK_022: the date field shows DD-MM-YYYY (the app-wide visible format),
+  // while the ISO value is only rebuilt internally at submit().
+  it("shows the stored ISO date as DD-MM-YYYY and saves it back as ISO unchanged", () => {
+    const initial = sessionWithDuration("s12", 60); // initial.date = "2026-05-01"
+    const onSave = jest.fn();
+    const { renderer, getState } = renderForm({ initial, onSave });
+    const { date } = inputs(renderer.root);
+    expect(date.props.value).toBe("01-05-2026");
+
+    act(() => {
+      getState().submit();
+    });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ id: "s12", date: "2026-05-01" });
+  });
+
+  it("defaults a new record's date field to today, shown as DD-MM-YYYY", () => {
+    const { renderer } = renderForm();
+    const { date } = inputs(renderer.root);
+    expect(date.props.value).toMatch(/^\d{2}-\d{2}-\d{4}$/);
   });
 
   it("normalizes a 47-minute legacy entry to 0 hours / 45 minutes and shows the rounding notice", () => {
