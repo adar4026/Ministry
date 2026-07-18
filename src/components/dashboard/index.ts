@@ -5,6 +5,7 @@ export { SectionHeader } from "./SectionHeader";
 export { SummaryCard } from "./SummaryCard";
 export { GoalRing } from "./GoalRing";
 export { EventCard } from "./EventCard";
+export { UpcomingEventRow } from "./UpcomingEventRow";
 export { HoursHeroCard } from "./HoursHeroCard";
 export { HomeBackground } from "./HomeBackground";
 export { HeroProgressRing } from "./HeroProgressRing";

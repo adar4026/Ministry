@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { HOME_GRADIENT } from "./tokens";
@@ -11,17 +12,23 @@ import { HOME_GRADIENT } from "./tokens";
 const GRADIENT_HEIGHT = 360;
 
 export function HomeBackground() {
+  // TASK_019: the root Stack keeps the previous screen mounted underneath
+  // the new /upcoming-events screen, so two <HomeBackground> instances can
+  // exist in the DOM at once. On web, SVG gradient ids are global — a
+  // hardcoded id would collide between instances and one of them would
+  // silently lose its fill. useId() keeps each instance's id unique.
+  const gradientId = `homeBg-${useId()}`;
   return (
     <View style={styles.wrap} pointerEvents="none">
       <Svg width="100%" height={GRADIENT_HEIGHT} style={styles.svg}>
         <Defs>
-          <LinearGradient id="homeBg" x1="0" y1="0" x2="0" y2="1">
+          <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={HOME_GRADIENT[0]} />
             <Stop offset="0.55" stopColor={HOME_GRADIENT[1]} />
             <Stop offset="1" stopColor={HOME_GRADIENT[2]} />
           </LinearGradient>
         </Defs>
-        <Rect x="0" y="0" width="100%" height={GRADIENT_HEIGHT} fill="url(#homeBg)" />
+        <Rect x="0" y="0" width="100%" height={GRADIENT_HEIGHT} fill={`url(#${gradientId})`} />
       </Svg>
     </View>
   );

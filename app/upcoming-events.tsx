@@ -1,0 +1,74 @@
+import { router } from "expo-router";
+import { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { DS, HomeBackground, SummaryCard, UpcomingEventRow } from "@/components/dashboard";
+import { upcomingItems } from "@/data/constants";
+import { useStore } from "@/store/StoreContext";
+
+// TASK_019 — dedicated screen for the complete upcoming-events list, opened
+// from Home's "Ближайшие события" → "Показать все". Lives outside the
+// `(tabs)` group (root Stack, like `app/service.tsx`) rather than nested
+// under a tab's own Stack (the `hours/month/[key]` pattern) — see
+// docs/TASKS/TASK_019_HOME_UPCOMING_EVENTS_SCREEN.md §3 for why: nesting
+// under the "Главная" tab would require turning `app/(tabs)/index.tsx` into
+// its own folder+_layout, a wider navigation-tree restructure this task
+// avoids. Being outside `Tabs` also means the bottom tab bar (rendered only
+// by the `Tabs` navigator) naturally doesn't show here — nothing to hide.
+export default function UpcomingEventsScreen() {
+  const { events, talks } = useStore();
+  // Same shared selector as Home's preview card, called with no limit —
+  // the complete future-dated list, no month/year window.
+  const items = useMemo(() => upcomingItems(events, talks, new Date()), [events, talks]);
+
+  function goBack() {
+    // A direct web load/refresh of this route has no history entry to pop.
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  }
+
+  return (
+    <View style={styles.screen}>
+      <HomeBackground />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <View style={styles.header}>
+          <Pressable onPress={goBack} hitSlop={10} style={styles.back} accessibilityRole="button">
+            <Text style={styles.backText}>‹ Назад</Text>
+          </Pressable>
+          <Text style={styles.title}>Ближайшие события</Text>
+        </View>
+
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          <SummaryCard style={styles.card}>
+            {items.length === 0 ? (
+              <Text style={styles.empty}>Нет предстоящих событий</Text>
+            ) : (
+              items.map((it, i) => (
+                <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} bordered={i < items.length - 1} />
+              ))
+            )}
+          </SummaryCard>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: DS.homeBase },
+  safe: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  back: { paddingVertical: 6, paddingRight: 12 },
+  backText: { fontSize: 14, fontWeight: "600", color: DS.accent },
+  title: { fontSize: 17, fontWeight: "800", color: DS.navy },
+  scroll: { flex: 1 },
+  content: { padding: 16, paddingTop: 4, paddingBottom: 32 },
+  card: { padding: 20 },
+  empty: { fontSize: 14, color: DS.metaText, paddingVertical: 8 },
+});

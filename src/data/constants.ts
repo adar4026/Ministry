@@ -366,18 +366,27 @@ export function talkTitle(t: Talk): string {
 
 export type UpcomingItem = { kind: "event" | "talk"; id: string; date: string; title: string };
 
-// Combine events + talks into a single future-only, date-sorted list.
-// UI-layer combination only — both collections stay separate in storage.
+// Combine events + talks into a single future-only, date-sorted list —
+// the one shared selector for "upcoming" items (TASK_007, limit extended in
+// TASK_019). UI-layer combination only — both collections stay separate in
+// storage. `date` fields are date-only ISO strings ("YYYY-MM-DD"), so
+// lexicographic comparison is chronological comparison — no Date parsing
+// (and therefore no timezone-shift risk) is needed for the sort itself.
+// `limit` is optional: omit it (or pass `undefined`) for the complete
+// upcoming list (TASK_019's dedicated screen); pass a number (Home passes
+// 3) to cap it. Ties on `date` break on `id` for a deterministic order that
+// doesn't rely on Array.prototype.sort's stability guarantee.
 export function upcomingItems(
   events: MinistryEvent[],
   talks: Talk[],
   now: Date = new Date(),
-  limit = 3,
+  limit?: number,
 ): UpcomingItem[] {
   const todayISO = toISODate(now);
   const items: UpcomingItem[] = [
     ...events.filter((e) => e.date >= todayISO).map((e) => ({ kind: "event" as const, id: e.id, date: e.date, title: e.title })),
     ...talks.filter((t) => t.date >= todayISO).map((t) => ({ kind: "talk" as const, id: t.id, date: t.date, title: talkTitle(t) })),
   ];
-  return items.sort((a, b) => a.date.localeCompare(b.date)).slice(0, limit);
+  const sorted = items.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  return limit === undefined ? sorted : sorted.slice(0, limit);
 }
