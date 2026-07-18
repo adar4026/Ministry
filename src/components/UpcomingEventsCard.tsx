@@ -1,5 +1,6 @@
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Fragment } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SummaryCard, UpcomingEventRow } from "@/components/dashboard";
 import { COLORS, upcomingItems } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -17,18 +18,22 @@ export function UpcomingEventsCard() {
   // first 3; the dedicated screen calls the same selector with no limit.
   const items = upcomingItems(events, talks, new Date(), HOME_LIMIT);
 
-  // Built on the same SummaryCard primitive as the rest of the Home card
-  // system (TASK_017) — was a separately-styled generic `Card` (still used
-  // elsewhere: forms, /add, /timeline, /hours/history), which drifted
-  // slightly from the other Home cards (24px radius vs 22px).
+  // Independent cards (TASK_021): each item is now its own SummaryCard (see
+  // UpcomingEventRow), stacked with a small gap instead of sharing one
+  // outer card separated by divider lines — matches "Последние события".
+  // The empty state keeps its own single card (nothing to separate).
   return (
-    <SummaryCard style={styles.card}>
+    <Fragment>
       {items.length === 0 ? (
-        <Text style={styles.empty}>Нет предстоящих событий</Text>
+        <SummaryCard style={styles.card}>
+          <Text style={styles.empty}>Нет предстоящих событий</Text>
+        </SummaryCard>
       ) : (
-        items.map((it, i) => (
-          <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} bordered={i < items.length - 1} />
-        ))
+        <View style={styles.list}>
+          {items.map((it) => (
+            <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} />
+          ))}
+        </View>
       )}
 
       {items.length > 0 && (
@@ -41,16 +46,18 @@ export function UpcomingEventsCard() {
           <Text style={styles.showAllText}>Показать все →</Text>
         </Pressable>
       )}
-    </SummaryCard>
+    </Fragment>
   );
 }
 
 const styles = StyleSheet.create({
-  // Radius/shadow/background now come from SummaryCard's defaults
-  // (TASK_017) — only the wider padding this card always had is kept here.
+  // Same gap as "Последние события"'s eventList (app/(tabs)/index.tsx).
+  list: { gap: 11 },
+  // Radius/shadow/background come from SummaryCard's defaults (TASK_017) —
+  // only the wider padding this card always had is kept here.
   card: { padding: 20 },
   empty: { fontSize: 14, color: COLORS.muted, paddingVertical: 8 },
-  showAll: { marginTop: 8, alignItems: "center", paddingVertical: 6 },
+  showAll: { marginTop: 4, alignItems: "center", paddingVertical: 6 },
   showAllText: { fontSize: 14, fontWeight: "700", color: COLORS.accent },
   pressed: { opacity: 0.7 },
 });

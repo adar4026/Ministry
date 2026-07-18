@@ -39,15 +39,17 @@ export default function UpcomingEventsScreen() {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <SummaryCard style={styles.card}>
-            {items.length === 0 ? (
+          {items.length === 0 ? (
+            <SummaryCard style={styles.card}>
               <Text style={styles.empty}>Нет предстоящих событий</Text>
-            ) : (
-              items.map((it, i) => (
-                <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} bordered={i < items.length - 1} />
-              ))
-            )}
-          </SummaryCard>
+            </SummaryCard>
+          ) : (
+            <View style={styles.list}>
+              {items.map((it) => (
+                <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} />
+              ))}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -69,6 +71,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: "800", color: DS.navy },
   scroll: { flex: 1 },
   content: { padding: 16, paddingTop: 4, paddingBottom: 32 },
+  // Same gap as Home's "Последние события" eventList / UpcomingEventsCard's
+  // list (TASK_021) — independent per-item cards, no shared container.
+  list: { gap: 11 },
   card: { padding: 20 },
   empty: { fontSize: 14, color: DS.metaText, paddingVertical: 8 },
 });
