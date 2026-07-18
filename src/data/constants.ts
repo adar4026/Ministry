@@ -363,15 +363,19 @@ function daysBetweenUTC(a: Date, b: Date): number {
   return Math.round((bUTC - aUTC) / 86400000);
 }
 
-// "Сегодня" / "Через N месяцев" / "Через N месяцев M дней" / "Через M дней"
-// for a future ISO date, relative to now. Assumes dateISO is today or later.
-// Calendar-based (TASK_020): finds the largest whole number of calendar
-// months that, added to today (with end-of-month clamping), doesn't exceed
-// the target date, then expresses the remainder as exact calendar days —
-// not a division of the millisecond difference by an assumed 30-day month.
-// This keeps e.g. an event on 04/09 from a 07/18 "today" as "2 месяца 20
-// дней" (2 full months to 04/07... 04/09, +20 days), not a rounded "2
-// месяца"/"3 месяца".
+// "Сегодня" / "Через N мес" / "Через N мес M д." / "Через M д." for a future
+// ISO date, relative to now. Assumes dateISO is today or later. Calendar-based
+// (TASK_020): finds the largest whole number of calendar months that, added
+// to today (with end-of-month clamping), doesn't exceed the target date,
+// then expresses the remainder as exact calendar days — not a division of
+// the millisecond difference by an assumed 30-day month. This keeps e.g. an
+// event on 04/09 from a 07/18 "today" as "2 мес 20 д." (2 full months to
+// 04/07... 04/09, +20 days), not a rounded "2 мес"/"3 мес".
+// Units are compact, undeclined abbreviations ("мес", "д.") rather than
+// monthWord()/dayWord()'s full Russian plural forms (TASK_020A) — this
+// compact style is specific to this list-row label; monthWord()/dayWord()
+// keep full declension for their other, unrelated call sites (TodayCard,
+// MonthSummaryCard, HoursHeroCard).
 export function relativeDays(dateISO: string, now: Date = new Date()): string {
   const [y, m, d] = dateISO.split("-").map(Number);
   const target = new Date(y, m - 1, d);
@@ -387,8 +391,8 @@ export function relativeDays(dateISO: string, now: Date = new Date()): string {
   const days = daysBetweenUTC(monthAnchor, target);
 
   const parts: string[] = [];
-  if (months > 0) parts.push(`${months} ${monthWord(months)}`);
-  if (days > 0 || months === 0) parts.push(`${days} ${dayWord(days)}`);
+  if (months > 0) parts.push(`${months} мес`);
+  if (days > 0 || months === 0) parts.push(`${days} д.`);
   return `Через ${parts.join(" ")}`;
 }
 

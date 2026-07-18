@@ -32,28 +32,28 @@ describe("roundDurationToNearestFive", () => {
   });
 });
 
-describe("relativeDays (TASK_020 — calendar-based months + days, no rounding)", () => {
+describe("relativeDays (TASK_020A — compact 'мес'/'д.' abbreviations, no declension)", () => {
   it("shows full months plus remaining days (2026-05-15 -> 2026-08-04)", () => {
     const now = new Date(2026, 4, 15); // 15 мая 2026
-    expect(relativeDays("2026-08-04", now)).toBe("Через 2 месяца 20 дней");
+    expect(relativeDays("2026-08-04", now)).toBe("Через 2 мес 20 д.");
   });
 
   it("shows 1 month and 1 day", () => {
     const now = new Date(2026, 6, 18);
-    expect(relativeDays("2026-08-19", now)).toBe("Через 1 месяц 1 день");
+    expect(relativeDays("2026-08-19", now)).toBe("Через 1 мес 1 д.");
   });
 
   it("shows days only when under a full calendar month", () => {
     const now = new Date(2026, 6, 18);
-    expect(relativeDays("2026-08-07", now)).toBe("Через 20 дней");
-    expect(relativeDays("2026-07-19", now)).toBe("Через 1 день");
+    expect(relativeDays("2026-08-07", now)).toBe("Через 20 д.");
+    expect(relativeDays("2026-07-19", now)).toBe("Через 1 д.");
   });
 
-  it("omits the day part for an exact number of full months (no '0 дней')", () => {
+  it("omits the day part for an exact number of full months (no '0 д.')", () => {
     const now = new Date(2026, 6, 18);
     const result = relativeDays("2026-09-18", now);
-    expect(result).toBe("Через 2 месяца");
-    expect(result).not.toContain("0 дней");
+    expect(result).toBe("Через 2 мес");
+    expect(result).not.toContain("0 д.");
   });
 
   it("shows 'Сегодня' for an event occurring today", () => {
@@ -63,9 +63,9 @@ describe("relativeDays (TASK_020 — calendar-based months + days, no rounding)"
 
   it("handles a transition across the end of the year", () => {
     const now = new Date(2026, 11, 20); // 20 декабря 2026
-    expect(relativeDays("2027-01-05", now)).toBe("Через 16 дней");
-    expect(relativeDays("2027-02-20", now)).toBe("Через 2 месяца");
-    expect(relativeDays("2027-02-25", now)).toBe("Через 2 месяца 5 дней");
+    expect(relativeDays("2027-01-05", now)).toBe("Через 16 д.");
+    expect(relativeDays("2027-02-20", now)).toBe("Через 2 мес");
+    expect(relativeDays("2027-02-25", now)).toBe("Через 2 мес 5 д.");
   });
 
   it("clamps end-of-month overflow (Jan 31 + 1 month lands on Feb 28, non-leap)", () => {
@@ -73,31 +73,31 @@ describe("relativeDays (TASK_020 — calendar-based months + days, no rounding)"
     // Jan 31 + 1 calendar month clamps to Feb 28 (2025 is not a leap year) —
     // that clamped anchor lands exactly on the target, so it's "1 month",
     // not "28 days" (which a naive diff-in-days-then-round would show).
-    expect(relativeDays("2025-02-28", now)).toBe("Через 1 месяц");
-    expect(relativeDays("2025-03-02", now)).toBe("Через 1 месяц 2 дня");
+    expect(relativeDays("2025-02-28", now)).toBe("Через 1 мес");
+    expect(relativeDays("2025-03-02", now)).toBe("Через 1 мес 2 д.");
   });
 
   it("handles February and leap years", () => {
     const now = new Date(2024, 0, 29); // 29 января 2024 (leap year)
-    expect(relativeDays("2024-02-29", now)).toBe("Через 1 месяц");
+    expect(relativeDays("2024-02-29", now)).toBe("Через 1 мес");
   });
 
   it("is unaffected by time-of-day on either date", () => {
     const now = new Date(2026, 4, 15, 23, 45);
-    expect(relativeDays("2026-08-04", now)).toBe("Через 2 месяца 20 дней");
+    expect(relativeDays("2026-08-04", now)).toBe("Через 2 мес 20 д.");
   });
 
-  it("uses correct Russian plural forms for months and days", () => {
+  it("uses the compact 'мес'/'д.' abbreviation regardless of count (no plural declension)", () => {
     const now = new Date(2026, 0, 1);
-    expect(relativeDays("2026-02-01", now)).toBe("Через 1 месяц");
-    expect(relativeDays("2026-03-01", now)).toBe("Через 2 месяца");
-    expect(relativeDays("2026-06-01", now)).toBe("Через 5 месяцев");
-    expect(relativeDays("2026-01-02", now)).toBe("Через 1 день");
-    expect(relativeDays("2026-01-03", now)).toBe("Через 2 дня");
-    expect(relativeDays("2026-01-06", now)).toBe("Через 5 дней");
+    expect(relativeDays("2026-02-01", now)).toBe("Через 1 мес");
+    expect(relativeDays("2026-03-01", now)).toBe("Через 2 мес");
+    expect(relativeDays("2026-06-01", now)).toBe("Через 5 мес");
+    expect(relativeDays("2026-01-02", now)).toBe("Через 1 д.");
+    expect(relativeDays("2026-01-03", now)).toBe("Через 2 д.");
+    expect(relativeDays("2026-01-06", now)).toBe("Через 5 д.");
   });
 
-  it("uses correct Russian plural forms at the 11-14 and 21/22/25 boundaries", () => {
+  it("keeps monthWord()/dayWord() full plural declension unchanged for their own (unrelated) call sites", () => {
     expect(monthWord(1)).toBe("месяц");
     expect(monthWord(2)).toBe("месяца");
     expect(monthWord(5)).toBe("месяцев");
