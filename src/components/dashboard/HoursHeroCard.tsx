@@ -92,15 +92,14 @@ export function HoursHeroCard() {
 
       {hasGoal && (
         <View style={styles.statsRow} importantForAccessibility="no">
-          <View style={styles.statsTopRow}>
-            <StatItem icon={<ClockIcon size={16} color={DS.metaText} />} label="Осталось" value={remainingText} />
-            <StatItem icon={<CalendarIcon size={16} color={DS.metaText} />} value={daysText} />
+          <View style={styles.statsDivider} />
+          <View style={styles.statsGrid}>
+            <StatItem icon={<ClockIcon size={14} color={DS.accent} />} label="Осталось" value={remainingText} />
+            <View style={styles.statDivider} />
+            <StatItem icon={<CalendarIcon size={14} color={DS.teal} />} value={daysText} />
+            <View style={styles.statDivider} />
+            <StatItem icon={<ChartIcon size={14} color={DS.accent} />} label="В среднем" value={paceText} />
           </View>
-          {/* Its own full-width row: "X ч Y м/день" is the longest value in
-              this card and needs more room than a 3-up columns would give it
-              on narrow phones — the two-column-plus-wrapped-row layout the
-              task brief allows for. */}
-          <StatItem icon={<ChartIcon size={16} color={DS.metaText} />} label="В среднем" value={paceText} />
         </View>
       )}
 
@@ -149,12 +148,14 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 2 },
   track: { height: 6, borderRadius: 3, backgroundColor: DS.ringTrack, marginTop: 16, overflow: "hidden" },
   fill: { height: "100%", borderRadius: 3, backgroundColor: DS.accent },
-  statsRow: { marginTop: 18, gap: 10 },
-  statsTopRow: { flexDirection: "row", gap: 20 },
-  statItem: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
+  statsRow: { marginTop: 18, gap: 12 },
+  statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: DS.divider },
+  statsGrid: { flexDirection: "row", alignItems: "center" },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: DS.divider, marginHorizontal: 6 },
+  statItem: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 1 },
   statText: { flexShrink: 1 },
-  statLabel: { fontSize: 11, color: DS.metaText, fontWeight: "600" },
-  statValue: { fontSize: 13, color: DS.navy, fontWeight: "700", marginTop: 1 },
+  statLabel: { fontSize: 10, color: DS.metaText, fontWeight: "600" },
+  statValue: { fontSize: 12, color: DS.navy, fontWeight: "700", marginTop: 1 },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18 },
   pressed: { opacity: 0.85 },
   detailsBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
