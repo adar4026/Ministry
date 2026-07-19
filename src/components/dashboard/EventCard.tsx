@@ -35,7 +35,7 @@ export function EventCard({
       <View style={styles.metaRow}>
         <View style={styles.metaText}>
           <Text style={styles.date}>{formatDateDMY(event.date)}</Text>
-          {elapsed ? <Text style={styles.elapsed}>{` · ${elapsed}`}</Text> : null}
+          {elapsed ? <Text style={styles.elapsed}>{elapsed}</Text> : null}
         </View>
         <Badge category={event.category} />
       </View>
@@ -51,23 +51,23 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },
   title: { flex: 1, fontSize: 16, fontWeight: "600", color: DS.navy },
-  metaRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 8 },
-  // Row of two Text siblings (not one sentence-wrapped Text) so they behave
-  // as flex items (TASK_025 follow-up — fixes 320px overflow with a 3-unit
-  // duration like "10 г. 10 мес. 10 дн." alongside a long badge label):
-  // RN's default flexShrink:0 keeps each Text at its natural width instead
-  // of being compressed into an internal line-break, so when both don't fit
-  // on one line, "flexWrap: wrap" moves the whole elapsed Text (its own
-  // leading "·") down to a second line as one atomic unit — the date is
-  // never split, and neither Text ever needs an ellipsis. Fits on one line
-  // whenever there's room (confirmed at 375/428px).
-  metaText: { flex: 1, flexDirection: "row", flexWrap: "wrap", alignItems: "baseline" },
+  // Centered (was flex-end, TASK_027): metaText is now two stacked lines
+  // instead of one, so centering keeps the badge visually balanced next to
+  // the taller text block regardless of how many lines the duration wraps
+  // to — badge stays in its own column, never overlapping the text.
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  // Date above duration (TASK_027, was a single row with a "·" separator).
+  // No flexWrap/baseline needed anymore — each line has the full column
+  // width to itself instead of sharing a row with its neighbor, so neither
+  // needs special handling to avoid colliding with the other.
+  metaText: { flex: 1, flexDirection: "column", gap: 2 },
   // Unified with UpcomingEventRow's date typography (TASK_025) — same
   // fontSize/fontWeight/lineHeight across both event-card designs; color
   // unchanged (DS.metaText, distinct from UpcomingEventRow's COLORS.muted).
   date: { fontSize: 14, fontWeight: "400", lineHeight: 19, color: DS.metaText },
-  // Duration after "·" stays visually more compact than the date itself
-  // (TASK_025) — same color, smaller size; own Text node so it can wrap to
-  // a second line independently of the date.
-  elapsed: { fontSize: 13, color: DS.metaText },
+  // Same fontSize/lineHeight as `date` (TASK_027 — owner's explicit
+  // requirement: duration must read at the same size as the date, never as
+  // large as the title); distinguished only by weight and the warm amber
+  // accent color instead of a red that would read as an error/overdue state.
+  elapsed: { fontSize: 14, fontWeight: "600", lineHeight: 19, color: DS.durationAccent },
 });

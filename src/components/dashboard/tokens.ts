@@ -27,6 +27,11 @@ export const DS = {
   greenInk: "#1f9e4a",
   amber: "#ff8a1e",
   amberInk: "#c2610a",
+  // TASK_027: warm amber accent for the "time remaining"/"time elapsed"
+  // label on event cards — deliberately not `amber`/`amberInk` above (those
+  // belong to the goal ring's semantics/value). Chosen over red so a
+  // deadline reads as informational, not as an error/overdue state.
+  durationAccent: "#D97706",
   shadow: "#3c5090",
   onAccent: "#ffffff",
   // TASK_015: semantic "behind pace" color for the Home monthly card's
