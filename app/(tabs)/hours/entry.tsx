@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SessionForm } from "@/components/forms/SessionForm";
-import { COLORS } from "@/data/constants";
+import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { useStore } from "@/store/StoreContext";
 
 const NOOP_STATE = { canSubmit: false, submit: () => {} };
@@ -18,6 +27,16 @@ export default function EntryScreen() {
   const { sessions, saveSession, deleteSession } = useStore();
   const initial = id ? sessions.find((s) => s.id === id) : undefined;
   const [formState, setFormState] = useState(NOOP_STATE);
+  // A ref (not state) so a second rapid press within the same tick — before
+  // React has re-rendered the disabled button — is still blocked; `submit()`
+  // itself has no such guard (it just checks the current duration).
+  const submittedRef = useRef(false);
+
+  function handleSubmitPress() {
+    if (submittedRef.current || !formState.canSubmit) return;
+    submittedRef.current = true;
+    formState.submit();
+  }
 
   function confirmDelete() {
     if (!initial) return;
@@ -36,35 +55,52 @@ export default function EntryScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={styles.topRow}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={styles.cancel}>Отмена</Text>
-        </Pressable>
-        <Pressable onPress={formState.submit} disabled={!formState.canSubmit} hitSlop={10}>
-          <Text style={[styles.action, !formState.canSubmit && styles.actionDisabled]}>
-            {initial ? "Сохранить" : "Добавить"}
-          </Text>
-        </Pressable>
-      </View>
-      <Text style={styles.heading}>{initial ? "Редактировать запись" : "Добавить время"}</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.topRow}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            style={({ pressed }) => [styles.capsuleBtn, pressed && styles.capsulePressed]}
+          >
+            <Text style={styles.capsuleText}>Отмена</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleSubmitPress}
+            disabled={!formState.canSubmit}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.capsuleBtn,
+              !formState.canSubmit && styles.capsuleDisabled,
+              pressed && formState.canSubmit && styles.capsulePressed,
+            ]}
+          >
+            <Text style={styles.capsuleText}>{initial ? "Сохранить" : "Добавить"}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.heading}>{initial ? "Редактировать запись" : "Добавить время"}</Text>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <SessionForm
-          initial={initial}
-          onSave={(input) => {
-            saveSession(input);
-            router.back();
-          }}
-          onDelete={initial ? confirmDelete : undefined}
-          onStateChange={setFormState}
-        />
-      </ScrollView>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <SessionForm
+            initial={initial}
+            onSave={(input) => {
+              saveSession(input);
+              router.back();
+            }}
+            onDelete={initial ? confirmDelete : undefined}
+            onStateChange={setFormState}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
+  safe: { flex: 1, backgroundColor: ADD_TIME_COLORS.screenBackground },
+  flex: { flex: 1 },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -72,16 +108,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-  cancel: { fontSize: 17, fontWeight: "500", color: COLORS.muted },
-  action: { fontSize: 17, fontWeight: "700", color: COLORS.blue },
-  actionDisabled: { color: COLORS.muted },
-  heading: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.text,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
+  capsuleBtn: {
+    borderWidth: 1.5,
+    borderColor: ADD_TIME_COLORS.primaryText,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: ADD_TIME_COLORS.cardBackground,
   },
-  content: { padding: 16 },
+  capsulePressed: { opacity: 0.6 },
+  capsuleDisabled: { opacity: 0.35 },
+  capsuleText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: ADD_TIME_COLORS.primaryText,
+    textDecorationLine: "underline",
+  },
+  heading: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: ADD_TIME_COLORS.primaryText,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  content: { padding: 16, paddingBottom: 32 },
 });

@@ -26,11 +26,13 @@ export function WheelPicker({
   value,
   onChange,
   accessibilityLabel,
+  highlightColor = COLORS.groupedBg,
 }: {
   items: WheelItem[];
   value: number;
   onChange: (value: number) => void;
   accessibilityLabel?: string;
+  highlightColor?: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(
@@ -90,7 +92,7 @@ export function WheelPicker({
 
   return (
     <View style={[styles.container, { height: ITEM_HEIGHT * VISIBLE_ITEMS }]}>
-      <View pointerEvents="none" style={[styles.highlight, { top: PADDING }]} />
+      <View pointerEvents="none" style={[styles.highlight, { top: PADDING, backgroundColor: highlightColor }]} />
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}

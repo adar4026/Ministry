@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { formatHoursWord, formatMinutesWord } from "@/data/constants";
 import { WheelPicker } from "@/components/WheelPicker";
+import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 
 const HOURS = Array.from({ length: 25 }, (_, h) => ({ value: h, label: formatHoursWord(h) }));
 const MINUTES = Array.from({ length: 12 }, (_, i) => {
@@ -27,8 +28,20 @@ export function DurationWheelPicker({
 }) {
   return (
     <View style={styles.row}>
-      <WheelPicker items={HOURS} value={hours} onChange={onChangeHours} accessibilityLabel="Часы" />
-      <WheelPicker items={MINUTES} value={minutes} onChange={onChangeMinutes} accessibilityLabel="Минуты" />
+      <WheelPicker
+        items={HOURS}
+        value={hours}
+        onChange={onChangeHours}
+        accessibilityLabel="Количество часов"
+        highlightColor={ADD_TIME_COLORS.selectedPickerRow}
+      />
+      <WheelPicker
+        items={MINUTES}
+        value={minutes}
+        onChange={onChangeMinutes}
+        accessibilityLabel="Количество минут"
+        highlightColor={ADD_TIME_COLORS.selectedPickerRow}
+      />
     </View>
   );
 }

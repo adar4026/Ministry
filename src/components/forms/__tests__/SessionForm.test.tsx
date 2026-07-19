@@ -1,5 +1,5 @@
 import { act, create } from "react-test-renderer";
-import { Text, TextInput } from "react-native";
+import { Text, TextInput, Pressable } from "react-native";
 import { SessionForm } from "@/components/forms/SessionForm";
 import { WheelPicker } from "@/components/WheelPicker";
 import { DangerButton } from "@/components/ui";
@@ -8,14 +8,15 @@ import type { Session } from "@/types";
 jest.setTimeout(30000);
 
 const ROUNDED_NOTICE = "Время округлено до ближайших 5 минут";
+const OLD_VALIDATION_TEXT = "Укажите длительность больше 0";
 
-// Field order in SessionForm: Дата (TextInput), Заметка (TextInput,
-// multiline). Duration is no longer a TextInput — it's the two WheelPicker
-// instances (hours, minutes), driven directly via their onChange prop,
-// mirroring how the date/note fields are driven via onChangeText.
-function inputs(root: ReturnType<typeof create>["root"]) {
-  const all = root.findAllByType(TextInput);
-  return { date: all[0], note: all[1] };
+// Field order in SessionForm: date is a Pressable pill (TASK_030, opens the
+// month calendar — no free-text entry), Заметка is the only remaining
+// TextInput. Duration is the two WheelPicker instances, driven directly via
+// their onChange prop, mirroring how the note field is driven via
+// onChangeText.
+function noteInput(root: ReturnType<typeof create>["root"]) {
+  return root.findAllByType(TextInput)[0];
 }
 
 function wheels(root: ReturnType<typeof create>["root"]) {
@@ -25,6 +26,27 @@ function wheels(root: ReturnType<typeof create>["root"]) {
 
 function hasRoundedNotice(root: ReturnType<typeof create>["root"]) {
   return root.findAllByType(Text).some((node) => node.props.children === ROUNDED_NOTICE);
+}
+
+function hasOldValidationText(root: ReturnType<typeof create>["root"]) {
+  return root.findAllByType(Text).some((node) => node.props.children === OLD_VALIDATION_TEXT);
+}
+
+// react-native's Pressable is React.memo(forwardRef(...)); react-test-renderer
+// exposes the *inner* render function as the matched node's type, which is a
+// different reference from the `Pressable` export itself, so
+// `findAllByType(Pressable)` never matches (findAllByType relies on strict
+// reference equality). Matching by displayName sidesteps that.
+function pressables(root: ReturnType<typeof create>["root"]) {
+  return root.findAll((n) => (n.type as any)?.displayName === "Pressable" || (n.type as any)?.name === "Pressable");
+}
+
+function datePill(root: ReturnType<typeof create>["root"]) {
+  return pressables(root).find((n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Дата:"));
+}
+
+function calendarDay(root: ReturnType<typeof create>["root"], label: string) {
+  return pressables(root).find((n) => n.props.accessibilityLabel === label);
 }
 
 type FormState = { canSubmit: boolean; submit: () => void };
@@ -55,6 +77,18 @@ function sessionWithDuration(id: string, durationMinutes: number): Session {
   };
 }
 
+function sessionWithDate(id: string, date: string): Session {
+  return {
+    id,
+    date,
+    durationMinutes: 60,
+    note: "",
+    source: "manual",
+    createdAt: `${date}T00:00:00.000Z`,
+    updatedAt: `${date}T00:00:00.000Z`,
+  };
+}
+
 describe("SessionForm", () => {
   it("renders hours and minutes as two separate wheel selectors", () => {
     const { renderer } = renderForm();
@@ -76,11 +110,10 @@ describe("SessionForm", () => {
   it("saves 150 total minutes when the user selects 2 hours / 30 minutes (standard create flow)", () => {
     const onSave = jest.fn();
     const { renderer, getState } = renderForm({ onSave });
-    const { date, note } = inputs(renderer.root);
+    const note = noteInput(renderer.root);
     const { hours, minutes } = wheels(renderer.root);
 
     act(() => {
-      date.props.onChangeText("10-06-2026");
       note.props.onChangeText("Territory 12");
       hours.props.onChange(2);
       minutes.props.onChange(30);
@@ -91,13 +124,13 @@ describe("SessionForm", () => {
     });
 
     expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onSave.mock.calls[0][0]).toEqual({
+    expect(onSave.mock.calls[0][0]).toMatchObject({
       id: undefined,
-      date: "2026-06-10",
       durationMinutes: 150,
       note: "Territory 12",
       source: "manual",
     });
+    expect(onSave.mock.calls[0][0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it("cannot submit 0 hours / 0 minutes", () => {
@@ -111,27 +144,10 @@ describe("SessionForm", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it("does not save with an invalid date even if duration is set", () => {
-    const onSave = jest.fn();
-    const { renderer, getState } = renderForm({ onSave });
-    const { date } = inputs(renderer.root);
-    const { hours } = wheels(renderer.root);
-
-    act(() => {
-      date.props.onChangeText("not-a-date");
-      hours.props.onChange(1);
-    });
-    expect(getState().canSubmit).toBe(false);
-    act(() => {
-      getState().submit();
-    });
-    expect(onSave).not.toHaveBeenCalled();
-  });
-
   it("cancel (never calling submit) never creates or modifies a record", () => {
     const onSave = jest.fn();
     const { renderer } = renderForm({ onSave });
-    const { note } = inputs(renderer.root);
+    const note = noteInput(renderer.root);
     const { hours } = wheels(renderer.root);
     act(() => {
       note.props.onChangeText("Some note");
@@ -162,14 +178,14 @@ describe("SessionForm", () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  // TASK_022: the date field shows DD-MM-YYYY (the app-wide visible format),
-  // while the ISO value is only rebuilt internally at submit().
-  it("shows the stored ISO date as DD-MM-YYYY and saves it back as ISO unchanged", () => {
+  // TASK_022: the date pill shows DD-MM-YYYY (the app-wide visible format),
+  // while the ISO value is only ever the internal source of truth.
+  it("shows the stored ISO date as DD-MM-YYYY on the pill and saves it back as ISO unchanged", () => {
     const initial = sessionWithDuration("s12", 60); // initial.date = "2026-05-01"
     const onSave = jest.fn();
     const { renderer, getState } = renderForm({ initial, onSave });
-    const { date } = inputs(renderer.root);
-    expect(date.props.value).toBe("01-05-2026");
+    const pill = datePill(renderer.root);
+    expect(pill?.props.accessibilityLabel).toContain("01-05-2026");
 
     act(() => {
       getState().submit();
@@ -177,10 +193,58 @@ describe("SessionForm", () => {
     expect(onSave.mock.calls[0][0]).toMatchObject({ id: "s12", date: "2026-05-01" });
   });
 
-  it("defaults a new record's date field to today, shown as DD-MM-YYYY", () => {
+  it("defaults a new record's date pill to today, shown as DD-MM-YYYY", () => {
     const { renderer } = renderForm();
-    const { date } = inputs(renderer.root);
-    expect(date.props.value).toMatch(/^\d{2}-\d{2}-\d{4}$/);
+    const pill = datePill(renderer.root);
+    expect(pill?.props.accessibilityLabel).toMatch(/\d{2}-\d{2}-\d{4}/);
+  });
+
+  // TASK_030: date is calendar-only now — no free-text entry, and no red
+  // validation text anywhere on this screen (disabled submit button is the
+  // only invalid-state indicator).
+  it("never renders the old red duration validation text, even at 0/0", () => {
+    const { renderer } = renderForm();
+    expect(hasOldValidationText(renderer.root)).toBe(false);
+  });
+
+  it("opens the month calendar when the date pill is pressed, and selecting a day updates the pill and closes the calendar", () => {
+    const initial = sessionWithDate("s20", "2026-06-10");
+    const { renderer } = renderForm({ initial });
+
+    act(() => {
+      datePill(renderer.root)?.props.onPress();
+    });
+    const day15 = calendarDay(renderer.root, "15 Июнь 2026");
+    expect(day15).toBeTruthy();
+
+    act(() => {
+      day15?.props.onPress();
+    });
+
+    expect(datePill(renderer.root)?.props.accessibilityLabel).toContain("15-06-2026");
+    // Calendar closed: its day cells are no longer in the tree.
+    expect(calendarDay(renderer.root, "15 Июнь 2026")).toBeUndefined();
+  });
+
+  it("closing the calendar without picking a day leaves the date unchanged", () => {
+    const initial = sessionWithDate("s21", "2026-06-10");
+    const { renderer } = renderForm({ initial });
+
+    act(() => {
+      datePill(renderer.root)?.props.onPress();
+    });
+    expect(calendarDay(renderer.root, "15 Июнь 2026")).toBeTruthy();
+
+    // The calendar's backdrop Pressable is the outermost one with an onPress
+    // that isn't the sheet's swallow-propagation handler or a day cell.
+    const backdrop = pressables(renderer.root).find(
+      (n) => !n.props.accessibilityLabel && !n.props.accessibilityRole,
+    );
+    act(() => {
+      backdrop?.props.onPress();
+    });
+
+    expect(datePill(renderer.root)?.props.accessibilityLabel).toContain("10-06-2026");
   });
 
   it("normalizes a 47-minute legacy entry to 0 hours / 45 minutes and shows the rounding notice", () => {
@@ -254,7 +318,7 @@ describe("SessionForm", () => {
     const initial = sessionWithDuration("s9", 47);
     const onSave = jest.fn();
     const { renderer, getState } = renderForm({ initial, onSave });
-    const { note } = inputs(renderer.root);
+    const note = noteInput(renderer.root);
     act(() => {
       note.props.onChangeText("updated note");
     });

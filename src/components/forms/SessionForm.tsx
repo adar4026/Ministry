@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { roundDurationToNearestFive, toISODate } from "@/data/constants";
-import { formatDateDMY, isValidDMY, parseDMYToISO } from "@/data/dateFormat";
+import { formatDateDMY } from "@/data/dateFormat";
 import type { SessionInput } from "@/store/StoreContext";
 import type { Session } from "@/types";
-import { Card, DangerButton, SectionTitle, TextField } from "@/components/ui";
+import { Card, DangerButton, TextField } from "@/components/ui";
 import { DurationWheelPicker } from "@/components/forms/DurationWheelPicker";
+import { MonthCalendarModal } from "@/components/forms/MonthCalendarModal";
+import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { COLORS } from "@/data/constants";
 
 // The wheel's only granularity is 5-minute steps (0/5/…/55) — no other
@@ -43,9 +45,11 @@ export function SessionForm({
   onDelete?: () => void;
   onStateChange?: (state: { canSubmit: boolean; submit: () => void }) => void;
 }) {
-  // Visible/editable value is DD-MM-YYYY (TASK_022) — the internal ISO
-  // value only exists momentarily, built at submit() from this field.
-  const [date, setDate] = useState(formatDateDMY(initial?.date ?? toISODate(new Date())));
+  // Date is selected only via the full-month calendar (TASK_030) — no
+  // free-text entry, so the stored value is always a valid ISO day; the
+  // DD-MM-YYYY string (TASK_022) is derived only for display, in the pill.
+  const [dateISO, setDateISO] = useState(initial?.date ?? toISODate(new Date()));
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [note, setNote] = useState(initial?.note ?? "");
 
   const initialDuration = initial?.durationMinutes ?? 0;
@@ -62,32 +66,47 @@ export function SessionForm({
   // saved can never disagree.
   const durationMinutes = hours * 60 + minutes;
 
-  const dateValid = isValidDMY(date);
-  const canSubmit = dateValid && durationMinutes > 0;
+  // Selected via calendar, always a real calendar day — the only remaining
+  // invalid state is a zero duration, guarded here so a zero-length record
+  // can never be saved programmatically (e.g. a stray submit() call before
+  // either wheel has been touched), independent of the header button's
+  // disabled state.
+  const canSubmit = durationMinutes > 0;
 
   function submit() {
     if (!canSubmit) return;
-    onSave({ id: initial?.id, date: parseDMYToISO(date), durationMinutes, note, source: "manual" });
+    onSave({ id: initial?.id, date: dateISO, durationMinutes, note, source: "manual" });
   }
 
   useEffect(() => {
     onStateChange?.({ canSubmit, submit });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canSubmit, date, durationMinutes, note]);
+  }, [canSubmit, dateISO, durationMinutes, note]);
 
   return (
     <View>
       <Card style={styles.dateCard}>
         <Text style={styles.dateLabel}>Дата</Text>
-        <TextField
-          value={date}
-          onChangeText={setDate}
-          placeholder="ДД-ММ-ГГГГ"
+        <Pressable
+          onPress={() => setCalendarOpen(true)}
           style={styles.datePill}
-        />
+          accessibilityRole="button"
+          accessibilityLabel={`Дата: ${formatDateDMY(dateISO)}. Открыть календарь`}
+        >
+          <Text style={styles.datePillText}>{formatDateDMY(dateISO)}</Text>
+        </Pressable>
       </Card>
+      <MonthCalendarModal
+        visible={calendarOpen}
+        selectedDate={dateISO}
+        onSelect={(iso) => {
+          setDateISO(iso);
+          setCalendarOpen(false);
+        }}
+        onClose={() => setCalendarOpen(false)}
+      />
 
-      <SectionTitle>Время</SectionTitle>
+      <Text style={styles.sectionHeading}>Время</Text>
       <Card style={styles.durationCard}>
         <DurationWheelPicker
           hours={hours}
@@ -99,13 +118,8 @@ export function SessionForm({
       {wasRounded && (
         <Text style={styles.roundedNotice}>Время округлено до ближайших 5 минут</Text>
       )}
-      {durationMinutes <= 0 && (
-        <Text style={styles.hint} accessibilityRole="alert">
-          Укажите длительность больше 0
-        </Text>
-      )}
 
-      <SectionTitle>Заметка</SectionTitle>
+      <Text style={styles.sectionHeading}>Заметка</Text>
       <Card style={styles.noteCard}>
         <TextField
           value={note}
@@ -131,26 +145,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderRadius: 20,
+    backgroundColor: ADD_TIME_COLORS.cardBackground,
     marginBottom: 20,
   },
-  dateLabel: { fontSize: 16, fontWeight: "600", color: COLORS.text },
+  dateLabel: { fontSize: 17, fontWeight: "700", color: ADD_TIME_COLORS.primaryText },
   datePill: {
-    backgroundColor: COLORS.groupedBg,
-    borderWidth: 0,
+    backgroundColor: ADD_TIME_COLORS.datePillBackground,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    textAlign: "center",
     minWidth: 140,
+    alignItems: "center",
   },
-  durationCard: { borderRadius: 24, paddingHorizontal: 4 },
+  datePillText: { fontSize: 16, fontWeight: "600", color: ADD_TIME_COLORS.primaryText },
+  sectionHeading: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: ADD_TIME_COLORS.primaryText,
+    marginBottom: 10,
+    marginTop: 2,
+  },
+  durationCard: { borderRadius: 24, paddingHorizontal: 4, backgroundColor: ADD_TIME_COLORS.cardBackground },
   roundedNotice: { color: COLORS.muted, fontSize: 13, fontWeight: "600", marginTop: 8, marginLeft: 4 },
-  hint: { color: COLORS.danger, fontSize: 13, fontWeight: "600", marginTop: 8, marginLeft: 4 },
-  noteCard: { borderRadius: 20 },
+  noteCard: { borderRadius: 20, backgroundColor: ADD_TIME_COLORS.cardBackground },
   noteInput: {
     borderWidth: 0,
     backgroundColor: "transparent",
-    minHeight: 72,
+    minHeight: 56,
     textAlignVertical: "top",
     paddingHorizontal: 0,
   },
