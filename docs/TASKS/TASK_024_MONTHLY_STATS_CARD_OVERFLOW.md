@@ -173,5 +173,13 @@ chips: { flexDirection: "row", flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidt
 
 ## 8. Результат
 
-См. `docs/STATUS.md` (запись TASK_024) — итоговые хэши коммита `main` и
-`gh-pages`, бандл, результаты прод-проверки.
+Реализационный коммит `eee6176`
+(`fix(stats): wrap MonthlyStatsCard chips instead of collapsing hours value (TASK_024)`),
+запушен в `origin/main`; локальный `HEAD` совпадает с `origin/main`.
+Деплой — `npm run deploy`, gh-pages `9cef5b2` (был `67e216b`), бандл
+`entry-b10299f2b355b0abe80f7fd3eb6b6198.js`, опубликовано на
+**https://adar4026.github.io/Ministry/**. Прод-проверка (read-only,
+реальные данные владельца) на 320/375/428px — без регрессий, без
+горизонтального переполнения, консольных ошибок и неуспешных сетевых
+запросов нет. Версия не поднималась (остаётся `0.4.4`), тег не ставился.
+Подробности проверок — `docs/STATUS.md` (запись TASK_024).
