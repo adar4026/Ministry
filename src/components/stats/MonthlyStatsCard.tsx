@@ -106,11 +106,23 @@ const styles = StyleSheet.create({
   pctValue: { fontSize: 24, fontWeight: "700" },
   pctSub: { fontSize: 12, fontWeight: "600", color: COLORS.muted, marginTop: -2 },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
-  mainRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
-  bigValue: { flex: 1 },
+  // Wraps `chips` onto its own line below `bigValue` whenever both can't fit
+  // on one row — see TASK_024 for why (bigValue's protected minWidth vs.
+  // chips' own minWidth floor decide the breakpoint; no fixed device width
+  // involved).
+  mainRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  // minWidth protects "123 ч 59 м" (the widest realistic value, ~180px at
+  // this fontSize) from ever being squeezed into a per-character column;
+  // flexShrink: 0 makes that floor absolute instead of a soft preference.
+  bigValue: { flex: 1, minWidth: 190, flexShrink: 0 },
   hoursDone: { fontSize: 36, fontWeight: "700", color: COLORS.navy, letterSpacing: -0.8 },
   ofGoal: { fontSize: 15, fontWeight: "600", color: COLORS.muted, marginTop: 4 },
-  chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  // flexBasis: 0 + minWidth give chips a real size to negotiate with (it had
+  // none before, so it always claimed its full unconstrained content width);
+  // once bigValue + chips' minWidth no longer fit mainRow's width, chips
+  // wraps to its own full-width row, where its existing flexWrap lays the
+  // three chips out again (2 per row, 3rd wraps if still tight).
+  chips: { flexDirection: "row", flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 200, gap: 8, flexWrap: "wrap" },
   chip: {
     flex: 1,
     minWidth: 80,
