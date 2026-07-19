@@ -21,7 +21,9 @@ function StatItem({ icon, label, value }: { icon: ReactNode; label?: string; val
       {icon}
       <View style={styles.statText}>
         {label ? <Text style={styles.statLabel} numberOfLines={1}>{label}</Text> : null}
-        <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
+        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -107,9 +109,13 @@ export function HoursHeroCard() {
         <View style={styles.statsRow} importantForAccessibility="no">
           <View style={styles.statsDivider} />
           <View style={styles.statsGrid}>
-            <StatItem icon={<ClockIcon size={16} color={DS.accent} />} label="Осталось" value={remainingText} />
+            <View style={styles.statCol}>
+              <StatItem icon={<ClockIcon size={16} color={DS.accent} />} label="Осталось" value={remainingText} />
+            </View>
             <View style={styles.statDivider} />
-            <StatItem icon={<CalendarIcon size={16} color={DS.teal} />} value={daysText} />
+            <View style={styles.statCol}>
+              <StatItem icon={<CalendarIcon size={16} color={DS.teal} />} label="До конца" value={daysText} />
+            </View>
           </View>
         </View>
       )}
@@ -161,8 +167,13 @@ const styles = StyleSheet.create({
   deviationText: { fontSize: 13, fontWeight: "700", marginTop: 8, textAlign: "left" },
   statsRow: { marginTop: 14, gap: 12 },
   statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: DS.divider },
-  statsGrid: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  statDivider: { width: StyleSheet.hairlineWidth, height: 34, backgroundColor: DS.divider, marginHorizontal: 14 },
+  // Two equal-width (flex: 1) columns around a vertical divider (TASK_028,
+  // was justifyContent: space-between with unequal natural-width items) —
+  // the divider sits exactly in the middle because both neighbors are
+  // guaranteed the same width, not because of a fixed margin.
+  statsGrid: { flexDirection: "row", alignItems: "center" },
+  statCol: { flex: 1, alignItems: "center" },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 34, backgroundColor: DS.divider },
   statItem: { flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 },
   statText: { flexShrink: 1 },
   statLabel: { fontSize: 12, color: DS.metaText, fontWeight: "600" },

@@ -147,6 +147,14 @@ describe("HoursHeroCard — TASK_014 Ministry Calm redesign", () => {
     expect(rendered.some((t) => /^\d+ (день|дня|дней)$/.test(t))).toBe(true);
   });
 
+  it("labels the days-remaining column 'До конца' for symmetry with 'Осталось' (TASK_028)", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      setLegacyHours(store(), year, month, 12);
+    });
+    expect(texts()).toContain("До конца");
+  });
+
   it("renders zero progress without a false percentage or crash", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
