@@ -149,5 +149,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  itemText: { fontSize: 18, fontWeight: "600", color: COLORS.text },
+  itemText: { fontSize: 19, fontWeight: "600", color: COLORS.text },
 });

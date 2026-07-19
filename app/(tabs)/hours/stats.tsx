@@ -70,9 +70,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   back: { paddingVertical: 6, paddingRight: 12 },
-  backText: { fontSize: 14, fontWeight: "600", color: COLORS.blue },
-  title: { fontSize: 16, fontWeight: "800", color: COLORS.text },
+  backText: { fontSize: 15, fontWeight: "600", color: COLORS.blue },
+  title: { fontSize: 17, fontWeight: "700", color: COLORS.text },
   content: { padding: 16, paddingTop: 4, gap: 16 },
   section: { gap: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.text },
+  sectionTitle: { fontSize: 17, fontWeight: "700", color: COLORS.text },
 });

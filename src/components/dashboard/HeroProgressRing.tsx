@@ -113,6 +113,6 @@ export function HeroProgressRing({ pct, size = 48 }: { pct: number; size?: numbe
 
 const styles = StyleSheet.create({
   center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  pct: { fontWeight: "800", color: DS.navy, letterSpacing: -0.5 },
-  sign: { fontWeight: "800", color: DS.navy },
+  pct: { fontWeight: "700", color: DS.navy, letterSpacing: -0.5 },
+  sign: { fontWeight: "700", color: DS.navy },
 });

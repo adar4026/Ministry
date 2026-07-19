@@ -61,6 +61,6 @@ export default function AddScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
-  title: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
-  hint: { fontSize: 12, color: COLORS.muted, marginBottom: 16 },
+  title: { fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
+  hint: { fontSize: 13, color: COLORS.muted, marginBottom: 16 },
 });

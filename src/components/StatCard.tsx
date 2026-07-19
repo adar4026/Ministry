@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  label: { fontSize: 11, color: COLORS.muted, marginBottom: 4 },
-  value: { fontSize: 24, fontWeight: "800", color: COLORS.text },
+  label: { fontSize: 12, color: COLORS.muted, marginBottom: 4 },
+  value: { fontSize: 24, fontWeight: "700", color: COLORS.text },
 });

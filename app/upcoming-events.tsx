@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   back: { paddingVertical: 6, paddingRight: 12 },
-  backText: { fontSize: 14, fontWeight: "600", color: DS.accent },
-  title: { fontSize: 17, fontWeight: "800", color: DS.navy },
+  backText: { fontSize: 15, fontWeight: "600", color: DS.accent },
+  title: { fontSize: 18, fontWeight: "700", color: DS.navy },
   scroll: { flex: 1 },
   content: { padding: 16, paddingTop: 4, paddingBottom: 32 },
   // Same gap as Home's "Последние события" eventList / UpcomingEventsCard's
   // list (TASK_021) — independent per-item cards, no shared container.
   list: { gap: 11 },
   card: { padding: 20 },
-  empty: { fontSize: 14, color: DS.metaText, paddingVertical: 8 },
+  empty: { fontSize: 15, color: DS.metaText, paddingVertical: 8 },
 });

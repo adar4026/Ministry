@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pct: { fontSize: 34, fontWeight: "800", color: DS.navy, letterSpacing: -1 },
-  sign: { fontSize: 18, fontWeight: "800", color: DS.navy },
-  sub: { fontSize: 13, color: DS.metaText, fontWeight: "600", marginTop: 2 },
+  pct: { fontSize: 34, fontWeight: "700", color: DS.navy, letterSpacing: -1 },
+  sign: { fontSize: 19, fontWeight: "700", color: DS.navy },
+  sub: { fontSize: 14, fontWeight: "600", color: DS.metaText, marginTop: 2 },
 });

@@ -76,7 +76,7 @@ export function RecordForm({
 
 const styles = StyleSheet.create({
   blockNotice: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.danger,
     backgroundColor: COLORS.dangerBg,
     borderRadius: 8,

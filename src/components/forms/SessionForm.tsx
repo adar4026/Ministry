@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
   },
-  dateLabel: { fontSize: 15, fontWeight: "600", color: COLORS.text },
+  dateLabel: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   datePill: {
     backgroundColor: COLORS.groupedBg,
     borderWidth: 0,
@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
     minWidth: 140,
   },
   durationCard: { borderRadius: 24, paddingHorizontal: 4 },
-  roundedNotice: { color: COLORS.muted, fontSize: 12, fontWeight: "600", marginTop: 8, marginLeft: 4 },
-  hint: { color: COLORS.danger, fontSize: 12, fontWeight: "600", marginTop: 8, marginLeft: 4 },
+  roundedNotice: { color: COLORS.muted, fontSize: 13, fontWeight: "600", marginTop: 8, marginLeft: 4 },
+  hint: { color: COLORS.danger, fontSize: 13, fontWeight: "600", marginTop: 8, marginLeft: 4 },
   noteCard: { borderRadius: 20 },
   noteInput: {
     borderWidth: 0,

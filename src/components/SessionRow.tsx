@@ -72,9 +72,9 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.7 },
   content: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  date: { fontSize: 13, fontWeight: "600", color: COLORS.text, minWidth: 60 },
-  duration: { fontSize: 13, fontWeight: "700", color: COLORS.accent },
-  note: { fontSize: 12, color: COLORS.muted, flex: 1 },
+  date: { fontSize: 14, fontWeight: "600", color: COLORS.text, minWidth: 60 },
+  duration: { fontSize: 14, fontWeight: "700", color: COLORS.accent },
+  note: { fontSize: 13, color: COLORS.muted, flex: 1 },
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.light,
   },
   sourceText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     color: COLORS.accent,
     textTransform: "capitalize",

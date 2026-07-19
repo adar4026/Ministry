@@ -29,11 +29,11 @@ export function UpcomingEventRow({ item }: { item: UpcomingItem }) {
 }
 
 const styles = StyleSheet.create({
-  itemTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
+  itemTitle: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   bottomRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4, gap: 8 },
-  date: { fontSize: 13, color: COLORS.muted },
+  date: { fontSize: 14, color: COLORS.muted },
   // Capped at 55% width so a long calendar-based label ("Через 11 месяцев
   // 29 дней") wraps onto its own second line on narrow screens instead of
   // squeezing the date on its left.
-  relative: { fontSize: 14, fontWeight: "700", color: COLORS.blue, textAlign: "right", flexShrink: 1, maxWidth: "55%" },
+  relative: { fontSize: 15, fontWeight: "700", color: COLORS.blue, textAlign: "right", flexShrink: 1, maxWidth: "55%" },
 });

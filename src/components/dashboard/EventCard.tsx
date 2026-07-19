@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
   card: { padding: 14, gap: 8 },
   titleRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  title: { flex: 1, fontSize: 15, fontWeight: "600", color: DS.navy },
+  title: { flex: 1, fontSize: 16, fontWeight: "600", color: DS.navy },
   metaRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 8 },
   metaText: { flex: 1 },
-  date: { fontSize: 12, color: DS.metaText },
+  date: { fontSize: 13, color: DS.metaText },
 });

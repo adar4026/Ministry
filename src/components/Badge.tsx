@@ -13,5 +13,5 @@ export function Badge({ category }: { category: Category }) {
 
 const styles = StyleSheet.create({
   badge: { paddingVertical: 2, paddingHorizontal: 8, borderRadius: 20, alignSelf: "flex-start" },
-  text: { fontSize: 10, fontWeight: "700" },
+  text: { fontSize: 11, fontWeight: "700" },
 });

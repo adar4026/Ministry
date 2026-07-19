@@ -107,6 +107,6 @@ const styles = StyleSheet.create({
   iconBg: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   iconText: { fontSize: 18 },
   textWrap: { flex: 1 },
-  btnLabel: { fontSize: 14, fontWeight: "700" },
-  btnSub: { fontSize: 11, fontWeight: "500", marginTop: 1 },
+  btnLabel: { fontSize: 15, fontWeight: "700" },
+  btnSub: { fontSize: 12, fontWeight: "500", marginTop: 1 },
 });

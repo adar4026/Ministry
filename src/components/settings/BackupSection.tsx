@@ -264,7 +264,7 @@ export function BackupSection() {
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 16 },
-  description: { fontSize: 12, color: COLORS.muted, marginBottom: 12, lineHeight: 17 },
+  description: { fontSize: 13, color: COLORS.muted, marginBottom: 12, lineHeight: 18 },
   feedback: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -275,8 +275,8 @@ const styles = StyleSheet.create({
   },
   feedbackSuccess: { backgroundColor: COLORS.greenBg },
   feedbackError: { backgroundColor: COLORS.dangerBg },
-  feedbackTitle: { fontSize: 13, fontWeight: "700", marginBottom: 2 },
-  feedbackMessage: { fontSize: 12, lineHeight: 16 },
+  feedbackTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  feedbackMessage: { fontSize: 13, lineHeight: 17 },
   feedbackSuccessText: { color: "#166534" },
   feedbackErrorText: { color: COLORS.danger },
   feedbackClose: { fontSize: 16, fontWeight: "700", paddingHorizontal: 2 },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 44,
   },
-  exportBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  exportBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   importBtn: {
     flex: 1,
     paddingVertical: 12,
@@ -302,10 +302,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 44,
   },
-  importBtnText: { color: COLORS.blue, fontWeight: "700", fontSize: 13 },
+  importBtnText: { color: COLORS.blue, fontWeight: "700", fontSize: 14 },
   pressed: { opacity: 0.7 },
   warning: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: COLORS.danger,
     backgroundColor: COLORS.dangerBg,
@@ -314,12 +314,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  metaLabel: { fontSize: 13, color: COLORS.muted },
-  metaValue: { fontSize: 13, fontWeight: "600", color: COLORS.text },
+  metaLabel: { fontSize: 14, color: COLORS.muted },
+  metaValue: { fontSize: 14, fontWeight: "600", color: COLORS.text },
   countsTable: { marginTop: 8, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, overflow: "hidden" },
   countsHeaderRow: { flexDirection: "row", backgroundColor: COLORS.light, paddingVertical: 8 },
   countsRow: { flexDirection: "row", paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
-  countsCell: { flex: 1, fontSize: 12, color: COLORS.text, textAlign: "center" },
+  countsCell: { flex: 1, fontSize: 13, color: COLORS.text, textAlign: "center" },
   countsHeaderText: { fontWeight: "700", color: COLORS.muted },
   previewButtonRow: { flexDirection: "row", alignItems: "center" },
 });

@@ -149,8 +149,8 @@ const styles = StyleSheet.create({
     minHeight: 35,
   },
   headerText: { flex: 1, marginRight: 12 },
-  pageTitle: { fontSize: 21, fontWeight: "800", color: DS.navy, letterSpacing: -0.3 },
-  pageDate: { fontSize: 13, color: DS.subText, fontWeight: "600", marginTop: 1 },
+  pageTitle: { fontSize: 23, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
+  pageDate: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 1 },
   // Title-to-content grouping: tighter than the gap between section blocks.
   section: { gap: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

@@ -15,5 +15,5 @@ export function SectionHeader({ title, action }: { title: string; action?: React
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 22, fontWeight: "800", color: DS.navy, letterSpacing: -0.3 },
+  title: { fontSize: 23, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
 });

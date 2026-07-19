@@ -51,7 +51,10 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       >
         <View style={[styles.tabInner, isFocused && styles.tabInnerActive]}>
           <Icon size={20} color={color} />
-          <Text style={[styles.label, { color }]} numberOfLines={1}>
+          <Text
+            style={[styles.label, isFocused && styles.labelActive, { color }]}
+            numberOfLines={1}
+          >
             {label}
           </Text>
         </View>
@@ -128,7 +131,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   tabInnerActive: { backgroundColor: ACTIVE_BG },
-  label: { fontSize: 10, fontWeight: "600" },
+  label: { fontSize: 11, fontWeight: "500" },
+  labelActive: { fontWeight: "600" },
   centerSlot: {
     width: 60,
     alignItems: "center",
@@ -149,5 +153,5 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabPressed: { opacity: 0.85 },
-  centerLabel: { fontSize: 10, fontWeight: "600", color: COLORS.text, marginTop: 3 },
+  centerLabel: { fontSize: 11, fontWeight: "600", color: COLORS.text, marginTop: 3 },
 });

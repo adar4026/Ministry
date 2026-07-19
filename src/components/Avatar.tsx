@@ -38,6 +38,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  initials: { color: "#fff", fontWeight: "800" },
+  initials: { color: "#fff", fontWeight: "700" },
   pressed: { opacity: 0.8 },
 });

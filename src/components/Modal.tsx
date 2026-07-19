@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  title: { fontWeight: "700", fontSize: 15, color: COLORS.text },
+  title: { fontWeight: "700", fontSize: 17, color: COLORS.text },
   close: { fontSize: 20, color: COLORS.muted },
   body: { padding: 20 },
 });

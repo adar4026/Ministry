@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
   // Radius/shadow/background come from SummaryCard's defaults (TASK_017) —
   // only the wider padding this card always had is kept here.
   card: { padding: 20 },
-  empty: { fontSize: 14, color: COLORS.muted, paddingVertical: 8 },
+  empty: { fontSize: 15, color: COLORS.muted, paddingVertical: 8 },
   showAll: { marginTop: 4, alignItems: "center", paddingVertical: 6 },
-  showAllText: { fontSize: 14, fontWeight: "700", color: COLORS.accent },
+  showAllText: { fontSize: 15, fontWeight: "700", color: COLORS.accent },
   pressed: { opacity: 0.7 },
 });

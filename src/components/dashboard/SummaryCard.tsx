@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.9 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  title: { fontSize: 19, fontWeight: "800", letterSpacing: -0.2 },
+  title: { fontSize: 20, fontWeight: "700", letterSpacing: -0.2 },
   metaWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
   meta: { fontSize: 16, color: DS.metaText, fontWeight: "600" },
   chev: { fontSize: 19, color: DS.chevron, fontWeight: "700" },

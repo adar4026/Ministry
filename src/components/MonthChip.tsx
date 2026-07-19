@@ -46,5 +46,5 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.7 },
   month: { fontSize: 10, color: COLORS.muted },
-  hours: { fontSize: 15, fontWeight: "700", color: COLORS.blue },
+  hours: { fontSize: 16, fontWeight: "700", color: COLORS.blue },
 });
