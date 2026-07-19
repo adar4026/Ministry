@@ -95,8 +95,21 @@ export function WheelPicker({
     if (item && item.value !== value) onChange(item.value);
   }
 
+  // `onScrollEndDrag`'s `contentOffset` is where the finger let go, not
+  // where the scroll will actually rest — on a fast flick those differ, and
+  // rounding the release-moment offset picks the row nearest the finger
+  // instead of the row iOS's own `snapToInterval` deceleration is already
+  // animating toward. That mismatch made this `scrollTo` fight the in-flight
+  // native animation, which is what let the list settle between two rows.
+  // iOS's Fabric scroll-end-drag event also carries `targetContentOffset` —
+  // the exact offset native snapping already committed to — so prefer that
+  // when present; it agrees with (rather than fights) the native animation
+  // for both slow drags and fast flicks alike. `onMomentumScrollEnd` never
+  // carries `targetContentOffset` (there's nothing left to target, momentum
+  // already finished), so it falls back to the settled `contentOffset`.
   function handleScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+    const offsetY = e.nativeEvent.targetContentOffset?.y ?? e.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
     snapToIndex(index);
   }
 

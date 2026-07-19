@@ -76,6 +76,42 @@ describe("WheelPicker", () => {
     expect(findScrollView(renderer.root).props.accessibilityValue.text).toBe("2 часа");
   });
 
+  it("snaps to targetContentOffset (native snapToInterval result) rather than the release-moment contentOffset on a fast flick", () => {
+    // On a fast flick, contentOffset at onScrollEndDrag time is wherever the
+    // finger happened to be — not where momentum will carry the list.
+    // targetContentOffset is what iOS's own snapToInterval already computed
+    // as the resting point, so that's what must win.
+    const onChange = jest.fn();
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+    });
+    act(() => {
+      findScrollView(renderer.root).props.onScrollEndDrag({
+        nativeEvent: {
+          contentOffset: { y: 0.6 * ROW_HEIGHT }, // nearest-by-rounding would be index 1
+          targetContentOffset: { y: 3 * ROW_HEIGHT }, // but native momentum is heading to index 3
+        },
+      });
+    });
+    expect(onChange).toHaveBeenCalledWith(3);
+    expect(onChange).not.toHaveBeenCalledWith(1);
+  });
+
+  it("falls back to contentOffset when targetContentOffset is absent (e.g. onMomentumScrollEnd, or platforms that don't report it)", () => {
+    const onChange = jest.fn();
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+    });
+    act(() => {
+      findScrollView(renderer.root).props.onScrollEndDrag({
+        nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+      });
+    });
+    expect(onChange).toHaveBeenCalledWith(2);
+  });
+
   it("increments the value via the adjustable accessibility action", () => {
     const onChange = jest.fn();
     let renderer!: ReturnType<typeof create>;
@@ -193,6 +229,28 @@ describe("WheelPicker", () => {
       act(() => {
         findScrollView(renderer.root).props.onMomentumScrollEnd({
           nativeEvent: { contentOffset: { y: 1 * ROW_HEIGHT } },
+        });
+      });
+      expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it("fires once for a fast flick, using the targetContentOffset index rather than the release-moment index", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={jest.fn()} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScrollEndDrag({
+          nativeEvent: {
+            contentOffset: { y: 0.6 * ROW_HEIGHT },
+            targetContentOffset: { y: 3 * ROW_HEIGHT },
+          },
+        });
+      });
+      expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 3 * ROW_HEIGHT } },
         });
       });
       expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
