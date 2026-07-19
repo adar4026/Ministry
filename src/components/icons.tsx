@@ -72,3 +72,39 @@ export function PlusIcon({ size = 26, color }: IconProps) {
     </Svg>
   );
 }
+
+export function PencilIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 20l1-4.8L15.6 4.6a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1L9 19l-5 1Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Line x1={13.5} y1={6.7} x2={17.3} y2={10.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function ListIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={4.5} cy={6} r={1.3} fill={color} />
+      <Circle cx={4.5} cy={12} r={1.3} fill={color} />
+      <Circle cx={4.5} cy={18} r={1.3} fill={color} />
+      <Line x1={9} y1={6} x2={20} y2={6} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={9} y1={12} x2={20} y2={12} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={9} y1={18} x2={20} y2={18} stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 5l7 7-7 7" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}

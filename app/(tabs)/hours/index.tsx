@@ -1,83 +1,34 @@
-import { router } from "expo-router";
-import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { HeatMap } from "@/components/HeatMap";
-import { MonthChip } from "@/components/MonthChip";
-import { MonthSummaryCard } from "@/components/MonthSummaryCard";
-import { QuickActionsRow } from "@/components/QuickActionsRow";
-import { SectionHeader } from "@/components/dashboard/SectionHeader";
-import { SummaryCard } from "@/components/dashboard/SummaryCard";
-import { COLORS, formatHM, monthCellsForSY, monthProgress, serviceYearAggregation, svcYear } from "@/data/constants";
-import { useStore } from "@/store/StoreContext";
+import { TimerHeroCard } from "@/components/hours/TimerHeroCard";
+import { HoursNavList } from "@/components/hours/HoursNavList";
+import { HOURS_COLORS as C } from "@/components/hours/hoursTokens";
 
+// "Часы" dashboard, redesigned (TASK_031) into a minimal time-tracking
+// control center: a large heading, the timer as the page's main visual
+// element, and a compact grouped list of the three remaining actions.
+// Removed: the "Текущий служебный год" MonthChip grid, the monthly
+// progress ring, the "До цели осталось"/"Осталось дней" chips, the pace
+// status, the heat map, and the old four-card QuickActionsRow — see
+// docs/TASKS/TASK_031_HOURS_PAGE_REDESIGN.md for what happened to each.
 export default function HoursDashboard() {
-  const { records, sessions } = useStore();
-
-  const p = useMemo(() => monthProgress(records, new Date(), sessions), [records, sessions]);
-  const hoursDone = p.hoursDone;
-  const daysLeft = p.daysLeft;
-  const pace = p.requiredPerDay > 0 ? Math.round(p.requiredPerDay * 60) : 0; // minutes per day
-
-  // Service year aggregation for the month grid
-  const groups = useMemo(() => serviceYearAggregation(records, sessions), [records, sessions]);
-  const currentSY = groups[groups.length - 1];
-
-  // HeatMap cells for current service year (12 months: Sep-Aug), via the
-  // canonical aggregation layer — see monthCellsForSY() in src/data/stats.ts.
-  // Session-first authority (existence, not sum) is resolved there, not here.
-  const monthCells = useMemo(
-    () => (currentSY ? monthCellsForSY(records, sessions, currentSY.sy) : []),
-    [records, sessions, currentSY],
-  );
-
-  function handleMonthPress(key: string) {
-    router.push(`/hours/month/${key}`);
-  }
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <MonthSummaryCard
-        hoursDone={hoursDone}
-        goal={50}
-        pace={pace}
-        daysLeft={daysLeft}
-        onPress={() => router.push(`/hours/month/${currentSY?.months[0]?.id || ""}`)}
-      />
-
-      <QuickActionsRow />
-
-      <View style={styles.section}>
-        <SectionHeader title="Тепловая карта служебной год" />
-        <HeatMap cells={monthCells} granularity="month" cellSize={30} gap={4} onPressCell={(date, value) => {
-          if (value > 0) router.push(`/hours/month/${date}`);
-        }} />
+      <View style={styles.header}>
+        <Text style={styles.title}>Часы</Text>
+        <Text style={styles.subtitle}>Учёт служебного времени</Text>
       </View>
 
-      {currentSY && (
-        <View style={styles.section}>
-          <SectionHeader title={`Служебный год ${currentSY.sy} (${formatHM(currentSY.total)})`} />
-          <SummaryCard accent={COLORS.accent} meta={formatHM(currentSY.total)}>
-            <View style={styles.monthGrid}>
-              {currentSY.months.map((m) => (
-                <View key={m.id} style={styles.gridItem}>
-                  <MonthChip
-                    record={m}
-                    onPress={() => handleMonthPress(m.id)}
-                  />
-                </View>
-              ))}
-            </View>
-          </SummaryCard>
-        </View>
-      )}
+      <TimerHeroCard />
+
+      <HoursNavList />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.groupedBg },
-  content: { padding: 16, gap: 24 },
-  section: { gap: 10 },
-  monthGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  gridItem: { width: "23%" },
+  screen: { flex: 1, backgroundColor: C.screenBackground },
+  content: { padding: 16, paddingTop: 8, gap: 16, paddingBottom: 32 },
+  header: { paddingHorizontal: 4, paddingTop: 8, paddingBottom: 4 },
+  title: { fontSize: 34, fontWeight: "700", color: C.primaryText },
+  subtitle: { fontSize: 15, color: C.secondaryText, marginTop: 2 },
 });
