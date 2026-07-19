@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { COLORS, MN, type ServiceYearMonth } from "@/data/constants";
+import { COLORS, MF, type ServiceYearMonth } from "@/data/constants";
 
 // Compact month tile used on the dashboard's current-service-year grid.
 // Renders a ServiceYearMonth ViewModel (session- or legacy-authoritative) —
 // see the "Home Service-Year ViewModel" addendum in docs/TASKS/TASK_005A.md.
-// Visual appearance is unchanged; only the data model feeding it changed.
+// Month label shows the full Russian month name without the year (TASK_026)
+// — `record.year` is still on the ViewModel for grouping/keys, just not
+// rendered here anymore.
 export function MonthChip({
   record,
   onPress,
@@ -26,9 +28,7 @@ export function MonthChip({
       onPress={onPress}
       style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
     >
-      <Text style={styles.month}>
-        {MN[record.month - 1]} {record.year}
-      </Text>
+      <Text style={styles.month}>{MF[record.month - 1]}</Text>
       <Text style={styles.hours}>{displayHours}</Text>
     </Pressable>
   );
@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pressed: { opacity: 0.7 },
-  month: { fontSize: 10, color: COLORS.muted },
+  month: { fontSize: 10, fontWeight: "600", color: COLORS.accent },
   hours: { fontSize: 16, fontWeight: "700", color: COLORS.blue },
 });

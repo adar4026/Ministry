@@ -67,10 +67,6 @@ describe("MonthChip", () => {
 
   it("renders the hours value exactly once, with no duplicate numeric text", async () => {
     const texts = await renderTexts(record({ year: 2026, month: 7, hours: 44, source: "legacy" }));
-    // "2026" (the year, part of the month label) is expected to appear once
-    // too — this asserts the *hours* figure ("44") isn't duplicated
-    // anywhere, e.g. by an accidentally-rendered raw expression alongside
-    // the formatted one.
     const hoursOccurrences = texts.filter((t) => t === "44");
     expect(hoursOccurrences).toHaveLength(1);
   });
@@ -81,11 +77,18 @@ describe("MonthChip", () => {
     expect(texts).not.toContain("50.0");
   });
 
-  it("renders the month/year label alongside the rounded hours", async () => {
+  it("renders the full month label (no year) alongside the rounded hours", async () => {
     const texts = await renderTexts(record({ year: 2026, month: 7, hours: 38.166666666666664, source: "session" }));
     const normalized = texts.join(" ").replace(/\s+/g, " ").trim();
-    expect(normalized).toContain("Июл");
-    expect(normalized).toContain("2026");
+    expect(normalized).toContain("Июль");
+    expect(normalized).not.toContain("2026");
     expect(texts).toContain("38");
+  });
+
+  it("renders full, unabbreviated names for the longest months (September, February)", async () => {
+    const sepTexts = await renderTexts(record({ year: 2025, month: 9, hours: 44, source: "legacy" }));
+    expect(sepTexts).toContain("Сентябрь");
+    const febTexts = await renderTexts(record({ year: 2026, month: 2, hours: 44, source: "legacy" }));
+    expect(febTexts).toContain("Февраль");
   });
 });
