@@ -94,50 +94,50 @@ describe("calendarElapsed / formatElapsedRu", () => {
   });
 
   it("1 year", () => {
-    expect(elapsedRu("2025-07-18", new Date(2026, 6, 18))).toBe("1 год");
+    expect(elapsedRu("2025-07-18", new Date(2026, 6, 18))).toBe("1 г.");
   });
 
   it("2 years", () => {
-    expect(elapsedRu("2024-07-18", new Date(2026, 6, 18))).toBe("2 года");
+    expect(elapsedRu("2024-07-18", new Date(2026, 6, 18))).toBe("2 г.");
   });
 
   it("5 years", () => {
-    expect(elapsedRu("2021-07-18", new Date(2026, 6, 18))).toBe("5 лет");
+    expect(elapsedRu("2021-07-18", new Date(2026, 6, 18))).toBe("5 г.");
   });
 
   it("1 month", () => {
-    expect(elapsedRu("2026-06-18", new Date(2026, 6, 18))).toBe("1 месяц");
+    expect(elapsedRu("2026-06-18", new Date(2026, 6, 18))).toBe("1 мес.");
   });
 
   it("2 months", () => {
-    expect(elapsedRu("2026-05-18", new Date(2026, 6, 18))).toBe("2 месяца");
+    expect(elapsedRu("2026-05-18", new Date(2026, 6, 18))).toBe("2 мес.");
   });
 
   it("5 months", () => {
-    expect(elapsedRu("2026-02-18", new Date(2026, 6, 18))).toBe("5 месяцев");
+    expect(elapsedRu("2026-02-18", new Date(2026, 6, 18))).toBe("5 мес.");
   });
 
   it("1 day", () => {
-    expect(elapsedRu("2026-07-17", new Date(2026, 6, 18))).toBe("1 день");
+    expect(elapsedRu("2026-07-17", new Date(2026, 6, 18))).toBe("1 дн.");
   });
 
   it("2 days", () => {
-    expect(elapsedRu("2026-07-16", new Date(2026, 6, 18))).toBe("2 дня");
+    expect(elapsedRu("2026-07-16", new Date(2026, 6, 18))).toBe("2 дн.");
   });
 
   it("5 days", () => {
-    expect(elapsedRu("2026-07-13", new Date(2026, 6, 18))).toBe("5 дней");
+    expect(elapsedRu("2026-07-13", new Date(2026, 6, 18))).toBe("5 дн.");
   });
 
-  it("11-14 plural exceptions reachable via calendarElapsed (11 years, 14 days)", () => {
-    expect(elapsedRu("2015-07-18", new Date(2026, 6, 18))).toBe("11 лет");
-    expect(elapsedRu("2026-07-04", new Date(2026, 6, 18))).toBe("14 дней");
+  it("11-14 plural exceptions reachable via calendarElapsed (11 years, 14 days) use the same fixed abbreviation, no grammatical exception", () => {
+    expect(elapsedRu("2015-07-18", new Date(2026, 6, 18))).toBe("11 г.");
+    expect(elapsedRu("2026-07-04", new Date(2026, 6, 18))).toBe("14 дн.");
   });
 
-  it("21 vs 22 vs 25 years, reachable via calendarElapsed", () => {
-    expect(elapsedRu("2005-07-18", new Date(2026, 6, 18))).toBe("21 год");
-    expect(elapsedRu("2004-07-18", new Date(2026, 6, 18))).toBe("22 года");
-    expect(elapsedRu("2001-07-18", new Date(2026, 6, 18))).toBe("25 лет");
+  it("21 vs 22 vs 25 years, reachable via calendarElapsed, all use the same fixed abbreviation", () => {
+    expect(elapsedRu("2005-07-18", new Date(2026, 6, 18))).toBe("21 г.");
+    expect(elapsedRu("2004-07-18", new Date(2026, 6, 18))).toBe("22 г.");
+    expect(elapsedRu("2001-07-18", new Date(2026, 6, 18))).toBe("25 г.");
   });
 
   it("21/22/25 forms hold for every unit (years/months/days), including month counts calendarElapsed never reaches", () => {
@@ -158,35 +158,39 @@ describe("calendarElapsed / formatElapsedRu", () => {
   });
 
   it("omits zero-value units: 0y 1mo 10d", () => {
-    expect(elapsedRu("2026-06-08", new Date(2026, 6, 18))).toBe("1 месяц 10 дней");
+    expect(elapsedRu("2026-06-08", new Date(2026, 6, 18))).toBe("1 мес. 10 дн.");
   });
 
   it("omits zero-value units: 2y 0mo 3d", () => {
-    expect(elapsedRu("2024-07-15", new Date(2026, 6, 18))).toBe("2 года 3 дня");
+    expect(elapsedRu("2024-07-15", new Date(2026, 6, 18))).toBe("2 г. 3 дн.");
   });
 
   it("omits zero-value units: 0y 0mo 12d", () => {
-    expect(elapsedRu("2026-07-06", new Date(2026, 6, 18))).toBe("12 дней");
+    expect(elapsedRu("2026-07-06", new Date(2026, 6, 18))).toBe("12 дн.");
   });
 
   it("omits zero-value units: 3y 0mo 0d", () => {
-    expect(elapsedRu("2023-07-18", new Date(2026, 6, 18))).toBe("3 года");
+    expect(elapsedRu("2023-07-18", new Date(2026, 6, 18))).toBe("3 г.");
   });
 
   it("multi-unit result: 2 years 2 months 3 days", () => {
-    expect(elapsedRu("2024-05-15", new Date(2026, 6, 18))).toBe("2 года 2 месяца 3 дня");
+    expect(elapsedRu("2024-05-15", new Date(2026, 6, 18))).toBe("2 г. 2 мес. 3 дн.");
+  });
+
+  it("no double spaces or other separators between parts", () => {
+    expect(elapsedRu("2024-05-15", new Date(2026, 6, 18))).not.toMatch(/ {2}|,/);
   });
 
   it("leap-year boundary: Feb 29 2024 to Mar 1 2025 is 1 year 1 day", () => {
-    expect(elapsedRu("2024-02-29", new Date(2025, 2, 1))).toBe("1 год 1 день");
+    expect(elapsedRu("2024-02-29", new Date(2025, 2, 1))).toBe("1 г. 1 дн.");
   });
 
   it("leap-year boundary: Feb 29 2024 to Feb 28 2025 is exactly 1 year (clamped end-of-month anniversary)", () => {
-    expect(elapsedRu("2024-02-29", new Date(2025, 1, 28))).toBe("1 год");
+    expect(elapsedRu("2024-02-29", new Date(2025, 1, 28))).toBe("1 г.");
   });
 
   it("end-of-month case: Jan 31 to Mar 1 is 1 month 1 day", () => {
-    expect(elapsedRu("2026-01-31", new Date(2026, 2, 1))).toBe("1 месяц 1 день");
+    expect(elapsedRu("2026-01-31", new Date(2026, 2, 1))).toBe("1 мес. 1 дн.");
   });
 
   it("future dates are handled safely without crashing or displaying negative time", () => {

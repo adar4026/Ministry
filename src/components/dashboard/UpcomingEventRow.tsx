@@ -31,7 +31,9 @@ export function UpcomingEventRow({ item }: { item: UpcomingItem }) {
 const styles = StyleSheet.create({
   itemTitle: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   bottomRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4, gap: 8 },
-  date: { fontSize: 14, color: COLORS.muted },
+  // Reference typography for the full DD-MM-YYYY date across event cards
+  // (TASK_025) — EventCard's date is unified to match this exactly.
+  date: { fontSize: 14, fontWeight: "400", lineHeight: 19, color: COLORS.muted },
   // Capped at 55% width so a long calendar-based label ("Через 11 месяцев
   // 29 дней") wraps onto its own second line on narrow screens instead of
   // squeezing the date on its left.

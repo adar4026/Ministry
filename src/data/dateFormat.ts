@@ -129,8 +129,13 @@ export function pluralDaysRu(n: number): string {
   return pluralRu(n, ...DAY_FORMS);
 }
 
-// Renders a `calendarElapsed()` result as a Russian phrase using calendar
-// years/months/days, e.g. "2 года 2 месяца 3 дня". Zero-value units are
+// Renders a `calendarElapsed()` result as a compact Russian phrase using
+// calendar years/months/days, e.g. "2 г. 2 мес. 3 дн." (TASK_025 follow-up —
+// replaces the earlier full-word plural phrase, "2 года 2 месяца 3 дня", to
+// keep the Home "Последние события" date+duration line from overflowing on
+// narrow screens). Fixed abbreviations, no grammatical plural agreement
+// (matches the compact convention the owner asked for) — single space
+// between number and unit, single space between units. Zero-value units are
 // omitted; today is "Сегодня"; future dates fall back to "" (caller decides
 // whether to render anything) since this section is for past events only.
 export function formatElapsedRu(elapsed: CalendarElapsed): string {
@@ -138,14 +143,8 @@ export function formatElapsedRu(elapsed: CalendarElapsed): string {
   if (elapsed.isFuture) return "";
 
   const parts: string[] = [];
-  if (elapsed.years > 0) {
-    parts.push(`${elapsed.years} ${pluralRu(elapsed.years, ...YEAR_FORMS)}`);
-  }
-  if (elapsed.months > 0) {
-    parts.push(`${elapsed.months} ${pluralRu(elapsed.months, ...MONTH_FORMS)}`);
-  }
-  if (elapsed.days > 0 || parts.length === 0) {
-    parts.push(`${elapsed.days} ${pluralRu(elapsed.days, ...DAY_FORMS)}`);
-  }
+  if (elapsed.years > 0) parts.push(`${elapsed.years} г.`);
+  if (elapsed.months > 0) parts.push(`${elapsed.months} мес.`);
+  if (elapsed.days > 0 || parts.length === 0) parts.push(`${elapsed.days} дн.`);
   return parts.join(" ");
 }

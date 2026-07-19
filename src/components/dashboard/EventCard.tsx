@@ -34,10 +34,8 @@ export function EventCard({
       </View>
       <View style={styles.metaRow}>
         <View style={styles.metaText}>
-          <Text style={styles.date} numberOfLines={1}>
-            {formatDateDMY(event.date)}
-            {elapsed ? `  ·  ${elapsed}` : ""}
-          </Text>
+          <Text style={styles.date}>{formatDateDMY(event.date)}</Text>
+          {elapsed ? <Text style={styles.elapsed}>{` · ${elapsed}`}</Text> : null}
         </View>
         <Badge category={event.category} />
       </View>
@@ -54,6 +52,22 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   title: { flex: 1, fontSize: 16, fontWeight: "600", color: DS.navy },
   metaRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 8 },
-  metaText: { flex: 1 },
-  date: { fontSize: 13, color: DS.metaText },
+  // Row of two Text siblings (not one sentence-wrapped Text) so they behave
+  // as flex items (TASK_025 follow-up — fixes 320px overflow with a 3-unit
+  // duration like "10 г. 10 мес. 10 дн." alongside a long badge label):
+  // RN's default flexShrink:0 keeps each Text at its natural width instead
+  // of being compressed into an internal line-break, so when both don't fit
+  // on one line, "flexWrap: wrap" moves the whole elapsed Text (its own
+  // leading "·") down to a second line as one atomic unit — the date is
+  // never split, and neither Text ever needs an ellipsis. Fits on one line
+  // whenever there's room (confirmed at 375/428px).
+  metaText: { flex: 1, flexDirection: "row", flexWrap: "wrap", alignItems: "baseline" },
+  // Unified with UpcomingEventRow's date typography (TASK_025) — same
+  // fontSize/fontWeight/lineHeight across both event-card designs; color
+  // unchanged (DS.metaText, distinct from UpcomingEventRow's COLORS.muted).
+  date: { fontSize: 14, fontWeight: "400", lineHeight: 19, color: DS.metaText },
+  // Duration after "·" stays visually more compact than the date itself
+  // (TASK_025) — same color, smaller size; own Text node so it can wrap to
+  // a second line independently of the date.
+  elapsed: { fontSize: 13, color: DS.metaText },
 });
