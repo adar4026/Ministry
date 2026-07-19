@@ -37,8 +37,9 @@ function StatItem({ icon, label, value }: { icon: ReactNode; label?: string; val
 // "Rejected direction" section). Sole purpose is to communicate progress
 // toward the monthly goal. Starting ministry (the timer) lives on the Hours
 // screen; the "+ Добавить" pill here routes to the existing Manual Time
-// Entry screen (`/hours/entry`, TASK_005B), not the timer. "Детали" reuses
-// the existing Month Details route (`/hours/month/[key]`). Reads only
+// Entry screen (`/entry`, TASK_005B), not the timer. "Детали" reuses
+// the existing Month Details route (`/hours/month/[key]`); the entry route
+// itself moved to `/entry` (root-level, TASK_030 follow-up). Reads only
 // through useStore()/monthProgress()/MONTHLY_GOAL/computePaceDeviation() —
 // no new store, no second source of truth.
 //
@@ -136,7 +137,7 @@ export function HoursHeroCard() {
           accessibilityRole="button"
           accessibilityLabel="Добавить часы"
           hitSlop={8}
-          onPress={() => router.push("/hours/entry" as any)}
+          onPress={() => router.push("/entry" as any)}
           style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
         >
           <PlusIcon size={14} color={DS.accent} />

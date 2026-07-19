@@ -6,7 +6,8 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { Text } from "react-native";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { WheelPicker } from "@/components/WheelPicker";
-import EntryScreen from "../(tabs)/hours/entry";
+import { TabBar } from "@/components/TabBar";
+import EntryScreen from "../entry";
 
 let mockParams: { id?: string } = {};
 jest.mock("expo-router", () => ({
@@ -92,6 +93,15 @@ describe("EntryScreen — TASK_030", () => {
     expect(texts()).toContain("Отмена");
     expect(texts()).toContain("Добавить");
     expect(texts()).not.toContain("Редактировать запись");
+  });
+
+  // TASK_030 follow-up §11: moved to a root-level route (`app/entry.tsx`,
+  // outside `(tabs)`) specifically so the bottom Tabs navigator — and its
+  // TabBar — is never mounted underneath this screen, unlike the old
+  // `(tabs)/hours/entry.tsx` location.
+  it("never renders the bottom TabBar (standalone screen, outside the tab layout)", async () => {
+    const { root } = await renderScreen();
+    expect(root().findAllByType(TabBar)).toHaveLength(0);
   });
 
   it("never shows a clock time (no HH:MM anywhere on the screen)", async () => {

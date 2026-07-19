@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { roundDurationToNearestFive, toISODate } from "@/data/constants";
 import { formatDateDMY } from "@/data/dateFormat";
 import type { SessionInput } from "@/store/StoreContext";
@@ -18,6 +18,14 @@ import { COLORS } from "@/data/constants";
 // state — never displayed as a non-standard value. The hours wheel only
 // supports 0–24; a normalized duration whose hour part would exceed that
 // is clamped so the visible selection always exists as an actual row.
+// react-native-web renders TextInput as a real <input>/<textarea>, which
+// picks up the browser's default blue focus ring — `outlineStyle` is a
+// web-only style property with no native RN equivalent (deliberately kept
+// out of the typed StyleSheet.create block below and cast locally instead),
+// scoped to just this one field rather than the shared TextField/ui.tsx
+// default used by other forms (RecordForm/EventForm/TalkForm).
+const noteWebOutlineReset = Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : undefined;
+
 function initialWheelState(durationMinutes: number): { hours: number; minutes: number } {
   const normalized = roundDurationToNearestFive(durationMinutes);
   return {
@@ -126,7 +134,7 @@ export function SessionForm({
           onChangeText={setNote}
           placeholder="Напишите здесь…"
           multiline
-          style={styles.noteInput}
+          style={[styles.noteInput, noteWebOutlineReset]}
         />
       </Card>
 

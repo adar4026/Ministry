@@ -17,8 +17,11 @@ import { useStore } from "@/store/StoreContext";
 
 const NOOP_STATE = { canSubmit: false, submit: () => {} };
 
-// Manual Time Entry (TASK_005B; redesigned TASK_011) — a dedicated flat
-// route, sibling of service.tsx. Create when no ?id, edit when ?id matches
+// Manual Time Entry (TASK_005B; redesigned TASK_011). Root-level route
+// (`/entry`, moved out of `(tabs)/hours` in the TASK_030 follow-up) — living
+// outside the `Tabs` navigator, same pattern as `upcoming-events.tsx`
+// (TASK_019), means the bottom tab bar naturally isn't mounted underneath
+// this screen; nothing to hide. Create when no ?id, edit when ?id matches
 // an existing Session. The Отмена/Добавить header lives here (not inside
 // SessionForm) so it stays fixed above the scrollable cards; SessionForm
 // reports its live validity/submit trigger up via `onStateChange`.

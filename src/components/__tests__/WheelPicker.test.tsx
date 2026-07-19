@@ -1,7 +1,13 @@
 import { act, create } from "react-test-renderer";
 import { WheelPicker } from "@/components/WheelPicker";
 
+jest.mock("expo-haptics", () => ({ selectionAsync: jest.fn(() => Promise.resolve()) }));
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Haptics = jest.requireMock("expo-haptics") as { selectionAsync: jest.Mock };
+
 jest.setTimeout(30000);
+
+const ROW_HEIGHT = 30; // TASK_030 follow-up: compacted 40 -> 34 -> 30
 
 const ITEMS = [
   { value: 0, label: "0 часов" },
@@ -126,5 +132,94 @@ describe("WheelPicker", () => {
       });
     });
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("seeds the initial scroll offset using the compact 30px row height", () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<WheelPicker items={ITEMS} value={2} onChange={jest.fn()} />);
+    });
+    expect(findScrollView(renderer.root).props.contentOffset.y).toBe(2 * ROW_HEIGHT);
+  });
+
+  describe("haptic feedback", () => {
+    beforeEach(() => {
+      Haptics.selectionAsync.mockClear();
+    });
+
+    it("does not fire on mount / initial programmatic positioning", () => {
+      act(() => {
+        create(<WheelPicker items={ITEMS} value={2} onChange={jest.fn()} />);
+      });
+      expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    });
+
+    it("fires exactly once when a scroll settles on a different index", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={jest.fn()} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not fire when a scroll settles back on the already-selected index", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={jest.fn()} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScrollEndDrag({
+          nativeEvent: { contentOffset: { y: 0 } },
+        });
+      });
+      expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    });
+
+    it("does not fire a second time when momentum-end and drag-end both settle on the same new index", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={jest.fn()} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScrollEndDrag({
+          nativeEvent: { contentOffset: { y: 1 * ROW_HEIGHT } },
+        });
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 1 * ROW_HEIGHT } },
+        });
+      });
+      expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it("fires once for a direct tap on a different row (fast flick / tap parity)", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        pressableRows(renderer.root)[3].props.onPress();
+      });
+      expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(3);
+    });
+
+    it("does not fire when tapping the already-selected row", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={1} onChange={jest.fn()} />);
+      });
+      act(() => {
+        pressableRows(renderer.root)[1].props.onPress();
+      });
+      expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    });
   });
 });

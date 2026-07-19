@@ -3,17 +3,33 @@ import {
   AccessibilityActionEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { COLORS } from "@/data/constants";
 
-const ITEM_HEIGHT = 40;
+// Compact, closer to a native iOS UIPickerView row than the original 40 —
+// the owner's physical-device check found 40 noticeably sparser than a
+// system wheel, and a first pass at 34 still visibly looser than the
+// owner's reference screenshot (TASK_030 follow-up, second pass).
+const ITEM_HEIGHT = 30;
 const VISIBLE_ITEMS = 5;
 const PADDING = Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT;
+
+// Fires once per settled index change, never mid-drag — avoids the "haptic
+// spam" the owner explicitly ruled out, at the cost of feedback only at
+// rest rather than continuously while turning the wheel. Web has no haptics
+// engine; expo-haptics' web shim would otherwise silently resolve anyway,
+// but the explicit Platform guard is what the spec asks for.
+function triggerSelectionHaptic() {
+  if (Platform.OS === "web") return;
+  Haptics.selectionAsync().catch(() => {});
+}
 
 export type WheelItem = { value: number; label: string };
 
@@ -47,6 +63,12 @@ export function WheelPicker({
   // (needs an imperative scroll) — without that distinction the effect
   // would fight every user drag/tap.
   const lastScrolledIndex = useRef(selectedIndex);
+  // Tracks the index a haptic was last fired for, independent of
+  // `lastScrolledIndex` above — both start equal to the mount-time index so
+  // neither the initial programmatic scroll nor an external value-only
+  // resync (below) produces a "phantom" haptic; only an index change that
+  // actually settles via `snapToIndex` moves this forward.
+  const lastHapticIndex = useRef(selectedIndex);
 
   // `contentOffset` only reliably seeds the initial scroll position on
   // native iOS; on web the ScrollView's content isn't measured yet at mount
@@ -65,6 +87,10 @@ export function WheelPicker({
     const clamped = Math.min(Math.max(index, 0), items.length - 1);
     lastScrolledIndex.current = clamped;
     scrollRef.current?.scrollTo({ y: clamped * ITEM_HEIGHT, animated: true });
+    if (clamped !== lastHapticIndex.current) {
+      lastHapticIndex.current = clamped;
+      triggerSelectionHaptic();
+    }
     const item = items[clamped];
     if (item && item.value !== value) onChange(item.value);
   }
@@ -87,6 +113,10 @@ export function WheelPicker({
     if (!didInitialScroll.current) return;
     if (selectedIndex === lastScrolledIndex.current) return;
     lastScrolledIndex.current = selectedIndex;
+    // This is a controlled correction, not a settled user selection — mark
+    // it as already "felt" so the animated scrollTo's own eventual
+    // onMomentumScrollEnd doesn't re-fire a haptic for the same index.
+    lastHapticIndex.current = selectedIndex;
     scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_HEIGHT, animated: true });
   }, [selectedIndex]);
 
@@ -151,5 +181,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  itemText: { fontSize: 19, fontWeight: "600", color: COLORS.text },
+  itemText: { fontSize: 16, fontWeight: "600", color: COLORS.text },
 });

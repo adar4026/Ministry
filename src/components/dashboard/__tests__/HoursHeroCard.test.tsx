@@ -204,7 +204,7 @@ describe("HoursHeroCard — TASK_014 Ministry Calm redesign", () => {
     await act(async () => {
       button.props.onPress();
     });
-    expect(mockRouter.push).toHaveBeenCalledWith("/hours/entry");
+    expect(mockRouter.push).toHaveBeenCalledWith("/entry");
     expect(mockRouter.push).not.toHaveBeenCalledWith(expect.stringContaining("timer"));
   });
 

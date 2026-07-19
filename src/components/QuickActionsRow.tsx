@@ -30,7 +30,7 @@ export function QuickActionsRow({ style }: QuickActionsRowProps) {
       icon: "✏️",
       color: COLORS.green,
       bg: "#dcfce7",
-      onPress: () => router.push("/hours/entry" as any),
+      onPress: () => router.push("/entry" as any),
       disabled: false,
     },
     {

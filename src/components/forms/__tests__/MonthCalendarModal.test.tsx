@@ -122,4 +122,178 @@ describe("MonthCalendarModal", () => {
     });
     expect(texts(renderer.root).flat().join(" ")).toContain("Июль");
   });
+
+  // TASK_030 follow-up §8/§9: tapping the "Июль 2026 ▾" header opens a
+  // month/year quick-picker instead of navigating the day grid directly.
+  describe("month/year picker (chevron)", () => {
+    function header(root: ReturnType<typeof create>["root"]) {
+      return byLabel(root, "Выбрать месяц и год");
+    }
+
+    it("shows a chevron next to the month/year header", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      expect(texts(renderer.root).flat()).toContain("▾");
+      expect(header(renderer.root)).toBeTruthy();
+      expect(header(renderer.root)?.props.accessibilityState).toEqual({ expanded: false });
+    });
+
+    it("opens the month/year picker on press, flips the chevron, and hides the day grid", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      expect(header(renderer.root)?.props.accessibilityState).toEqual({ expanded: true });
+      expect(texts(renderer.root).flat()).toContain("▴");
+      // Weekday header ("Пн") is only rendered in day-grid mode.
+      expect(texts(renderer.root)).not.toEqual(expect.arrayContaining(["Пн"]));
+      // The month/year wheels render both Russian months and years as rows.
+      expect(texts(renderer.root).flat().join(" ")).toContain("Июль");
+      expect(texts(renderer.root).flat().join(" ")).toContain("2026");
+    });
+
+    it("closes the month/year picker on a second press, returning to the day grid", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      expect(header(renderer.root)?.props.accessibilityState).toEqual({ expanded: false });
+      expect(texts(renderer.root)).toEqual(expect.arrayContaining(["Пн"]));
+    });
+
+    it("changing the month in the wheel updates the displayed month, without touching selectedDate until a day is picked", () => {
+      const onSelect = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={onSelect} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      const monthWheel = renderer.root.findAllByProps({ accessibilityLabel: "Месяц" })[0];
+      act(() => {
+        monthWheel.props.onChange(1); // Февраль
+      });
+      expect(onSelect).not.toHaveBeenCalled();
+      act(() => {
+        header(renderer.root)?.props.onPress(); // back to grid
+      });
+      expect(texts(renderer.root).flat().join(" ")).toContain("Февраль");
+      // 31 July -> February: the grid must show a real February day (no
+      // silent 31 -> 28 normalization) since selectedDate hasn't changed yet.
+      expect(byLabel(renderer.root, "28 Февраль 2026")).toBeTruthy();
+    });
+
+    it("changing the year in the wheel updates the displayed year without changing selectedDate", () => {
+      const onSelect = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={onSelect} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      const yearWheel = renderer.root.findAllByProps({ accessibilityLabel: "Год" })[0];
+      act(() => {
+        yearWheel.props.onChange(2030);
+      });
+      expect(onSelect).not.toHaveBeenCalled();
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      expect(texts(renderer.root).flat().join(" ")).toContain("2030");
+    });
+
+    it("always reopens on the day grid, even if the previous session left the month/year picker open", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        header(renderer.root)?.props.onPress();
+      });
+      expect(header(renderer.root)?.props.accessibilityState).toEqual({ expanded: true });
+      act(() => {
+        renderer.update(
+          <MonthCalendarModal visible={false} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        renderer.update(
+          <MonthCalendarModal visible={true} selectedDate="2026-07-19" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      expect(header(renderer.root)?.props.accessibilityState).toEqual({ expanded: false });
+      expect(texts(renderer.root)).toEqual(expect.arrayContaining(["Пн"]));
+    });
+
+    it("December -> January and January -> December month-wheel transitions don't shift the year on their own (day-grid nav unaffected)", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2026-01-15" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        byLabel(renderer.root, "Предыдущий месяц")?.props.onPress();
+      });
+      const decFlat = texts(renderer.root).flat().join(" ");
+      expect(decFlat).toContain("Декабрь");
+      expect(decFlat).toContain("2025");
+
+      act(() => {
+        renderer.update(
+          <MonthCalendarModal visible={false} selectedDate="2026-01-15" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        renderer.update(
+          <MonthCalendarModal visible={true} selectedDate="2026-12-15" onSelect={jest.fn()} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        byLabel(renderer.root, "Следующий месяц")?.props.onPress();
+      });
+      const janFlat = texts(renderer.root).flat().join(" ");
+      expect(janFlat).toContain("Январь");
+      expect(janFlat).toContain("2027");
+    });
+
+    it("handles a leap-year February day grid correctly (29 Feb 2028 selectable)", () => {
+      const onSelect = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <MonthCalendarModal visible={true} selectedDate="2028-02-01" onSelect={onSelect} onClose={jest.fn()} />,
+        );
+      });
+      act(() => {
+        byLabel(renderer.root, "29 Февраль 2028")?.props.onPress();
+      });
+      expect(onSelect).toHaveBeenCalledWith("2028-02-29");
+    });
+  });
 });

@@ -8,7 +8,6 @@ export default function HoursLayout() {
       <Stack.Screen name="history" />
       <Stack.Screen name="stats" />
       <Stack.Screen name="timer" />
-      <Stack.Screen name="entry" />
     </Stack>
   );
 }

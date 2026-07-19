@@ -130,7 +130,7 @@ export default function MonthDetailsScreen() {
               .map((session) => (
                 <Pressable
                   key={session.id}
-                  onPress={() => router.push(`/hours/entry?id=${session.id}`)}
+                  onPress={() => router.push(`/entry?id=${session.id}`)}
                   onLongPress={() => Alert.alert("Удалить?", "Это действие нельзя отменить.", [
                     { text: "Отмена", style: "cancel" },
                     { text: "Удалить", style: "destructive", onPress: () => deleteSession(session.id) },
@@ -172,7 +172,7 @@ export default function MonthDetailsScreen() {
           <Pressable
             style={styles.modalActionBtn}
             onPress={() => {
-              router.push(`/hours/entry?date=${addSessionDate}`);
+              router.push(`/entry?date=${addSessionDate}`);
               setShowAddSession(false);
             }}
           >
