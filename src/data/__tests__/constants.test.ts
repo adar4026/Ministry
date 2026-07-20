@@ -1,6 +1,7 @@
 import {
   dayWord,
   formatClockDuration,
+  formatDurationRu,
   formatHMRounded,
   monthWord,
   relativeDays,
@@ -257,5 +258,29 @@ describe("upcomingItems", () => {
   it("returns an empty result for empty input", () => {
     expect(upcomingItems([], [], NOW)).toEqual([]);
     expect(upcomingItems([], [], NOW, 3)).toEqual([]);
+  });
+});
+
+describe("formatDurationRu (TASK_033 History «Итого» card)", () => {
+  it("shows both units as zero for an empty period", () => {
+    expect(formatDurationRu(0)).toBe("0 часов 0 минут");
+  });
+
+  it("shows only-minutes values with an explicit 0 hours", () => {
+    expect(formatDurationRu(5)).toBe("0 часов 5 минут");
+  });
+
+  it("shows whole-hour values with an explicit 0 minutes", () => {
+    expect(formatDurationRu(180)).toBe("3 часа 0 минут");
+  });
+
+  it("formats a large multi-day total", () => {
+    expect(formatDurationRu(2760)).toBe("46 часов 0 минут");
+  });
+
+  it("uses correct Russian plural forms for hours and minutes", () => {
+    expect(formatDurationRu(61)).toBe("1 час 1 минута");
+    expect(formatDurationRu(122)).toBe("2 часа 2 минуты");
+    expect(formatDurationRu(305)).toBe("5 часов 5 минут");
   });
 });

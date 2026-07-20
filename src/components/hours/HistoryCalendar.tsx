@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { buildMonthGrid, WEEKDAYS_SHORT } from "@/data/calendarGrid";
 import { formatClockDuration } from "@/data/constants";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
@@ -14,16 +14,25 @@ function isoOf(year: number, monthIndex0: number, day: number): string {
 // `dailyMinutes`/`todayISO` are computed by the caller (dailyMinutesForMonth()
 // + toISODate(new Date())) so this component stays deterministic and
 // testable with any fixed "today".
+//
+// `onDayPress` (TASK_033) is called with the tapped day's ISO date, only for
+// cells that already have logged time — a day with zero minutes stays a
+// plain View, never a Pressable, so tapping it can never open (or worse,
+// silently create) an edit flow for a day with no Session. The caller
+// resolves which Session(s) that day maps to; this component has no store
+// access and doesn't know.
 export function HistoryCalendar({
   year,
   monthIndex0,
   dailyMinutes,
   todayISO,
+  onDayPress,
 }: {
   year: number;
   monthIndex0: number;
   dailyMinutes: Map<number, number>;
   todayISO: string;
+  onDayPress?: (dateISO: string) => void;
 }) {
   const grid = buildMonthGrid(year, monthIndex0);
 
@@ -45,19 +54,36 @@ export function HistoryCalendar({
             const minutes = dailyMinutes.get(day) ?? 0;
             const hasData = minutes > 0;
             const isToday = isoOf(year, monthIndex0, day) === todayISO;
+            const label = `${day}: ${formatClockDuration(minutes)}`;
 
-            return (
-              <View
-                key={j}
-                style={[styles.cell, hasData && styles.cellFilled]}
-                accessibilityLabel={`${day}: ${formatClockDuration(minutes)}`}
-              >
+            const cellContent = (
+              <>
                 <View style={[styles.dayBadge, isToday && styles.dayBadgeToday]}>
                   <Text style={[styles.dayNumber, isToday && styles.dayNumberToday]}>{day}</Text>
                 </View>
                 <Text style={[styles.duration, hasData ? styles.durationFilled : styles.durationEmpty]}>
                   {formatClockDuration(minutes)}
                 </Text>
+              </>
+            );
+
+            if (hasData) {
+              return (
+                <Pressable
+                  key={j}
+                  style={[styles.cell, styles.cellFilled]}
+                  accessibilityLabel={label}
+                  accessibilityRole="button"
+                  onPress={() => onDayPress?.(isoOf(year, monthIndex0, day))}
+                >
+                  {cellContent}
+                </Pressable>
+              );
+            }
+
+            return (
+              <View key={j} style={[styles.cell, hasData && styles.cellFilled]} accessibilityLabel={label}>
+                {cellContent}
               </View>
             );
           })}

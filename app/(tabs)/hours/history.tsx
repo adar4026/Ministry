@@ -1,13 +1,19 @@
 import { router } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Modal } from "@/components/Modal";
 import { HistoryCalendar } from "@/components/hours/HistoryCalendar";
 import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
+import { HistoryTotalCard } from "@/components/hours/HistoryTotalCard";
+import { PeriodNav } from "@/components/hours/PeriodNav";
+import { PeriodSwitcher } from "@/components/hours/PeriodSwitcher";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "@/components/hours/historyTokens";
-import { ChevronRightIcon } from "@/components/icons";
-import { MF, toISODate } from "@/data/constants";
-import { dailyMinutesForMonth, sessionsForMonth } from "@/data/stats";
+import { ChevronRightIcon, ClockIcon } from "@/components/icons";
+import { addMonths } from "@/data/calendarGrid";
+import { MF, formatClockDuration, toISODate } from "@/data/constants";
+import { formatHistoryListDate } from "@/data/dateFormat";
+import { dailyMinutesForMonth, sessionsForDay, sessionsForMonth, totalMinutesForPeriod, type HistoryPeriod } from "@/data/stats";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
 
@@ -25,29 +31,79 @@ function sortSessions(sessions: Session[]): Session[] {
   });
 }
 
-// Current-month History: calendar grid + flat session list (TASK_032).
-// Deliberately scoped to the current calendar month only — no month
-// navigation, no service-year grouping, no legacy HourRecord fallback (the
-// current month can never have one, see legacyEntryBlockReason() in
-// src/data/constants.ts). A future task may add month switching.
+// History: period switcher (Month/Year/All-time) + total card, then the
+// TASK_032 calendar grid + flat session list for the currently *displayed*
+// month (TASK_033). The displayed month/year (`viewYear`/`viewMonthIndex0`)
+// is independent, navigable UI state — Month-period arrows move it via
+// addMonths() (Dec/Jan wraparound already handled there); Year-period
+// arrows move only the year, leaving the displayed month untouched per the
+// owner's spec, so returning to Month-period shows the same month again;
+// All-time hides/disables navigation and the calendar simply keeps showing
+// the last displayed month. Only the "Итого" total is period-scoped
+// (totalMinutesForPeriod) — the calendar/list below always reflect
+// viewYear/viewMonthIndex0 regardless of `period`.
 export default function HistoryScreen() {
   const { sessions } = useStore();
 
   const now = useMemo(() => new Date(), []);
-  const year = now.getFullYear();
-  const monthIndex0 = now.getMonth();
-  const month = monthIndex0 + 1;
   const todayISO = useMemo(() => toISODate(now), [now]);
 
-  const dailyMinutes = useMemo(() => dailyMinutesForMonth(sessions, year, month), [sessions, year, month]);
+  const [period, setPeriod] = useState<HistoryPeriod>("month");
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonthIndex0, setViewMonthIndex0] = useState(now.getMonth());
+  const [dayPicker, setDayPicker] = useState<{ iso: string; sessions: Session[] } | null>(null);
+
+  const dailyMinutes = useMemo(
+    () => dailyMinutesForMonth(sessions, viewYear, viewMonthIndex0 + 1),
+    [sessions, viewYear, viewMonthIndex0],
+  );
   const monthSessions = useMemo(
-    () => sortSessions(sessionsForMonth(sessions, year, month)),
-    [sessions, year, month],
+    () => sortSessions(sessionsForMonth(sessions, viewYear, viewMonthIndex0 + 1)),
+    [sessions, viewYear, viewMonthIndex0],
+  );
+  const totalMinutes = useMemo(
+    () => totalMinutesForPeriod(sessions, period, viewYear, viewMonthIndex0 + 1),
+    [sessions, period, viewYear, viewMonthIndex0],
   );
 
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace("/hours");
+  }
+
+  function handlePrev() {
+    if (period === "month") {
+      const next = addMonths(viewYear, viewMonthIndex0, -1);
+      setViewYear(next.year);
+      setViewMonthIndex0(next.monthIndex0);
+    } else if (period === "year") {
+      setViewYear((y) => y - 1);
+    }
+  }
+
+  function handleNext() {
+    if (period === "month") {
+      const next = addMonths(viewYear, viewMonthIndex0, 1);
+      setViewYear(next.year);
+      setViewMonthIndex0(next.monthIndex0);
+    } else if (period === "year") {
+      setViewYear((y) => y + 1);
+    }
+  }
+
+  function handleDayPress(iso: string) {
+    const daySessions = sessionsForDay(sessions, iso);
+    if (daySessions.length === 0) return;
+    if (daySessions.length === 1) {
+      router.push(`/entry?id=${daySessions[0].id}`);
+      return;
+    }
+    setDayPicker({ iso, sessions: daySessions });
+  }
+
+  function openSession(id: string) {
+    setDayPicker(null);
+    router.push(`/entry?id=${id}`);
   }
 
   return (
@@ -62,10 +118,28 @@ export default function HistoryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <HistoryCalendar year={year} monthIndex0={monthIndex0} dailyMinutes={dailyMinutes} todayISO={todayISO} />
+        <PeriodSwitcher period={period} onChange={setPeriod} />
+        <PeriodNav
+          period={period}
+          year={viewYear}
+          monthIndex0={viewMonthIndex0}
+          now={now}
+          onPrev={handlePrev}
+          onNext={handleNext}
+        />
+
+        <HistoryTotalCard totalMinutes={totalMinutes} />
+
+        <HistoryCalendar
+          year={viewYear}
+          monthIndex0={viewMonthIndex0}
+          dailyMinutes={dailyMinutes}
+          todayISO={todayISO}
+          onDayPress={handleDayPress}
+        />
 
         <Text style={styles.monthHeading}>
-          {MF[monthIndex0]} {year}
+          {MF[viewMonthIndex0]} {viewYear}
         </Text>
 
         {monthSessions.length === 0 ? (
@@ -78,6 +152,30 @@ export default function HistoryScreen() {
           </View>
         )}
       </ScrollView>
+
+      <Modal
+        visible={dayPicker !== null}
+        title={dayPicker ? formatHistoryListDate(dayPicker.iso) : ""}
+        onClose={() => setDayPicker(null)}
+      >
+        {dayPicker?.sessions.map((s) => (
+          <Pressable
+            key={s.id}
+            onPress={() => openSession(s.id)}
+            style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Запись: ${formatClockDuration(s.durationMinutes)}`}
+          >
+            <View style={styles.pickerIconWrap}>
+              <ClockIcon size={18} color={C.secondaryText} />
+            </View>
+            <Text style={styles.pickerDuration}>{formatClockDuration(s.durationMinutes)}</Text>
+            <Text style={styles.pickerDate}>
+              {formatHistoryListDate(s.date, s.source === "timer" ? s.startTime : undefined)}
+            </Text>
+          </Pressable>
+        ))}
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -129,4 +227,21 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontFamily: FONT,
   },
+  pickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+  },
+  pickerRowPressed: { opacity: 0.6 },
+  pickerIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.iconBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerDuration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
+  pickerDate: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.primaryText, fontFamily: FONT },
 });

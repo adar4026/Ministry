@@ -79,6 +79,62 @@ export function dailyMinutesForMonth(sessions: Session[], year: number, month: n
   return totals;
 }
 
+// ---------------------------------------------------------------------------
+// History period filters (TASK_033) — Month/Year/All-time totals for the
+// "Итого" card. Independent of dailyMinutesForMonth()/sessionsForMonth()
+// above, which the calendar grid and session list keep using unchanged;
+// these operate on the period selector's own state instead.
+// ---------------------------------------------------------------------------
+
+export type HistoryPeriod = "month" | "year" | "all";
+
+// All Sessions whose `date` falls within the given calendar year — the
+// year-scoped counterpart to sessionsForMonth() above.
+export function sessionsForYear(sessions: Session[], year: number): Session[] {
+  return sessions.filter((s) => parseISOYearMonth(s.date).year === year);
+}
+
+// All Sessions whose `date` equals the given ISO day exactly — used by the
+// History calendar's day-tap handler (TASK_033 §4) to resolve which
+// Session(s), if any, a tapped cell represents. The data model does not
+// guarantee at most one Session per day (TASK_032 already sums same-day
+// sessions into one calendar cell), so callers must handle 0/1/N results.
+export function sessionsForDay(sessions: Session[], dateISO: string): Session[] {
+  return sessions.filter((s) => s.date === dateISO);
+}
+
+export function sumDurationMinutes(sessions: Session[]): number {
+  return sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+}
+
+// The single selector behind the "Итого" card: total minutes across
+// Sessions for whichever period is active. `year`/`month` describe the
+// calendar month currently shown by the (unrelated) HistoryCalendar/list —
+// only "month" period uses both; "year" uses `year` alone; "all" ignores
+// both and sums every stored Session, with no synthetic start/end date.
+export function totalMinutesForPeriod(
+  sessions: Session[],
+  period: HistoryPeriod,
+  year: number,
+  month: number,
+): number {
+  if (period === "all") return sumDurationMinutes(sessions);
+  if (period === "year") return sumDurationMinutes(sessionsForYear(sessions, year));
+  return sumDurationMinutes(sessionsForMonth(sessions, year, month));
+}
+
+// Whether (year, month) is the calendar month containing `now` — drives the
+// "Текущий месяц" subtitle under the Month-period nav label.
+export function isCurrentMonth(year: number, month: number, now: Date = new Date()): boolean {
+  return year === now.getFullYear() && month === now.getMonth() + 1;
+}
+
+// Whether `year` is the calendar year containing `now` — drives the
+// "Текущий год" subtitle under the Year-period nav label.
+export function isCurrentYear(year: number, now: Date = new Date()): boolean {
+  return year === now.getFullYear();
+}
+
 /**
  * Compute average minutes per day over the trailing N days of sessions.
  * Returns 0 if no sessions in window.

@@ -17,6 +17,15 @@ export {
   monthTotal,
   sessionsForMonth,
 } from "./stats";
+export type { HistoryPeriod } from "./stats";
+export {
+  sessionsForYear,
+  sessionsForDay,
+  sumDurationMinutes,
+  totalMinutesForPeriod,
+  isCurrentMonth,
+  isCurrentYear,
+} from "./stats";
 
 // Color palette (ported from the web prototype).
 export const COLORS = {
@@ -278,6 +287,19 @@ export function formatHoursWord(n: number): string {
 // "N минута/минуты/минут" for the minutes wheel (TASK_011).
 export function formatMinutesWord(n: number): string {
   return `${n} ${pluralRu(n, ["минута", "минуты", "минут"])}`;
+}
+
+// "N часов M минут" for the History "Итого" card total (TASK_033) — unlike
+// formatHM()'s "X ч Y м", which omits a zero-minute remainder, this always
+// renders both parts ("0 часов 0 минут", "46 часов 0 минут") to match the
+// card's required always-both-units display. Built on formatHoursWord()/
+// formatMinutesWord() above so the plural grammar isn't duplicated a third
+// time; input is always a non-negative integer (durationMinutes sums), so
+// no negative/NaN guard is needed here.
+export function formatDurationRu(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${formatHoursWord(h)} ${formatMinutesWord(m)}`;
 }
 
 // Rounds a total-minutes duration to the nearest 5-minute step (the

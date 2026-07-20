@@ -6,6 +6,12 @@ import {
   projectServiceYearEnd,
   monthCellsForSY,
   dailyMinutesForMonth,
+  sessionsForYear,
+  sessionsForDay,
+  sumDurationMinutes,
+  totalMinutesForPeriod,
+  isCurrentMonth,
+  isCurrentYear,
 } from "../stats";
 import type { Session } from "@/types";
 
@@ -263,5 +269,95 @@ describe("dailyMinutesForMonth (TASK_032 History calendar)", () => {
     const copy = [...sessions];
     dailyMinutesForMonth(sessions, 2026, 7);
     expect(sessions).toEqual(copy);
+  });
+});
+
+describe("sessionsForYear (TASK_033)", () => {
+  it("includes sessions across every month of the given year", () => {
+    const sessions = [session("2026-01-05", 30), session("2026-07-19", 60), session("2026-12-31", 45)];
+    expect(sessionsForYear(sessions, 2026)).toHaveLength(3);
+  });
+
+  it("excludes sessions from other years", () => {
+    const sessions = [session("2025-12-31", 30), session("2026-01-01", 60), session("2027-01-01", 45)];
+    expect(sessionsForYear(sessions, 2026).map((s) => s.date)).toEqual(["2026-01-01"]);
+  });
+
+  it("returns an empty array when nothing matches", () => {
+    expect(sessionsForYear([session("2025-06-01", 30)], 2026)).toEqual([]);
+  });
+});
+
+describe("sessionsForDay (TASK_033)", () => {
+  it("returns an empty array for a day with no sessions", () => {
+    expect(sessionsForDay([session("2026-07-01", 30)], "2026-07-19")).toEqual([]);
+  });
+
+  it("returns the single session for a day with one", () => {
+    const s = session("2026-07-19", 60);
+    expect(sessionsForDay([s], "2026-07-19")).toEqual([s]);
+  });
+
+  it("returns every session on a day with multiple", () => {
+    const sessions = [
+      session("2026-07-19", 60, { id: "a" }),
+      session("2026-07-19", 30, { id: "b" }),
+      session("2026-07-20", 10, { id: "c" }),
+    ];
+    expect(sessionsForDay(sessions, "2026-07-19").map((s) => s.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("sumDurationMinutes (TASK_033)", () => {
+  it("returns 0 for an empty array", () => {
+    expect(sumDurationMinutes([])).toBe(0);
+  });
+
+  it("sums durationMinutes across sessions", () => {
+    expect(sumDurationMinutes([session("2026-01-01", 30), session("2026-01-02", 45)])).toBe(75);
+  });
+});
+
+describe("totalMinutesForPeriod (TASK_033 — Итого card)", () => {
+  const sessions = [
+    session("2026-06-30", 100), // previous month, same year
+    session("2026-07-05", 60),
+    session("2026-07-19", 90),
+    session("2026-08-01", 40), // next month, same year
+    session("2025-07-19", 200), // same month/day, previous year
+  ];
+
+  it("month period sums only the given calendar month", () => {
+    expect(totalMinutesForPeriod(sessions, "month", 2026, 7)).toBe(150);
+  });
+
+  it("year period sums every month within the given year", () => {
+    expect(totalMinutesForPeriod(sessions, "year", 2026, 7)).toBe(100 + 60 + 90 + 40);
+  });
+
+  it("all period sums every stored session regardless of date", () => {
+    expect(totalMinutesForPeriod(sessions, "all", 2026, 7)).toBe(sumDurationMinutes(sessions));
+  });
+
+  it("returns 0 for an empty period (no matching sessions)", () => {
+    expect(totalMinutesForPeriod([], "month", 2026, 7)).toBe(0);
+    expect(totalMinutesForPeriod([], "year", 2026, 7)).toBe(0);
+    expect(totalMinutesForPeriod([], "all", 2026, 7)).toBe(0);
+  });
+});
+
+describe("isCurrentMonth / isCurrentYear (TASK_033)", () => {
+  const now = new Date("2026-07-19T12:00:00.000Z");
+
+  it("isCurrentMonth is true only for the exact year+month of `now`", () => {
+    expect(isCurrentMonth(2026, 7, now)).toBe(true);
+    expect(isCurrentMonth(2026, 6, now)).toBe(false);
+    expect(isCurrentMonth(2025, 7, now)).toBe(false);
+  });
+
+  it("isCurrentYear is true only for the exact year of `now`", () => {
+    expect(isCurrentYear(2026, now)).toBe(true);
+    expect(isCurrentYear(2025, now)).toBe(false);
+    expect(isCurrentYear(2027, now)).toBe(false);
   });
 });

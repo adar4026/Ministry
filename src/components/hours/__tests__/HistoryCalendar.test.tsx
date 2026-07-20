@@ -24,6 +24,7 @@ async function renderCalendar(props: {
   monthIndex0: number;
   dailyMinutes: Map<number, number>;
   todayISO: string;
+  onDayPress?: (dateISO: string) => void;
 }): Promise<ReactTestRenderer> {
   let renderer: ReactTestRenderer;
   await act(async () => {
@@ -104,5 +105,34 @@ describe("HistoryCalendar — TASK_032", () => {
     expect(Boolean(cell.props.style[1])).toBe(true);
     const badge = cell.findAllByType(View)[1];
     expect(Boolean(badge.props.style[1])).toBe(true);
+  });
+
+  it("calls onDayPress with the tapped day's ISO date when the day has logged time (TASK_033)", async () => {
+    const onDayPress = jest.fn();
+    const renderer = await renderCalendar({
+      year: 2026,
+      monthIndex0: 6,
+      dailyMinutes: new Map([[19, 90]]),
+      todayISO: "2026-07-01",
+      onDayPress,
+    });
+    const cell = cellFor(renderer.root, 19, "1:30");
+    await act(async () => {
+      cell.props.onPress();
+    });
+    expect(onDayPress).toHaveBeenCalledWith("2026-07-19");
+  });
+
+  it("does not attach onPress to a day with zero logged minutes", async () => {
+    const onDayPress = jest.fn();
+    const renderer = await renderCalendar({
+      year: 2026,
+      monthIndex0: 6,
+      dailyMinutes: new Map(),
+      todayISO: "2026-07-01",
+      onDayPress,
+    });
+    const cell = cellFor(renderer.root, 19, "0:00");
+    expect(cell.props.onPress).toBeUndefined();
   });
 });

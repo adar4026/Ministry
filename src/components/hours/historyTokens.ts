@@ -30,4 +30,9 @@ export const HISTORY_COLORS = {
   filledDayBg: "#EDE9FE",
   todayAccent: "#5B21B6",
   iconBg: "#F2F2F7",
+  // Period switcher / nav card (TASK_033) — segmentTrack is a step darker
+  // than screenBackground so the pill is visible against the page; the
+  // active segment reuses cardBackground (white), same surface color as
+  // every other card on this screen rather than a third new token.
+  segmentTrack: "#DEDEE3",
 };
