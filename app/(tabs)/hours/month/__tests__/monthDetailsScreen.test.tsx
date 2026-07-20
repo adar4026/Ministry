@@ -4,7 +4,7 @@
 // This screen previously had no test coverage at all.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { confirmAsync } from "@/utils/confirm";
 import MonthDetailsScreen from "../[key]";
@@ -39,6 +39,36 @@ function buttonWithLabel(root: ReactTestRenderer["root"], label: string) {
   let node: any = textNode.parent;
   while (node && typeof node.props?.onPress !== "function") node = node.parent;
   return node ?? undefined;
+}
+
+// History session rows (TASK_040 — shared HistorySessionRow, reused as-is
+// from history.tsx) are identified by the actual <Pressable> element
+// carrying the row's own accessibilityLabel prefix ("Запись <duration>,
+// <date>[, заметка: ...]", see HistorySessionRow.tsx) — not by picking the
+// first onLongPress-bearing node in the tree (the composite
+// <HistorySessionRow> element itself also carries an onLongPress prop,
+// forwarded to its inner Pressable, so that search matches the wrong node),
+// and not by a bare accessibilityLabel/accessibilityRole match either
+// (Pressable forwards those same props down to its inner host View nodes on
+// web, so that match returns 3 hits per row — the Pressable plus two
+// Views). react-native's `Pressable` export is `React.memo(InnerPressable)`
+// — react-test-renderer reports a TestInstance's `.type` as the *inner*
+// function, not the memo wrapper, so the identity check compares against
+// `Pressable.type` (verified directly: `nodeWithLabel.type === Pressable`
+// is false, `nodeWithLabel.type === (Pressable as any).type` is true).
+// Keeps exactly one hit per row, in the row list's own order (most recent
+// session first, per sortSessionsDescending()).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PressableInner = (Pressable as any).type;
+function sessionRows(root: ReactTestRenderer["root"]) {
+  return root.findAll(
+    (n) =>
+      n.type === PressableInner &&
+      !!n.props &&
+      n.props.accessibilityRole === "button" &&
+      typeof n.props.accessibilityLabel === "string" &&
+      n.props.accessibilityLabel.startsWith("Запись"),
+  );
 }
 
 async function renderScreen(key: string): Promise<{ store: () => Store; root: () => ReactTestRenderer["root"] }> {
@@ -143,7 +173,7 @@ describe("MonthDetailsScreen — TASK_034 Session row press/long-press", () => {
       JSON.stringify([{ id: "sess-1", date: "2026-03-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
     );
     const { root } = await renderScreen("2026-3");
-    const row = root().findAll((n) => n.props && typeof n.props.onLongPress === "function")[0];
+    const row = sessionRows(root())[0];
     await act(async () => {
       row.props.onPress();
     });
@@ -160,15 +190,15 @@ describe("MonthDetailsScreen — TASK_034 Session row press/long-press", () => {
       ]),
     );
     const { root, store } = await renderScreen("2026-3");
-    const row = root().findAll((n) => n.props && typeof n.props.onLongPress === "function")[0];
+    const row = sessionRows(root())[0];
     await act(async () => {
       row.props.onLongPress();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // Rows render sorted descending by date, so the first onLongPress-able
-    // row is sess-2 (03-06); deleting it should leave sess-1 (03-05).
+    // Rows render sorted descending by date, so the first row is sess-2
+    // (03-06); deleting it should leave sess-1 (03-05).
     const remaining = store().sessions;
     expect(remaining).toHaveLength(1);
     expect(remaining[0].id).toBe("sess-1");
@@ -182,7 +212,7 @@ describe("MonthDetailsScreen — TASK_034 Session row press/long-press", () => {
       JSON.stringify([{ id: "sess-1", date: "2026-03-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
     );
     const { root, store } = await renderScreen("2026-3");
-    const row = root().findAll((n) => n.props && typeof n.props.onLongPress === "function")[0];
+    const row = sessionRows(root())[0];
     await act(async () => {
       row.props.onLongPress();
       await Promise.resolve();
@@ -193,6 +223,90 @@ describe("MonthDetailsScreen — TASK_034 Session row press/long-press", () => {
     // monthTotal() (Session-first) now resolves from the legacy HourRecord again.
     const { monthTotal } = jest.requireActual("@/data/stats");
     expect(monthTotal(store().records, store().sessions, 2026, 3)).toBe(46);
+  });
+});
+
+describe("MonthDetailsScreen — TASK_040 heat map removal and shared History row format", () => {
+  it("no longer renders the day heat map or its old section header", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([{ id: "sess-1", date: "2026-07-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
+    );
+    const { root } = await renderScreen("2026-7");
+    expect(root().findAllByType(Text).some((n) => n.props.children === "Тепловая карта дня")).toBe(false);
+    // HeatMap day cells carry an accessibilityLabel like "5 day: 1h" — assert none exist.
+    const heatMapCells = root().findAll(
+      (n) => !!n.props && typeof n.props.accessibilityLabel === "string" && / day: /.test(n.props.accessibilityLabel),
+    );
+    expect(heatMapCells).toHaveLength(0);
+  });
+
+  it("no longer renders the old 'Сессии' section header (only MonthHeader's unrelated 'Сессии'/'Легаси' source badge remains)", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([{ id: "sess-1", date: "2026-07-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
+    );
+    const { root } = await renderScreen("2026-7");
+    // Only one "Сессии" text node should remain — MonthHeader's small
+    // source badge; the old SectionHeader("Сессии") list title is gone.
+    expect(root().findAllByType(Text).filter((n) => n.props.children === "Сессии")).toHaveLength(1);
+  });
+
+  it("renders 'История за <month>' with the month computed dynamically from the displayed key", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([{ id: "sess-1", date: "2026-07-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
+    );
+    const july = await renderScreen("2026-7");
+    expect(july.root().findAllByType(Text).some((n) => n.props.children === "История за июль")).toBe(true);
+
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([{ id: "sess-2", date: "2026-03-05", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" }]),
+    );
+    const march = await renderScreen("2026-3");
+    expect(march.root().findAllByType(Text).some((n) => n.props.children === "История за март")).toBe(true);
+  });
+
+  it("shows only sessions of the displayed month, not sessions from other months", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([
+        { id: "in-month", date: "2026-07-10", durationMinutes: 60, note: "", source: "manual", createdAt: "x", updatedAt: "x" },
+        { id: "other-month", date: "2026-08-10", durationMinutes: 30, note: "", source: "manual", createdAt: "x", updatedAt: "x" },
+      ]),
+    );
+    const { root } = await renderScreen("2026-7");
+    const rows = sessionRows(root());
+    expect(rows).toHaveLength(1);
+    await act(async () => {
+      rows[0].props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith("/entry?id=in-month");
+  });
+
+  it("shows a session's note the same way HistorySessionRow does, and omits it when blank", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([
+        { id: "with-note", date: "2026-07-05", durationMinutes: 60, note: "Служение утром", source: "manual", createdAt: "x", updatedAt: "x" },
+        { id: "blank-note", date: "2026-07-06", durationMinutes: 60, note: "   ", source: "manual", createdAt: "x", updatedAt: "x" },
+      ]),
+    );
+    const { root } = await renderScreen("2026-7");
+    expect(root().findAllByType(Text).some((n) => n.props.children === "Служение утром")).toBe(true);
+    const rows = sessionRows(root());
+    expect(rows).toHaveLength(2);
+    // The blank-note row's a11y label must not claim to have a note.
+    const blankRow = rows.find((r) => r.props.accessibilityLabel.includes("6 июл"));
+    expect(blankRow?.props.accessibilityLabel).not.toContain("заметка");
+  });
+
+  it("shows the pre-existing empty/legacy state (no 'История за' heading) when the month has no sessions", async () => {
+    const { root } = await renderScreen("2026-9");
+    expect(root().findAllByType(Text).some((n) => n.props.children === "Месяц без сессий")).toBe(true);
+    expect(root().findAllByType(Text).some((n) => typeof n.props.children === "string" && n.props.children.startsWith("История за"))).toBe(false);
+    expect(sessionRows(root())).toHaveLength(0);
   });
 });
 

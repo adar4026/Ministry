@@ -19,6 +19,7 @@ import {
   dailyMinutesForMonth,
   sessionsForDay,
   sessionsForMonth,
+  sortSessionsDescending,
   totalCreditForPeriod,
   totalMinutesForPeriod,
   type HistoryPeriod,
@@ -26,20 +27,6 @@ import {
 import { currentServiceYearEndYear } from "@/data/serviceYear";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
-
-// Reverse-chronological order within the current month: by calendar date
-// first, then — for entries on the same day — by startTime when it exists
-// (source === "timer"), falling back to createdAt only as a tiebreaker
-// (never shown to the user, see HistorySessionRow). Both are ISO datetime
-// strings, so lexicographic comparison is chronological comparison.
-function sortSessions(sessions: Session[]): Session[] {
-  return [...sessions].sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    const aKey = a.startTime ?? a.createdAt;
-    const bKey = b.startTime ?? b.createdAt;
-    return bKey.localeCompare(aKey);
-  });
-}
 
 // History: period switcher (Month/Year/All-time) + total card, then the
 // TASK_032 calendar grid + flat session list for the currently *displayed*
@@ -88,7 +75,7 @@ export default function HistoryScreen() {
     [sessions, viewYear, viewMonthIndex0],
   );
   const monthSessions = useMemo(
-    () => sortSessions(sessionsForMonth(sessions, viewYear, viewMonthIndex0 + 1)),
+    () => sortSessionsDescending(sessionsForMonth(sessions, viewYear, viewMonthIndex0 + 1)),
     [sessions, viewYear, viewMonthIndex0],
   );
   // Session-first (docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8): when the

@@ -42,6 +42,26 @@ describe("HistorySessionRow — TASK_034", () => {
     expect(onPress).toHaveBeenCalledWith("exact-id");
   });
 
+  it("calls onLongPress with the row's own session.id when provided (TASK_040 — month/[key].tsx long-press-to-delete)", () => {
+    const onLongPress = jest.fn();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ id: "exact-id" })} showDivider={false} onLongPress={onLongPress} />);
+    });
+    act(() => {
+      renderer!.root.findByProps({ accessibilityRole: "button" }).props.onLongPress();
+    });
+    expect(onLongPress).toHaveBeenCalledWith("exact-id");
+  });
+
+  it("has no onLongPress handler when the prop is omitted (history.tsx's usage is unaffected)", () => {
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session()} showDivider={false} />);
+    });
+    expect(renderer!.root.findByProps({ accessibilityRole: "button" }).props.onLongPress).toBeUndefined();
+  });
+
   it("two rows with the same date/duration but different ids resolve independently", () => {
     const onPress = jest.fn();
     const a = session({ id: "first", date: "2026-07-19", durationMinutes: 60 });

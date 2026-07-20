@@ -21,14 +21,22 @@ import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyToken
 // second line, capped at 2 lines with ellipsis. `marginLeft: 42` matches
 // iconWrap width + topLine gap so the note starts under the duration, not
 // under the icon.
+//
+// `onLongPress` (TASK_040): optional, unused by history.tsx — added only so
+// month/[key].tsx can reuse this exact row for its own long-press-to-delete
+// affordance (pre-existing on that screen, TASK_034) without forking a
+// second copy of the row's styles/markup. Omitting the prop (as history.tsx
+// does) leaves the row's appearance and behavior completely unchanged.
 export function HistorySessionRow({
   session,
   showDivider,
   onPress,
+  onLongPress,
 }: {
   session: Session;
   showDivider: boolean;
   onPress?: (id: string) => void;
+  onLongPress?: (id: string) => void;
 }) {
   const label = formatHistoryListDate(session.date, session.source === "timer" ? session.startTime : undefined);
   const note = session.note?.trim();
@@ -40,6 +48,7 @@ export function HistorySessionRow({
   return (
     <Pressable
       onPress={() => onPress?.(session.id)}
+      onLongPress={onLongPress ? () => onLongPress(session.id) : undefined}
       style={({ pressed }) => [styles.row, showDivider && styles.divider, pressed && styles.rowPressed]}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}

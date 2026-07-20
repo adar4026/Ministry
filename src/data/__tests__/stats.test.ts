@@ -9,6 +9,7 @@ import {
   monthTotal,
   sessionsForYear,
   sessionsForDay,
+  sortSessionsDescending,
   sumDurationMinutes,
   totalMinutesForPeriod,
   totalCreditForPeriod,
@@ -317,6 +318,36 @@ describe("sumDurationMinutes (TASK_033)", () => {
 
   it("sums durationMinutes across sessions", () => {
     expect(sumDurationMinutes([session("2026-01-01", 30), session("2026-01-02", 45)])).toBe(75);
+  });
+});
+
+describe("sortSessionsDescending (TASK_040 — shared by history.tsx and month/[key].tsx)", () => {
+  it("orders sessions by date descending", () => {
+    const sessions = [session("2026-07-05", 30, { id: "a" }), session("2026-07-19", 30, { id: "b" }), session("2026-07-01", 30, { id: "c" })];
+    expect(sortSessionsDescending(sessions).map((s) => s.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("breaks same-day ties by startTime descending when present (timer sessions)", () => {
+    const sessions = [
+      session("2026-07-19", 30, { id: "early", source: "timer", startTime: "2026-07-19T08:00:00.000Z" }),
+      session("2026-07-19", 30, { id: "late", source: "timer", startTime: "2026-07-19T18:00:00.000Z" }),
+    ];
+    expect(sortSessionsDescending(sessions).map((s) => s.id)).toEqual(["late", "early"]);
+  });
+
+  it("falls back to createdAt for same-day manual entries with no startTime", () => {
+    const sessions = [
+      session("2026-07-19", 30, { id: "first-saved", createdAt: "2026-07-19T08:00:00.000Z" }),
+      session("2026-07-19", 30, { id: "last-saved", createdAt: "2026-07-19T18:00:00.000Z" }),
+    ];
+    expect(sortSessionsDescending(sessions).map((s) => s.id)).toEqual(["last-saved", "first-saved"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const sessions = [session("2026-07-01", 30, { id: "a" }), session("2026-07-19", 30, { id: "b" })];
+    const original = [...sessions];
+    sortSessionsDescending(sessions);
+    expect(sessions).toEqual(original);
   });
 });
 

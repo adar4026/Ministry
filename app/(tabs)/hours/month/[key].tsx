@@ -4,10 +4,10 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { Modal } from "@/components/Modal";
-import { HeatMap } from "@/components/HeatMap";
 import { MonthHeader } from "@/components/MonthHeader";
 import { RecordForm } from "@/components/forms/RecordForm";
-import { SectionHeader } from "@/components/dashboard/SectionHeader";
+import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
+import { HISTORY_COLORS as HC, HISTORY_FONT_FAMILY as HFONT } from "@/components/hours/historyTokens";
 import {
   COLORS,
   formatHM,
@@ -19,6 +19,7 @@ import {
   svcYear,
   toISODate,
 } from "@/data/constants";
+import { sortSessionsDescending } from "@/data/stats";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, Session } from "@/types";
 import { confirmAsync } from "@/utils/confirm";
@@ -53,6 +54,14 @@ export default function MonthDetailsScreen() {
     setAddSessionDate(toISODate(new Date(year, month - 1, 1)));
   }
 
+  async function handleSessionLongPress(id: string) {
+    const confirmed = await confirmAsync("Удалить?", "Это действие нельзя отменить.");
+    if (confirmed) deleteSession(id);
+  }
+
+  const sortedMonthSessions = useMemo(() => sortSessionsDescending(monthSessions), [monthSessions]);
+  const monthAccusative = MF[month - 1].toLowerCase();
+
   function handleMonthPress(m: { id: string; year: number; month: number; hours: number; source: "session" | "legacy" }) {
     if (m.source === "session") {
       Alert.alert(
@@ -64,21 +73,6 @@ export default function MonthDetailsScreen() {
     const rec = records.find((r) => r.year === m.year && r.month === m.month);
     if (rec) setEditRec(rec);
   }
-
-  // Build daily cells for HeatMap (day granularity)
-  const dailyCells = useMemo(() => {
-    if (monthSessions.length === 0) return [];
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const dayMap = new Map<number, number>();
-    monthSessions.forEach((s) => {
-      const day = parseInt(s.date.split("-")[2], 10);
-      dayMap.set(day, (dayMap.get(day) || 0) + s.durationMinutes);
-    });
-    return Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => ({
-      date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-      value: dayMap.get(day) || 0,
-    }));
-  }, [monthSessions, year, month]);
 
   // Build monthly cells for the service-year HeatMap (not used here, but MonthDetails could show it)
   const handleLegacyMonthPress = (m: { id: string; year: number; month: number; hours: number; source: "session" | "legacy" }) => {
@@ -105,13 +99,6 @@ export default function MonthDetailsScreen() {
         sessions={monthSessions}
         onPressAddSession={handleAddSession}
       />
-
-      {source === "session" && dailyCells.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Тепловая карта дня" />
-          <HeatMap cells={dailyCells} granularity="day" cellSize={24} gap={3} />
-        </View>
-      )}
 
       {source === "legacy" && (
         <View style={styles.legacyEmptyState}>
@@ -147,26 +134,18 @@ export default function MonthDetailsScreen() {
       )}
 
       {monthSessions.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Сессии" />
-          <View style={styles.sessionList}>
-            {monthSessions
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .map((session) => (
-                <Pressable
-                  key={session.id}
-                  onPress={() => router.push(`/entry?id=${session.id}`)}
-                  onLongPress={async () => {
-                    const confirmed = await confirmAsync("Удалить?", "Это действие нельзя отменить.");
-                    if (confirmed) deleteSession(session.id);
-                  }}
-                  style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}
-                >
-                  <Text style={styles.sessionDate}>{formatDateDMY(session.date)}</Text>
-                  <Text style={styles.sessionDuration}>{formatHM(session.durationMinutes / 60)}</Text>
-                  {session.note ? <Text style={styles.sessionNote}>{session.note}</Text> : null}
-                </Pressable>
-              ))}
+        <View style={styles.historySection}>
+          <Text style={styles.historyHeading}>{`История за ${monthAccusative}`}</Text>
+          <View style={styles.historyListCard}>
+            {sortedMonthSessions.map((session, i) => (
+              <HistorySessionRow
+                key={session.id}
+                session={session}
+                showDivider={i < sortedMonthSessions.length - 1}
+                onPress={(id) => router.push(`/entry?id=${id}`)}
+                onLongPress={handleSessionLongPress}
+              />
+            ))}
           </View>
         </View>
       )}
@@ -217,23 +196,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: "700", color: COLORS.text, textAlign: "center" },
   screen: { flex: 1, backgroundColor: COLORS.groupedBg },
   content: { padding: 16, gap: 20 },
-  section: { gap: 10 },
-  sessionList: { gap: 8 },
-  sessionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  sessionRowPressed: { opacity: 0.7 },
-  sessionDate: { fontSize: 14, fontWeight: "600", color: COLORS.text, minWidth: 60 },
-  sessionDuration: { fontSize: 14, fontWeight: "700", color: COLORS.blue },
-  sessionNote: { fontSize: 13, color: COLORS.muted, flex: 1 },
+  // History list (TASK_040) — matches history.tsx's monthHeading/listCard
+  // exactly (same HISTORY_COLORS/HISTORY_FONT_FAMILY tokens), since the row
+  // format below is the shared HistorySessionRow, not a locally styled copy.
+  historySection: { gap: 12 },
+  historyHeading: { fontSize: 22, fontWeight: "700", color: HC.secondaryText, fontFamily: HFONT },
+  historyListCard: { backgroundColor: HC.cardBackground, borderRadius: 18, paddingHorizontal: 16 },
   legacyEmptyState: {
     backgroundColor: COLORS.card,
     borderRadius: 16,

@@ -119,6 +119,22 @@ export function sumDurationMinutes(sessions: Session[]): number {
   return sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
 }
 
+// Reverse-chronological order for a session list: by calendar date first,
+// then — for entries on the same day — by startTime when it exists
+// (source === "timer"), falling back to createdAt only as a tiebreaker
+// (never shown to the user, see HistorySessionRow). Both are ISO datetime
+// strings, so lexicographic comparison is chronological comparison. Shared
+// by history.tsx and month/[key].tsx (TASK_040) so both screens order the
+// same underlying Session[] identically — neither re-derives its own order.
+export function sortSessionsDescending(sessions: Session[]): Session[] {
+  return [...sessions].sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    const aKey = a.startTime ?? a.createdAt;
+    const bKey = b.startTime ?? b.createdAt;
+    return bKey.localeCompare(aKey);
+  });
+}
+
 // Every distinct (year, month) pair that has either a legacy HourRecord or
 // at least one Session — the "all-time" period has no natural start date
 // otherwise. Mirrors the key-collection pattern serviceYearAggregation()
