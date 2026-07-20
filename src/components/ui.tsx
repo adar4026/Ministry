@@ -64,10 +64,15 @@ export function ChipSelector<T extends string | number>({
   options,
   value,
   onChange,
+  idleTextColor,
 }: {
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
+  // TASK_041 — optional override for the idle (unselected) chip's text
+  // color. Omitted by every existing caller (EventForm, RecordForm), so
+  // their appearance is unchanged; the Events page passes its own blue.
+  idleTextColor?: string;
 }) {
   return (
     <View style={styles.chipRow}>
@@ -79,7 +84,15 @@ export function ChipSelector<T extends string | number>({
             onPress={() => onChange(opt.value)}
             style={[styles.chip, active ? styles.chipActive : styles.chipIdle]}
           >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+            <Text
+              style={[
+                styles.chipText,
+                idleTextColor && !active ? { color: idleTextColor } : null,
+                active && styles.chipTextActive,
+              ]}
+            >
+              {opt.label}
+            </Text>
           </Pressable>
         );
       })}
