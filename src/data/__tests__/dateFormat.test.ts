@@ -5,12 +5,54 @@ import {
   calendarElapsed,
   formatDateDMY,
   formatElapsedRu,
+  formatHistoryListDate,
   isValidDMY,
   parseDMYToISO,
   pluralDaysRu,
   pluralMonthsRu,
   pluralYearsRu,
 } from "@/data/dateFormat";
+
+describe("formatHistoryListDate (TASK_032 History list row)", () => {
+  it("formats a date without startTime as day + short month + year, no time", () => {
+    expect(formatHistoryListDate("2026-07-19")).toBe("19 июл. 2026");
+  });
+
+  it("appends HH:MM when startTime is provided", () => {
+    expect(formatHistoryListDate("2026-07-19", "2026-07-19T15:34:00.000")).toBe("19 июл. 2026, 15:34");
+  });
+
+  it("never fabricates a time when startTime is undefined (manual entry)", () => {
+    const out = formatHistoryListDate("2026-07-19", undefined);
+    expect(out).not.toContain(",");
+  });
+
+  it("pads single-digit hour/minute in the time portion", () => {
+    expect(formatHistoryListDate("2026-01-05", "2026-01-05T09:05:00.000")).toBe("5 янв. 2026, 09:05");
+  });
+
+  it.each([
+    [1, "янв."],
+    [2, "февр."],
+    [3, "мар."],
+    [4, "апр."],
+    [5, "мая"],
+    [6, "июн."],
+    [7, "июл."],
+    [8, "авг."],
+    [9, "сент."],
+    [10, "окт."],
+    [11, "нояб."],
+    [12, "дек."],
+  ])("uses the correct short genitive form for month %i", (month, abbr) => {
+    const iso = `2026-${String(month).padStart(2, "0")}-15`;
+    expect(formatHistoryListDate(iso)).toBe(`15 ${abbr} 2026`);
+  });
+
+  it("returns malformed input unchanged", () => {
+    expect(formatHistoryListDate("not-a-date")).toBe("not-a-date");
+  });
+});
 
 function elapsedRu(iso: string, now: Date): string {
   return formatElapsedRu(calendarElapsed(iso, now));

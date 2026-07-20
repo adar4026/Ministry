@@ -63,6 +63,22 @@ export function monthTotal(records: HourRecord[], sessions: Session[], year: num
   return resolveMonthTotal(records, sessions, year, month);
 }
 
+// Per-day duration totals for one calendar month (TASK_032 History
+// calendar) — unlike monthTotal()/resolveMonthTotal() above, which collapse
+// a month to a single number, this keeps one bucket per day-of-month so a
+// calendar grid can render each cell independently. Built on
+// sessionsForMonth() (never re-filters sessions itself); does not mutate
+// `sessions`. Days with no Session simply have no entry in the returned Map
+// — callers render those as 0.
+export function dailyMinutesForMonth(sessions: Session[], year: number, month: number): Map<number, number> {
+  const totals = new Map<number, number>();
+  for (const s of sessionsForMonth(sessions, year, month)) {
+    const day = Number(s.date.slice(8, 10));
+    totals.set(day, (totals.get(day) ?? 0) + s.durationMinutes);
+  }
+  return totals;
+}
+
 /**
  * Compute average minutes per day over the trailing N days of sessions.
  * Returns 0 if no sessions in window.

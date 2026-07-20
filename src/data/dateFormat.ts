@@ -36,6 +36,40 @@ export function isValidDMY(s: string): boolean {
   return /^\d{2}-\d{2}-\d{4}$/.test(s);
 }
 
+// Short genitive-case Russian month abbreviations for the History list row
+// date ("19 июл. 2026", TASK_032) — deliberately independent of
+// src/data/constants.ts's MN (nominative, "Июл") / MF (nominative, "Июль"),
+// which other screens (month headers, calendar pickers) already depend on
+// and which use the wrong grammatical case for a "day of month" phrase.
+const MONTH_ABBR_GEN = [
+  "янв.", "февр.", "мар.", "апр.", "мая", "июн.",
+  "июл.", "авг.", "сент.", "окт.", "нояб.", "дек.",
+];
+
+// "YYYY-MM-DD" (+ optional ISO datetime `startTime`) -> "19 июл. 2026" or
+// "19 июл. 2026, 15:34" (TASK_032 History list row). `startTime` is only
+// ever present for Session.source === "timer" — manual entries pass
+// undefined and get the date-only form; this function itself is agnostic
+// to `source`, the caller decides what to pass. Time-of-day is read from
+// local Date fields (not toLocaleTimeString) so the "HH:MM" shape doesn't
+// depend on the runtime's default locale. Malformed `dateISO` is returned
+// unchanged, same convention as formatDateDMY() above.
+export function formatHistoryListDate(dateISO: string, startTime?: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateISO);
+  if (!m) return dateISO;
+  const [, y, moStr, dStr] = m;
+  const mo = Number(moStr);
+  const d = Number(dStr);
+  const datePart = `${d} ${MONTH_ABBR_GEN[mo - 1]} ${y}`;
+  if (!startTime) return datePart;
+
+  const t = new Date(startTime);
+  if (Number.isNaN(t.getTime())) return datePart;
+  const hh = String(t.getHours()).padStart(2, "0");
+  const mm = String(t.getMinutes()).padStart(2, "0");
+  return `${datePart}, ${hh}:${mm}`;
+}
+
 export type CalendarElapsed = {
   years: number;
   months: number;

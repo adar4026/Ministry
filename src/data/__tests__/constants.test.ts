@@ -1,5 +1,39 @@
-import { dayWord, formatHMRounded, monthWord, relativeDays, roundDurationToNearestFive, upcomingItems } from "@/data/constants";
+import {
+  dayWord,
+  formatClockDuration,
+  formatHMRounded,
+  monthWord,
+  relativeDays,
+  roundDurationToNearestFive,
+  upcomingItems,
+} from "@/data/constants";
 import type { MinistryEvent, Talk } from "@/types";
+
+describe("formatClockDuration (TASK_032 History calendar/list)", () => {
+  it("formats zero as 0:00", () => {
+    expect(formatClockDuration(0)).toBe("0:00");
+  });
+
+  it("formats a whole hour with two-digit zero minutes", () => {
+    expect(formatClockDuration(60)).toBe("1:00");
+  });
+
+  it("pads a single-digit minute count to two digits", () => {
+    expect(formatClockDuration(65)).toBe("1:05");
+  });
+
+  it("formats 3h30m", () => {
+    expect(formatClockDuration(210)).toBe("3:30");
+  });
+
+  it("formats 10h50m", () => {
+    expect(formatClockDuration(650)).toBe("10:50");
+  });
+
+  it("formats a duration under one hour with a leading 0 before the colon", () => {
+    expect(formatClockDuration(20)).toBe("0:20");
+  });
+});
 
 describe("roundDurationToNearestFive", () => {
   it("rounds a remainder of 0-2 down", () => {

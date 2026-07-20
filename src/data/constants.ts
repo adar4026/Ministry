@@ -248,6 +248,18 @@ export function formatHM(hours: number): string {
   return m === 0 ? `${h} ч` : `${h} ч ${m} м`;
 }
 
+// "H:MM" clock-style duration for the History calendar/list (TASK_032) —
+// independent of formatHM()'s "X ч Y м" text form, which other screens
+// already depend on and which this does not replace. Minutes are always
+// two digits ("1:05", not "1:5"); negative/NaN input is not a case any
+// current caller (durationMinutes is always a non-negative integer) can
+// produce, so it isn't guarded here.
+export function formatClockDuration(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
 // Russian plural form selection (one/few/many) for a non-negative integer.
 function pluralRu(n: number, [one, few, many]: [string, string, string]): string {
   const n100 = n % 100;

@@ -5,6 +5,7 @@ import {
   projectMonthEnd,
   projectServiceYearEnd,
   monthCellsForSY,
+  dailyMinutesForMonth,
 } from "../stats";
 import type { Session } from "@/types";
 
@@ -204,5 +205,63 @@ describe("monthCellsForSY — TASK_008 service-year boundary regression", () => 
     const cells = monthCellsForSY(records, zeroSession, "2025–2026");
     const sep = cells.find((c) => c.date === "2025-09")!;
     expect(sep.value).toBe(0); // Session-authoritative (0), not the legacy fallback (40)
+  });
+});
+
+describe("dailyMinutesForMonth (TASK_032 History calendar)", () => {
+  it("returns an empty Map for an empty sessions array", () => {
+    expect(dailyMinutesForMonth([], 2026, 7).size).toBe(0);
+  });
+
+  it("buckets a single session under its day", () => {
+    const map = dailyMinutesForMonth([session("2026-07-05", 90)], 2026, 7);
+    expect(map.get(5)).toBe(90);
+  });
+
+  it("sums multiple sessions on the same day", () => {
+    const sessions = [session("2026-07-19", 60), session("2026-07-19", 30, { id: "s2" })];
+    const map = dailyMinutesForMonth(sessions, 2026, 7);
+    expect(map.get(19)).toBe(90);
+  });
+
+  it("keeps sessions on different days in separate buckets", () => {
+    const sessions = [session("2026-07-01", 40), session("2026-07-02", 20)];
+    const map = dailyMinutesForMonth(sessions, 2026, 7);
+    expect(map.get(1)).toBe(40);
+    expect(map.get(2)).toBe(20);
+  });
+
+  it("excludes sessions from the previous and next month", () => {
+    const sessions = [session("2026-06-30", 60), session("2026-07-15", 60), session("2026-08-01", 60)];
+    const map = dailyMinutesForMonth(sessions, 2026, 7);
+    expect(map.size).toBe(1);
+    expect(map.get(15)).toBe(60);
+  });
+
+  it("handles February of a non-leap year (28 days)", () => {
+    const map = dailyMinutesForMonth([session("2026-02-28", 45)], 2026, 2);
+    expect(map.get(28)).toBe(45);
+  });
+
+  it("handles February of a leap year (29 days)", () => {
+    const map = dailyMinutesForMonth([session("2028-02-29", 45)], 2028, 2);
+    expect(map.get(29)).toBe(45);
+  });
+
+  it("handles a 30-day month", () => {
+    const map = dailyMinutesForMonth([session("2026-04-30", 60)], 2026, 4);
+    expect(map.get(30)).toBe(60);
+  });
+
+  it("handles a 31-day month", () => {
+    const map = dailyMinutesForMonth([session("2026-07-31", 60)], 2026, 7);
+    expect(map.get(31)).toBe(60);
+  });
+
+  it("does not mutate the input sessions array", () => {
+    const sessions = [session("2026-07-01", 40)];
+    const copy = [...sessions];
+    dailyMinutesForMonth(sessions, 2026, 7);
+    expect(sessions).toEqual(copy);
   });
 });
