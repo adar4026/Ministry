@@ -328,21 +328,44 @@ describe("totalMinutesForPeriod (TASK_033 — Итого card)", () => {
   ];
 
   it("month period sums only the given calendar month", () => {
-    expect(totalMinutesForPeriod(sessions, "month", 2026, 7)).toBe(150);
+    expect(totalMinutesForPeriod([], sessions, "month", 2026, 7)).toBe(150);
   });
 
   it("year period sums every month within the given year", () => {
-    expect(totalMinutesForPeriod(sessions, "year", 2026, 7)).toBe(100 + 60 + 90 + 40);
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 7)).toBe(100 + 60 + 90 + 40);
   });
 
   it("all period sums every stored session regardless of date", () => {
-    expect(totalMinutesForPeriod(sessions, "all", 2026, 7)).toBe(sumDurationMinutes(sessions));
+    expect(totalMinutesForPeriod([], sessions, "all", 2026, 7)).toBe(sumDurationMinutes(sessions));
   });
 
   it("returns 0 for an empty period (no matching sessions)", () => {
-    expect(totalMinutesForPeriod([], "month", 2026, 7)).toBe(0);
-    expect(totalMinutesForPeriod([], "year", 2026, 7)).toBe(0);
-    expect(totalMinutesForPeriod([], "all", 2026, 7)).toBe(0);
+    expect(totalMinutesForPeriod([], [], "month", 2026, 7)).toBe(0);
+    expect(totalMinutesForPeriod([], [], "year", 2026, 7)).toBe(0);
+    expect(totalMinutesForPeriod([], [], "all", 2026, 7)).toBe(0);
+  });
+
+  it("month period falls back to the legacy HourRecord when the month has no Session (TASK_034)", () => {
+    const records = [{ id: "r1", year: 2024, month: 3, hours: 12, note: "" }];
+    expect(totalMinutesForPeriod(records, [], "month", 2024, 3)).toBe(12 * 60);
+  });
+
+  it("month period prefers Session over a legacy HourRecord for the same month (Session-first, TASK_034)", () => {
+    const records = [{ id: "r1", year: 2026, month: 7, hours: 999, note: "" }];
+    expect(totalMinutesForPeriod(records, sessions, "month", 2026, 7)).toBe(150);
+  });
+
+  it("year period includes legacy HourRecord months alongside Session months (TASK_034)", () => {
+    const records = [
+      { id: "r1", year: 2026, month: 1, hours: 10, note: "" }, // no Session in Jan
+      { id: "r2", year: 2026, month: 7, hours: 999, note: "" }, // Session-covered — ignored
+    ];
+    expect(totalMinutesForPeriod(records, sessions, "year", 2026, 7)).toBe(10 * 60 + 100 + 60 + 90 + 40);
+  });
+
+  it("all period includes every legacy HourRecord month with zero Sessions (TASK_034)", () => {
+    const records = [{ id: "r1", year: 2003, month: 9, hours: 5, note: "" }];
+    expect(totalMinutesForPeriod(records, [], "all", 2026, 7)).toBe(5 * 60);
   });
 });
 

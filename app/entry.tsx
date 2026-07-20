@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SessionForm } from "@/components/forms/SessionForm";
 import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { useStore } from "@/store/StoreContext";
+import { confirmAsync } from "@/utils/confirm";
 
 const NOOP_STATE = { canSubmit: false, submit: () => {} };
 
@@ -41,19 +41,12 @@ export default function EntryScreen() {
     formState.submit();
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!initial) return;
-    Alert.alert("Удалить запись?", "Это действие нельзя отменить.", [
-      { text: "Отмена", style: "cancel" },
-      {
-        text: "Удалить",
-        style: "destructive",
-        onPress: () => {
-          deleteSession(initial.id);
-          router.back();
-        },
-      },
-    ]);
+    const confirmed = await confirmAsync("Удалить запись?", "Это действие нельзя отменить.");
+    if (!confirmed) return;
+    deleteSession(initial.id);
+    router.back();
   }
 
   return (

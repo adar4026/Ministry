@@ -387,3 +387,138 @@ describe("History screen — TASK_033 period filters, Итого, day tap-to-edi
     expect(textsOf()).toContain("1 час 30 минут");
   });
 });
+
+// TASK_034 — reconnect legacy HourRecord into History (Session-first),
+// clickable list rows, and legacy-month navigation to the existing
+// /hours/month/[key] editor. See
+// docs/TASKS/TASK_034_HISTORY_DATA_RECOVERY_AND_CRUD.md.
+describe("History screen — TASK_034 legacy data recovery and row clicks", () => {
+  function findByLabel(root: ReactTestRenderer["root"], label: string) {
+    return root.findAll((n) => n.props.accessibilityLabel === label)[0];
+  }
+
+  it("tapping a list row navigates to /entry?id=<session.id>", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([session("2026-07-05", 60, "row-a"), session("2026-07-19", 30, "row-b")]),
+    );
+    const { root } = await renderScreen();
+    const row = root().findAll(
+      (n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Запись") && typeof n.props.onPress === "function",
+    )[0];
+    await act(async () => {
+      row.props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/entry\?id=(row-a|row-b)$/));
+  });
+
+  it("two rows on different days each open their own exact session id", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([session("2026-07-05", 60, "row-a"), session("2026-07-19", 60, "row-b")]),
+    );
+    const { root } = await renderScreen();
+    const rows = root().findAll(
+      (n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Запись") && typeof n.props.onPress === "function",
+    );
+    expect(rows).toHaveLength(2);
+    await act(async () => rows[0].props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith("/entry?id=row-b"); // reverse-chronological: 19th first
+    await act(async () => rows[1].props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith("/entry?id=row-a");
+  });
+
+  it("shows the legacy monthly total and the no-daily-breakdown caption when the month has a HourRecord but no Session", async () => {
+    await AsyncStorage.setItem(
+      "mj_records_v1",
+      JSON.stringify([{ id: "r1", year: 2026, month: 3, hours: 46, note: "" }]),
+    );
+    const { root, texts } = await renderScreen();
+    // navigate from July to March 2026 (4 months back) — one act() per
+    // press, since state updates batched inside a single act() would all
+    // read the same pre-render closure and net out to a single month move.
+    for (let i = 0; i < 4; i++) {
+      await act(async () => {
+        findByLabel(root(), "Предыдущий период").props.onPress();
+      });
+    }
+    const t = texts();
+    expect(t).toContain("Сохранён месячный итог без разбивки по дням");
+    expect(t.some((s) => s.includes("46 ч"))).toBe(true);
+    expect(t).not.toContain("Нет записей за этот месяц");
+  });
+
+  it("tapping the legacy month row navigates to /hours/month/<year>-<month>", async () => {
+    await AsyncStorage.setItem(
+      "mj_records_v1",
+      JSON.stringify([{ id: "r1", year: 2026, month: 3, hours: 46, note: "" }]),
+    );
+    const { root } = await renderScreen();
+    for (let i = 0; i < 4; i++) {
+      await act(async () => {
+        findByLabel(root(), "Предыдущий период").props.onPress();
+      });
+    }
+    const legacyRow = root().findAll(
+      (n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Месячный итог"),
+    )[0];
+    await act(async () => {
+      legacyRow.props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith("/hours/month/2026-03");
+  });
+
+  it("prefers Session over a legacy HourRecord for the same month (Session-first) — shows the session list, not the legacy row", async () => {
+    await AsyncStorage.setItem(
+      "mj_records_v1",
+      JSON.stringify([{ id: "r1", year: 2026, month: 7, hours: 999, note: "" }]),
+    );
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 30, "real")]));
+    const { texts } = await renderScreen();
+    const t = texts();
+    expect(t).not.toContain("Сохранён месячный итог без разбивки по дням");
+    expect(t.some((s) => s.includes("999 ч"))).toBe(false);
+  });
+
+  it("still shows the plain empty state for a month with neither Session nor HourRecord", async () => {
+    const { texts } = await renderScreen();
+    expect(texts()).toContain("Нет записей за этот месяц");
+    expect(texts()).not.toContain("Сохранён месячный итог без разбивки по дням");
+  });
+
+  it("Итого for Year period includes legacy HourRecord months alongside Session months", async () => {
+    await AsyncStorage.setItem(
+      "mj_records_v1",
+      JSON.stringify([{ id: "r1", year: 2026, month: 1, hours: 10, note: "" }]),
+    );
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 30, "s")]));
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Год").props.onPress();
+    });
+    // 10h (Jan, legacy) + 30min (Jul, session) = 10ч 30мин
+    expect(texts()).toContain("10 часов 30 минут");
+  });
+
+  it("Итого for All-time includes every legacy HourRecord month, even ones far outside the current view", async () => {
+    await AsyncStorage.setItem(
+      "mj_records_v1",
+      JSON.stringify([{ id: "old", year: 2003, month: 9, hours: 5, note: "" }]),
+    );
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Всё время").props.onPress();
+    });
+    expect(texts()).toContain("5 часов 0 минут");
+  });
+
+  it("navigating Prev repeatedly in Month period reaches years far before 2026 (no lower bound)", async () => {
+    const { root, texts } = await renderScreen();
+    for (let i = 0; i < 12 * 23; i++) {
+      await act(async () => {
+        findByLabel(root(), "Предыдущий период").props.onPress();
+      });
+    }
+    expect(texts()).toContain("2003");
+  });
+});

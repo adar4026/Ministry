@@ -107,20 +107,61 @@ export function sumDurationMinutes(sessions: Session[]): number {
   return sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
 }
 
-// The single selector behind the "Итого" card: total minutes across
-// Sessions for whichever period is active. `year`/`month` describe the
-// calendar month currently shown by the (unrelated) HistoryCalendar/list —
-// only "month" period uses both; "year" uses `year` alone; "all" ignores
-// both and sums every stored Session, with no synthetic start/end date.
+// Every distinct (year, month) pair that has either a legacy HourRecord or
+// at least one Session — the "all-time" period has no natural start date
+// otherwise. Mirrors the key-collection pattern serviceYearAggregation()
+// (src/data/constants.ts) already uses for the same union, kept local here
+// since that function groups by service year and this needs a flat list.
+function unionMonthKeys(records: HourRecord[], sessions: Session[]): { year: number; month: number }[] {
+  const keys: { year: number; month: number }[] = [];
+  const seen = new Set<string>();
+  const add = (year: number, month: number) => {
+    const key = `${year}-${month}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      keys.push({ year, month });
+    }
+  };
+  records.forEach((r) => add(r.year, r.month));
+  sessions.forEach((s) => {
+    const p = parseISOYearMonth(s.date);
+    add(p.year, p.month);
+  });
+  return keys;
+}
+
+// The single selector behind the "Итого" card: total minutes for whichever
+// period is active, Session-first per month (TASK_034 — history.tsx used to
+// pass only `sessions` here, silently dropping every legacy HourRecord
+// month; see docs/TASKS/TASK_034_HISTORY_DATA_RECOVERY_AND_CRUD.md §3.1).
+// `year`/`month` describe the calendar month currently shown by the
+// (unrelated) HistoryCalendar/list — only "month" period uses both; "year"
+// uses `year` alone (all 12 calendar months); "all" sums the union of every
+// month that has a HourRecord or a Session, with no synthetic start/end
+// date.
 export function totalMinutesForPeriod(
+  records: HourRecord[],
   sessions: Session[],
   period: HistoryPeriod,
   year: number,
   month: number,
 ): number {
-  if (period === "all") return sumDurationMinutes(sessions);
-  if (period === "year") return sumDurationMinutes(sessionsForYear(sessions, year));
-  return sumDurationMinutes(sessionsForMonth(sessions, year, month));
+  // monthTotal() returns hours (dividing Session minutes by 60 when
+  // Session-authoritative); rounding each month's *60 round-trip back to
+  // minutes avoids compounding float drift (e.g. 65 min / 60 * 60 !==
+  // 65 exactly) across many summed months.
+  if (period === "all") {
+    return unionMonthKeys(records, sessions).reduce(
+      (sum, { year: y, month: m }) => sum + Math.round(monthTotal(records, sessions, y, m) * 60),
+      0,
+    );
+  }
+  if (period === "year") {
+    let sum = 0;
+    for (let m = 1; m <= 12; m++) sum += Math.round(monthTotal(records, sessions, year, m) * 60);
+    return sum;
+  }
+  return Math.round(monthTotal(records, sessions, year, month) * 60);
 }
 
 // Whether (year, month) is the calendar month containing `now` — drives the

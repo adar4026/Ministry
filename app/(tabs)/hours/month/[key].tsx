@@ -19,6 +19,7 @@ import {
 } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, Session } from "@/types";
+import { confirmAsync } from "@/utils/confirm";
 
 export default function MonthDetailsScreen() {
   const { key } = useLocalSearchParams<{ key?: string }>();
@@ -38,11 +39,11 @@ export default function MonthDetailsScreen() {
   const [showAddSession, setShowAddSession] = useState(false);
   const [addSessionDate, setAddSessionDate] = useState(toISODate(new Date(year, month - 1, 1)));
 
-  function confirmDeleteRecord(id: string) {
-    Alert.alert("Удалить запись?", "Это действие нельзя отменить.", [
-      { text: "Отмена", style: "cancel" },
-      { text: "Удалить", style: "destructive", onPress: () => { deleteRecord(id); setEditRec(null); } },
-    ]);
+  async function confirmDeleteRecord(id: string) {
+    const confirmed = await confirmAsync("Удалить запись?", "Это действие нельзя отменить.");
+    if (!confirmed) return;
+    deleteRecord(id);
+    setEditRec(null);
   }
 
   function handleAddSession() {
@@ -110,10 +111,20 @@ export default function MonthDetailsScreen() {
             Часы за этот месяц записаны из месячной итоговой записи (legacy).
           </Text>
           {legacyRecord && (
-            <View style={styles.legacyTotal}>
-              <Text style={styles.legacyLabel}>Всего часов (legacy):</Text>
-              <Text style={styles.legacyValue}>{formatHM(legacyRecord.hours)}</Text>
-            </View>
+            <>
+              <View style={styles.legacyTotal}>
+                <Text style={styles.legacyLabel}>Всего часов (legacy):</Text>
+                <Text style={styles.legacyValue}>{formatHM(legacyRecord.hours)}</Text>
+              </View>
+              <Pressable
+                style={styles.editRecordBtn}
+                onPress={() => setEditRec(legacyRecord)}
+                accessibilityRole="button"
+                accessibilityLabel="Редактировать месячный итог"
+              >
+                <Text style={styles.editRecordBtnText}>Редактировать месячный итог</Text>
+              </Pressable>
+            </>
           )}
           <Pressable style={styles.addSessionBtn} onPress={handleAddSession} accessibilityRole="button">
             <Text style={styles.addSessionBtnText}>+ Добавить первую сессию</Text>
@@ -131,10 +142,10 @@ export default function MonthDetailsScreen() {
                 <Pressable
                   key={session.id}
                   onPress={() => router.push(`/entry?id=${session.id}`)}
-                  onLongPress={() => Alert.alert("Удалить?", "Это действие нельзя отменить.", [
-                    { text: "Отмена", style: "cancel" },
-                    { text: "Удалить", style: "destructive", onPress: () => deleteSession(session.id) },
-                  ])}
+                  onLongPress={async () => {
+                    const confirmed = await confirmAsync("Удалить?", "Это действие нельзя отменить.");
+                    if (confirmed) deleteSession(session.id);
+                  }}
                   style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}
                 >
                   <Text style={styles.sessionDate}>{formatDateDMY(session.date)}</Text>
@@ -225,6 +236,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   addSessionBtnText: { color: COLORS.card, fontSize: 15, fontWeight: "700" },
+  editRecordBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 12,
+  },
+  editRecordBtnText: { color: COLORS.text, fontSize: 15, fontWeight: "600" },
   modalContent: { padding: 16, gap: 16 },
   modalLabel: { fontSize: 13, fontWeight: "600", color: COLORS.muted },
   modalDateValue: { fontSize: 21, fontWeight: "700", color: COLORS.text },

@@ -6,6 +6,7 @@ import { Modal } from "@/components/Modal";
 import { HistoryCalendar } from "@/components/hours/HistoryCalendar";
 import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
 import { HistoryTotalCard } from "@/components/hours/HistoryTotalCard";
+import { LegacyMonthRow } from "@/components/hours/LegacyMonthRow";
 import { PeriodNav } from "@/components/hours/PeriodNav";
 import { PeriodSwitcher } from "@/components/hours/PeriodSwitcher";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "@/components/hours/historyTokens";
@@ -43,7 +44,7 @@ function sortSessions(sessions: Session[]): Session[] {
 // (totalMinutesForPeriod) — the calendar/list below always reflect
 // viewYear/viewMonthIndex0 regardless of `period`.
 export default function HistoryScreen() {
-  const { sessions } = useStore();
+  const { records, sessions } = useStore();
 
   const now = useMemo(() => new Date(), []);
   const todayISO = useMemo(() => toISODate(now), [now]);
@@ -61,9 +62,17 @@ export default function HistoryScreen() {
     () => sortSessions(sessionsForMonth(sessions, viewYear, viewMonthIndex0 + 1)),
     [sessions, viewYear, viewMonthIndex0],
   );
+  // Session-first (docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8): when the
+  // viewed month has zero Sessions, its legacy HourRecord (if any) is
+  // authoritative — resolved here once and consumed both by the list
+  // below and by the LegacyMonthRow's tap target.
+  const legacyRecord = useMemo(
+    () => (monthSessions.length === 0 ? records.find((r) => r.year === viewYear && r.month === viewMonthIndex0 + 1) : undefined),
+    [records, monthSessions, viewYear, viewMonthIndex0],
+  );
   const totalMinutes = useMemo(
-    () => totalMinutesForPeriod(sessions, period, viewYear, viewMonthIndex0 + 1),
-    [sessions, period, viewYear, viewMonthIndex0],
+    () => totalMinutesForPeriod(records, sessions, period, viewYear, viewMonthIndex0 + 1),
+    [records, sessions, period, viewYear, viewMonthIndex0],
   );
 
   function goBack() {
@@ -142,14 +151,29 @@ export default function HistoryScreen() {
           {MF[viewMonthIndex0]} {viewYear}
         </Text>
 
-        {monthSessions.length === 0 ? (
-          <Text style={styles.empty}>Нет записей за этот месяц</Text>
-        ) : (
+        {monthSessions.length > 0 ? (
           <View style={styles.listCard}>
             {monthSessions.map((session, i) => (
-              <HistorySessionRow key={session.id} session={session} showDivider={i < monthSessions.length - 1} />
+              <HistorySessionRow
+                key={session.id}
+                session={session}
+                showDivider={i < monthSessions.length - 1}
+                onPress={openSession}
+              />
             ))}
           </View>
+        ) : legacyRecord ? (
+          <>
+            <Text style={styles.legacyCaption}>Сохранён месячный итог без разбивки по дням</Text>
+            <View style={styles.listCard}>
+              <LegacyMonthRow
+                hours={legacyRecord.hours}
+                onPress={() => router.push(`/hours/month/${viewYear}-${String(viewMonthIndex0 + 1).padStart(2, "0")}`)}
+              />
+            </View>
+          </>
+        ) : (
+          <Text style={styles.empty}>Нет записей за этот месяц</Text>
         )}
       </ScrollView>
 
@@ -225,6 +249,12 @@ const styles = StyleSheet.create({
     color: C.secondaryText,
     textAlign: "center",
     marginTop: 24,
+    fontFamily: FONT,
+  },
+  legacyCaption: {
+    fontSize: 13,
+    color: C.mutedText,
+    marginBottom: 8,
     fontFamily: FONT,
   },
   pickerRow: {

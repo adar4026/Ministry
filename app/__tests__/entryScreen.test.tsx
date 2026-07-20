@@ -7,7 +7,16 @@ import { Text } from "react-native";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { WheelPicker } from "@/components/WheelPicker";
 import { TabBar } from "@/components/TabBar";
+import { confirmAsync } from "@/utils/confirm";
 import EntryScreen from "../entry";
+
+// TASK_034: entry.tsx's delete confirmation goes through confirmAsync (not
+// a bare Alert.alert, which is a total no-op on react-native-web — see
+// src/utils/confirm.ts) — mocked here so the test controls the outcome
+// deterministically instead of exercising the real Alert/window.confirm
+// branch (covered separately in src/utils/__tests__/confirm.test.ts).
+jest.mock("@/utils/confirm", () => ({ confirmAsync: jest.fn() }));
+const mockConfirmAsync = confirmAsync as jest.Mock;
 
 let mockParams: { id?: string } = {};
 jest.mock("expo-router", () => ({
@@ -84,7 +93,46 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
   mockParams = {};
+  mockConfirmAsync.mockReset();
 });
+
+function seededSession(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: "seeded-1",
+    date: "2026-06-01",
+    durationMinutes: 90,
+    note: "",
+    source: "manual",
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+async function renderInEditMode(): Promise<{ store: () => Store; root: () => ReactTestRenderer["root"] }> {
+  await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([seededSession()]));
+  mockParams = { id: "seeded-1" };
+  let latest: Store | null = null;
+  let renderer: ReactTestRenderer;
+  await act(async () => {
+    renderer = create(
+      <StoreProvider>
+        <Harness onReady={(s) => { latest = s; }} />
+      </StoreProvider>,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    renderer.update(
+      <StoreProvider>
+        <Harness onReady={(s) => { latest = s; }} />
+        <EntryScreen />
+      </StoreProvider>,
+    );
+  });
+  return { store: () => latest as unknown as Store, root: () => renderer.root };
+}
 
 describe("EntryScreen — TASK_030", () => {
   it("shows the large 'Добавить время' title and capsule Отмена/Добавить buttons in create mode", async () => {
@@ -204,5 +252,113 @@ describe("EntryScreen — TASK_030", () => {
     expect(out).toContain("Сохранить");
     const hoursWheel = renderer!.root.findAllByType(WheelPicker)[0];
     expect(hoursWheel.props.value).toBe(1);
+  });
+});
+
+// TASK_034 — Alert.alert is a total no-op on react-native-web, so the
+// destructive-delete confirmation must go through confirmAsync (mocked
+// above) rather than the bare Alert.alert this screen used before.
+describe("EntryScreen — TASK_034 delete via confirmAsync", () => {
+  it("deletes the session and navigates back when the user confirms", async () => {
+    mockConfirmAsync.mockResolvedValue(true);
+    const { root, store } = await renderInEditMode();
+    expect(store().sessions).toHaveLength(1);
+
+    const deleteBtn = buttonWithLabel(root(), "Удалить");
+    await act(async () => {
+      deleteBtn?.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockConfirmAsync).toHaveBeenCalledWith("Удалить запись?", "Это действие нельзя отменить.");
+    expect(store().sessions).toHaveLength(0);
+    expect(mockRouter.back).toHaveBeenCalled();
+  });
+
+  it("keeps the session and does not navigate when the user cancels", async () => {
+    mockConfirmAsync.mockResolvedValue(false);
+    const { root, store } = await renderInEditMode();
+
+    const deleteBtn = buttonWithLabel(root(), "Удалить");
+    await act(async () => {
+      deleteBtn?.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(store().sessions).toHaveLength(1);
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+
+  it("only removes the confirmed session, leaving an unrelated same-day session untouched", async () => {
+    mockConfirmAsync.mockResolvedValue(true);
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([
+        seededSession({ id: "seeded-1", date: "2026-06-01" }),
+        seededSession({ id: "keep-me", date: "2026-06-01", durationMinutes: 90 }),
+      ]),
+    );
+    mockParams = { id: "seeded-1" };
+    let latest: Store | null = null;
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <StoreProvider>
+          <Harness onReady={(s) => { latest = s; }} />
+        </StoreProvider>,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      renderer.update(
+        <StoreProvider>
+          <Harness onReady={(s) => { latest = s; }} />
+          <EntryScreen />
+        </StoreProvider>,
+      );
+    });
+
+    const deleteBtn = buttonWithLabel(renderer!.root, "Удалить");
+    await act(async () => {
+      deleteBtn?.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const remaining = (latest as unknown as Store).sessions;
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe("keep-me");
+  });
+
+  it("does not resurrect the deleted session after the store reloads from AsyncStorage", async () => {
+    mockConfirmAsync.mockResolvedValue(true);
+    const { root } = await renderInEditMode();
+
+    const deleteBtn = buttonWithLabel(root(), "Удалить");
+    await act(async () => {
+      deleteBtn?.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const raw = await AsyncStorage.getItem("mj_sessions_v1");
+    expect(JSON.parse(raw ?? "[]")).toEqual([]);
+
+    // Fresh mount against the same (now-empty) storage — the deleted
+    // session must not come back from a stale seed or cache.
+    let latest: Store | null = null;
+    await act(async () => {
+      create(
+        <StoreProvider>
+          <Harness onReady={(s) => { latest = s; }} />
+        </StoreProvider>,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect((latest as unknown as Store).sessions).toHaveLength(0);
   });
 });
