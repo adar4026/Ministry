@@ -282,20 +282,77 @@ describe("History screen — TASK_033 period filters, Итого, day tap-to-edi
     expect(texts()).toContain("1 час 30 минут");
   });
 
-  it("computes the Year total across every month of the displayed year", async () => {
+  // TASK_038 — "Год" is a *service* year (Sep..Aug), so Dec 2025 belongs to
+  // the same displayed year (2026, Sep 2025..Aug 2026) as Jan/Jul 2026.
+  // This replaces the old test, which used to assert Dec 2025 was
+  // *excluded* — that was the calendar-year bug this task fixes.
+  it("computes the Year total across the whole Sep..Aug service year, including the previous calendar year's Sep..Dec", async () => {
     await AsyncStorage.setItem(
       "mj_sessions_v1",
       JSON.stringify([
         session("2026-01-10", 60, "a"),
         session("2026-07-19", 30, "b"),
-        session("2025-12-31", 999, "c"),
+        session("2025-12-31", 999, "c"), // Dec of the *previous* calendar year — same service year
       ]),
     );
     const { root, texts } = await renderScreen();
     await act(async () => {
       findByLabel(root(), "Год").props.onPress();
     });
-    expect(texts()).toContain("1 час 30 минут");
+    expect(texts()).toContain("18 часов 9 минут");
+  });
+
+  it("Year total excludes September of the displayed year itself (belongs to the next service year)", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([session("2026-09-01", 60, "a")]),
+    );
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Год").props.onPress();
+    });
+    // Default displayed service year is 2026 (Sep 2025..Aug 2026, since
+    // `now` = 2026-07-19) — the Sep 2026 session belongs to SY 2027, so
+    // the total stays at zero.
+    expect(texts()).toContain("0 часов 0 минут");
+  });
+
+  it("Year total includes August 31 and excludes September 1 at the service-year boundary", async () => {
+    jest.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([session("2026-08-31", 60, "a"), session("2026-09-01", 999, "b")]),
+    );
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Год").props.onPress();
+    });
+    await act(async () => {
+      findByLabel(root(), "Предыдущий период").props.onPress();
+    });
+    // Now viewing SY 2026 (Sep 2025..Aug 2026) — Aug 31 counts, Sep 1 (SY 2027) doesn't.
+    expect(texts()).toContain("1 час 0 минут");
+  });
+
+  it("shows the explicit Sep..Aug range for the Year period", async () => {
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Год").props.onPress();
+    });
+    expect(texts()).toContain("Сентябрь 2025 — август 2026");
+  });
+
+  it("defaults the Year period to the service year containing `now`, even when `now` is Sep..Dec", async () => {
+    jest.setSystemTime(new Date("2026-10-05T12:00:00.000Z"));
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      findByLabel(root(), "Год").props.onPress();
+    });
+    // October 2026 falls in service year Sep 2026..Aug 2027 — displayed
+    // year must be 2027, not the plain calendar year 2026.
+    expect(texts()).toContain("2027");
+    expect(texts()).toContain("Текущий год");
+    expect(texts()).toContain("Сентябрь 2026 — август 2027");
   });
 
   it("computes the All-time total across every stored session", async () => {

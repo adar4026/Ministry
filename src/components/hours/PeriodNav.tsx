@@ -29,12 +29,16 @@ export function PeriodNav({
 
   let title: string;
   let subtitle: string | null = null;
+  // Service year (TASK_038): `year` is the calendar year the displayed
+  // service year *ends* in, so its range is always Sep(year-1)..Aug(year).
+  let rangeLabel: string | null = null;
   if (period === "month") {
     title = `${MF[monthIndex0]} ${year}`;
     if (isCurrentMonth(year, monthIndex0 + 1, now)) subtitle = "Текущий месяц";
   } else if (period === "year") {
     title = String(year);
     if (isCurrentYear(year, now)) subtitle = "Текущий год";
+    rangeLabel = `Сентябрь ${year - 1} — август ${year}`;
   } else {
     title = "Весь период";
   }
@@ -62,6 +66,11 @@ export function PeriodNav({
         <Text style={styles.subtitle} numberOfLines={1}>
           {subtitle ?? " "}
         </Text>
+        {rangeLabel != null && (
+          <Text style={styles.rangeLabel} numberOfLines={1}>
+            {rangeLabel}
+          </Text>
+        )}
       </View>
 
       <Pressable
@@ -103,4 +112,5 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center" },
   title: { fontSize: 18, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
   subtitle: { fontSize: 13, fontWeight: "600", color: C.todayAccent, fontFamily: FONT, marginTop: 2 },
+  rangeLabel: { fontSize: 12, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 2 },
 });

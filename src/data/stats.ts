@@ -134,11 +134,19 @@ function unionMonthKeys(records: HourRecord[], sessions: Session[]): { year: num
 // period is active, Session-first per month (TASK_034 — history.tsx used to
 // pass only `sessions` here, silently dropping every legacy HourRecord
 // month; see docs/TASKS/TASK_034_HISTORY_DATA_RECOVERY_AND_CRUD.md §3.1).
-// `year`/`month` describe the calendar month currently shown by the
-// (unrelated) HistoryCalendar/list — only "month" period uses both; "year"
-// uses `year` alone (all 12 calendar months); "all" sums the union of every
-// month that has a HourRecord or a Session, with no synthetic start/end
-// date.
+// `year`/`month` describe the period currently shown by PeriodNav — "month"
+// uses both (that exact calendar month); "year" uses `year` alone, but as a
+// *service year* (TASK_038): the project's year has run September–August
+// everywhere else since svcYear()/serviceYearAggregation()
+// (src/data/constants.ts) — History's "year" period previously summed
+// calendar Jan–Dec of `year` instead, silently dropping every Sep–Dec month
+// of the *previous* calendar year that actually belongs to the displayed
+// service year (see docs/TASKS/TASK_038_HISTORY_SERVICE_YEAR_FIX.md).
+// `year` here means "the service year ending in August of `year`" — i.e.
+// Sep(year-1)..Aug(year), matching PeriodNav's plain "2026" label and
+// svcYear(year - 1, 9) === svcYear(year, 1) === `${year-1}–${year}`. "all"
+// sums the union of every month that has a HourRecord or a Session, with no
+// synthetic start/end date.
 export function totalMinutesForPeriod(
   records: HourRecord[],
   sessions: Session[],
@@ -158,7 +166,8 @@ export function totalMinutesForPeriod(
   }
   if (period === "year") {
     let sum = 0;
-    for (let m = 1; m <= 12; m++) sum += Math.round(monthTotal(records, sessions, year, m) * 60);
+    for (let m = 9; m <= 12; m++) sum += Math.round(monthTotal(records, sessions, year - 1, m) * 60);
+    for (let m = 1; m <= 8; m++) sum += Math.round(monthTotal(records, sessions, year, m) * 60);
     return sum;
   }
   return Math.round(monthTotal(records, sessions, year, month) * 60);
@@ -170,10 +179,23 @@ export function isCurrentMonth(year: number, month: number, now: Date = new Date
   return year === now.getFullYear() && month === now.getMonth() + 1;
 }
 
-// Whether `year` is the calendar year containing `now` — drives the
-// "Текущий год" subtitle under the Year-period nav label.
+// The service-year label used by totalMinutesForPeriod()/isCurrentYear()
+// below: the calendar year in which the *current* service year (Sep..Aug)
+// ends — Jan..Aug belong to the service year ending in the same calendar
+// year, Sep..Dec belong to the one ending the *next* calendar year. Local
+// month arithmetic only, no Date/timezone conversion (mirrors svcYear() in
+// src/data/constants.ts, kept local here since stats.ts must not import
+// from constants.ts — constants.ts already imports from stats.ts).
+export function serviceYearEndYear(now: Date = new Date()): number {
+  const month = now.getMonth() + 1;
+  return month >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+}
+
+// Whether `year` (a service-year end-year, e.g. "2026" for Sep 2025..Aug
+// 2026 — see totalMinutesForPeriod()) is the service year containing `now`
+// — drives the "Текущий год" subtitle under the Year-period nav label.
 export function isCurrentYear(year: number, now: Date = new Date()): boolean {
-  return year === now.getFullYear();
+  return year === serviceYearEndYear(now);
 }
 
 /**

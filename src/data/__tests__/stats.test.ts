@@ -6,12 +6,14 @@ import {
   projectServiceYearEnd,
   monthCellsForSY,
   dailyMinutesForMonth,
+  monthTotal,
   sessionsForYear,
   sessionsForDay,
   sumDurationMinutes,
   totalMinutesForPeriod,
   isCurrentMonth,
   isCurrentYear,
+  serviceYearEndYear,
 } from "../stats";
 import type { Session } from "@/types";
 
@@ -331,10 +333,6 @@ describe("totalMinutesForPeriod (TASK_033 — Итого card)", () => {
     expect(totalMinutesForPeriod([], sessions, "month", 2026, 7)).toBe(150);
   });
 
-  it("year period sums every month within the given year", () => {
-    expect(totalMinutesForPeriod([], sessions, "year", 2026, 7)).toBe(100 + 60 + 90 + 40);
-  });
-
   it("all period sums every stored session regardless of date", () => {
     expect(totalMinutesForPeriod([], sessions, "all", 2026, 7)).toBe(sumDurationMinutes(sessions));
   });
@@ -355,32 +353,143 @@ describe("totalMinutesForPeriod (TASK_033 — Итого card)", () => {
     expect(totalMinutesForPeriod(records, sessions, "month", 2026, 7)).toBe(150);
   });
 
-  it("year period includes legacy HourRecord months alongside Session months (TASK_034)", () => {
-    const records = [
-      { id: "r1", year: 2026, month: 1, hours: 10, note: "" }, // no Session in Jan
-      { id: "r2", year: 2026, month: 7, hours: 999, note: "" }, // Session-covered — ignored
-    ];
-    expect(totalMinutesForPeriod(records, sessions, "year", 2026, 7)).toBe(10 * 60 + 100 + 60 + 90 + 40);
-  });
-
   it("all period includes every legacy HourRecord month with zero Sessions (TASK_034)", () => {
     const records = [{ id: "r1", year: 2003, month: 9, hours: 5, note: "" }];
     expect(totalMinutesForPeriod(records, [], "all", 2026, 7)).toBe(5 * 60);
   });
 });
 
-describe("isCurrentMonth / isCurrentYear (TASK_033)", () => {
-  const now = new Date("2026-07-19T12:00:00.000Z");
-
-  it("isCurrentMonth is true only for the exact year+month of `now`", () => {
-    expect(isCurrentMonth(2026, 7, now)).toBe(true);
-    expect(isCurrentMonth(2026, 6, now)).toBe(false);
-    expect(isCurrentMonth(2025, 7, now)).toBe(false);
+// TASK_038 — "year" period is a *service year* (Sep..Aug), matching
+// svcYear()/serviceYearAggregation() (src/data/constants.ts) everywhere
+// else in the app. `year` is the calendar year the service year ends in:
+// "2026" means Sep 2025..Aug 2026. This block replaces the old (buggy)
+// calendar-year assumption the same describe block used to assert.
+describe("totalMinutesForPeriod — year period is a service year, Sep..Aug (TASK_038)", () => {
+  it("sums September through December of the *previous* calendar year alongside January through August of `year`", () => {
+    const sessions = [
+      session("2025-09-15", 60), // Sep of previous calendar year — belongs to SY 2026
+      session("2025-12-31", 45), // Dec of previous calendar year — belongs to SY 2026
+      session("2026-01-10", 30), // Jan of `year` — belongs to SY 2026
+      session("2026-08-01", 90), // Aug of `year` — belongs to SY 2026
+    ];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(60 + 45 + 30 + 90);
   });
 
-  it("isCurrentYear is true only for the exact year of `now`", () => {
-    expect(isCurrentYear(2026, now)).toBe(true);
-    expect(isCurrentYear(2025, now)).toBe(false);
-    expect(isCurrentYear(2027, now)).toBe(false);
+  it("excludes September of `year` itself — that belongs to the *next* service year", () => {
+    const sessions = [session("2026-09-01", 999)];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(0);
+    expect(totalMinutesForPeriod([], sessions, "year", 2027, 1)).toBe(999);
+  });
+
+  it("excludes August of the previous calendar year — that belongs to the *previous* service year", () => {
+    const sessions = [session("2025-08-31", 999)];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(0);
+    expect(totalMinutesForPeriod([], sessions, "year", 2025, 1)).toBe(999);
+  });
+
+  it("boundary: August 31 is included in the service year ending that August", () => {
+    const sessions = [session("2026-08-31", 40)];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(40);
+  });
+
+  it("boundary: September 1 is included in the *next* service year, not the one just ending", () => {
+    const sessions = [session("2026-09-01", 40)];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(0);
+    expect(totalMinutesForPeriod([], sessions, "year", 2027, 1)).toBe(40);
+  });
+
+  it("September and January of the same service year are summed together", () => {
+    const sessions = [session("2025-09-05", 20), session("2026-01-05", 25)];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(45);
+  });
+
+  it("the year total equals the sum of all 12 monthly totals of the service year", () => {
+    const sessions = [
+      session("2025-09-01", 10),
+      session("2025-10-01", 20),
+      session("2025-11-01", 30),
+      session("2025-12-01", 40),
+      session("2026-01-01", 50),
+      session("2026-02-01", 60),
+      session("2026-03-01", 70),
+      session("2026-04-01", 80),
+      session("2026-05-01", 90),
+      session("2026-06-01", 100),
+      session("2026-07-01", 110),
+      session("2026-08-01", 120),
+    ];
+    const serviceYearMonths = [
+      [2025, 9], [2025, 10], [2025, 11], [2025, 12],
+      [2026, 1], [2026, 2], [2026, 3], [2026, 4], [2026, 5], [2026, 6], [2026, 7], [2026, 8],
+    ];
+    const expectedFromMonths = serviceYearMonths.reduce(
+      (sum, [y, m]) => sum + Math.round(monthTotal([], sessions, y, m) * 60),
+      0,
+    );
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(expectedFromMonths);
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(
+      sessions.reduce((sum, s) => sum + s.durationMinutes, 0),
+    );
+  });
+
+  it("an empty service year (no matching Session or HourRecord) totals 0", () => {
+    const sessions = [session("2020-01-01", 500)]; // far outside SY 2026
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(0);
+  });
+
+  it("does not lose minutes to rounding for non-hour-multiple durations across many months", () => {
+    const sessions = [
+      session("2025-09-15", 7), // 7 minutes, not a multiple of 60
+      session("2025-10-15", 13),
+      session("2026-01-15", 29),
+      session("2026-08-15", 41),
+    ];
+    expect(totalMinutesForPeriod([], sessions, "year", 2026, 1)).toBe(7 + 13 + 29 + 41);
+  });
+
+  it("includes legacy HourRecord months alongside Session months across the Sep..Aug span (TASK_034 rule preserved)", () => {
+    const records = [
+      { id: "r1", year: 2025, month: 10, hours: 10, note: "" }, // Oct 2025, no Session
+      { id: "r2", year: 2026, month: 7, hours: 999, note: "" }, // Session-covered — ignored
+    ];
+    const sessions = [session("2026-07-19", 90)];
+    expect(totalMinutesForPeriod(records, sessions, "year", 2026, 1)).toBe(10 * 60 + 90);
+  });
+});
+
+describe("isCurrentMonth / isCurrentYear / serviceYearEndYear (TASK_033, service-year fixed in TASK_038)", () => {
+  const nowJuly = new Date("2026-07-19T12:00:00.000Z");
+  const nowOctober = new Date("2026-10-19T12:00:00.000Z");
+
+  it("isCurrentMonth is true only for the exact year+month of `now`", () => {
+    expect(isCurrentMonth(2026, 7, nowJuly)).toBe(true);
+    expect(isCurrentMonth(2026, 6, nowJuly)).toBe(false);
+    expect(isCurrentMonth(2025, 7, nowJuly)).toBe(false);
+  });
+
+  // Local Date constructors (not UTC "Z" ISO strings) on purpose: serviceYearEndYear()
+  // reads getMonth()/getFullYear() in local wall-clock time (matching isCurrentMonth()'s
+  // existing convention), so a UTC-midnight boundary like "2026-08-31T23:59:59.000Z" would
+  // resolve to Sep 1 local in any timezone east of UTC and silently flip the expectation —
+  // exactly the UTC/local mismatch this task was told to avoid.
+  it("serviceYearEndYear: January..August belong to the service year ending in the same calendar year", () => {
+    expect(serviceYearEndYear(nowJuly)).toBe(2026);
+    expect(serviceYearEndYear(new Date(2026, 0, 1, 0, 0, 0))).toBe(2026);
+    expect(serviceYearEndYear(new Date(2026, 7, 31, 23, 59, 59))).toBe(2026);
+  });
+
+  it("serviceYearEndYear: September..December belong to the service year ending the *next* calendar year", () => {
+    expect(serviceYearEndYear(nowOctober)).toBe(2027);
+    expect(serviceYearEndYear(new Date(2026, 8, 1, 0, 0, 0))).toBe(2027);
+    expect(serviceYearEndYear(new Date(2026, 11, 31, 23, 59, 59))).toBe(2027);
+  });
+
+  it("isCurrentYear is true only for the service year containing `now`, not the plain calendar year", () => {
+    expect(isCurrentYear(2026, nowJuly)).toBe(true);
+    expect(isCurrentYear(2025, nowJuly)).toBe(false);
+    expect(isCurrentYear(2027, nowJuly)).toBe(false);
+    // In October 2026 the current service year ends in 2027, not 2026.
+    expect(isCurrentYear(2027, nowOctober)).toBe(true);
+    expect(isCurrentYear(2026, nowOctober)).toBe(false);
   });
 });

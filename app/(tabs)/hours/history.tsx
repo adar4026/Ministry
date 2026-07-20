@@ -15,7 +15,14 @@ import { ClockIcon } from "@/components/icons";
 import { addMonths } from "@/data/calendarGrid";
 import { MF, formatClockDuration, toISODate } from "@/data/constants";
 import { formatHistoryListDate } from "@/data/dateFormat";
-import { dailyMinutesForMonth, sessionsForDay, sessionsForMonth, totalMinutesForPeriod, type HistoryPeriod } from "@/data/stats";
+import {
+  dailyMinutesForMonth,
+  serviceYearEndYear,
+  sessionsForDay,
+  sessionsForMonth,
+  totalMinutesForPeriod,
+  type HistoryPeriod,
+} from "@/data/stats";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
 
@@ -37,13 +44,25 @@ function sortSessions(sessions: Session[]): Session[] {
 // TASK_032 calendar grid + flat session list for the currently *displayed*
 // month (TASK_033). The displayed month/year (`viewYear`/`viewMonthIndex0`)
 // is independent, navigable UI state — Month-period arrows move it via
-// addMonths() (Dec/Jan wraparound already handled there); Year-period
-// arrows move only the year, leaving the displayed month untouched per the
-// owner's spec, so returning to Month-period shows the same month again;
-// All-time hides/disables navigation and the calendar simply keeps showing
-// the last displayed month. Only the "Итого" total is period-scoped
-// (totalMinutesForPeriod) — the calendar/list below always reflect
-// viewYear/viewMonthIndex0 regardless of `period`.
+// addMonths() (Dec/Jan wraparound already handled there); All-time hides/
+// disables navigation and the calendar simply keeps showing the last
+// displayed month. The calendar/list below always reflect
+// viewYear/viewMonthIndex0 regardless of `period` — they are never
+// service-year-scoped, only the currently displayed calendar month.
+//
+// Year-period navigation is a *separate* state, `viewServiceYear` (TASK_038)
+// — it cannot reuse `viewYear`, because the two use different calendars:
+// `viewYear` is a plain calendar year (for the month grid), while a service
+// year runs Sep..Aug and is identified by the calendar year it *ends* in
+// (see totalMinutesForPeriod()/serviceYearEndYear() in src/data/stats.ts).
+// These only happen to start out equal because `now` here defaults to the
+// literal current moment — during Sep..Dec they'd diverge (e.g. now =
+// October 2026: `viewYear` should default to 2026 for the month grid, but
+// the *current* service year is Sep 2026..Aug 2027, ending in 2027).
+// Year-period arrows move only `viewServiceYear`, leaving the displayed
+// month untouched per the owner's spec, so returning to Month-period shows
+// the same month again. Only the "Итого" total is period-scoped
+// (totalMinutesForPeriod).
 export default function HistoryScreen() {
   const { records, sessions } = useStore();
 
@@ -53,6 +72,7 @@ export default function HistoryScreen() {
   const [period, setPeriod] = useState<HistoryPeriod>("month");
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonthIndex0, setViewMonthIndex0] = useState(now.getMonth());
+  const [viewServiceYear, setViewServiceYear] = useState(() => serviceYearEndYear(now));
   const [dayPicker, setDayPicker] = useState<{ iso: string; sessions: Session[] } | null>(null);
 
   const dailyMinutes = useMemo(
@@ -72,8 +92,8 @@ export default function HistoryScreen() {
     [records, monthSessions, viewYear, viewMonthIndex0],
   );
   const totalMinutes = useMemo(
-    () => totalMinutesForPeriod(records, sessions, period, viewYear, viewMonthIndex0 + 1),
-    [records, sessions, period, viewYear, viewMonthIndex0],
+    () => totalMinutesForPeriod(records, sessions, period, period === "year" ? viewServiceYear : viewYear, viewMonthIndex0 + 1),
+    [records, sessions, period, viewYear, viewMonthIndex0, viewServiceYear],
   );
 
   function handlePrev() {
@@ -82,7 +102,7 @@ export default function HistoryScreen() {
       setViewYear(next.year);
       setViewMonthIndex0(next.monthIndex0);
     } else if (period === "year") {
-      setViewYear((y) => y - 1);
+      setViewServiceYear((y) => y - 1);
     }
   }
 
@@ -92,7 +112,7 @@ export default function HistoryScreen() {
       setViewYear(next.year);
       setViewMonthIndex0(next.monthIndex0);
     } else if (period === "year") {
-      setViewYear((y) => y + 1);
+      setViewServiceYear((y) => y + 1);
     }
   }
 
@@ -124,7 +144,7 @@ export default function HistoryScreen() {
         <PeriodSwitcher period={period} onChange={setPeriod} />
         <PeriodNav
           period={period}
-          year={viewYear}
+          year={period === "year" ? viewServiceYear : viewYear}
           monthIndex0={viewMonthIndex0}
           now={now}
           onPrev={handlePrev}
