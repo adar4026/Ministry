@@ -77,11 +77,11 @@ beforeEach(async () => {
 });
 
 describe("UpcomingEventsScreen — TASK_019", () => {
-  it("shows the page title and a back control", async () => {
+  it("shows the page title and an accessible back control", async () => {
     const { texts, root } = await renderScreen();
     expect(texts()).toContain("Ближайшие события");
-    expect(texts().join(" ")).toContain("Назад");
-    const back = root().findByProps({ accessibilityRole: "button" });
+    const back = root().findAll((n) => n.props.accessibilityLabel === "Назад")[0];
+    expect(back).toBeDefined();
     await act(async () => {
       back.props.onPress();
     });
@@ -91,7 +91,7 @@ describe("UpcomingEventsScreen — TASK_019", () => {
   it("falls back to replacing with Home when there is no navigation history (direct web load)", async () => {
     mockRouter.canGoBack.mockReturnValue(false);
     const { root } = await renderScreen();
-    const back = root().findByProps({ accessibilityRole: "button" });
+    const back = root().findAll((n) => n.props.accessibilityLabel === "Назад")[0];
     await act(async () => {
       back.props.onPress();
     });

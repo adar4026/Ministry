@@ -1,6 +1,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { BackButton } from "@/components/BackButton";
 import { Modal } from "@/components/Modal";
 import { HeatMap } from "@/components/HeatMap";
 import { MonthHeader } from "@/components/MonthHeader";
@@ -87,7 +89,14 @@ export default function MonthDetailsScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <View style={styles.header}>
+        <BackButton fallbackHref="/hours" style={styles.backBtn} />
+        <Text style={styles.headerTitle} pointerEvents="none">
+          {`${MF[month - 1]} ${year}`}
+        </Text>
+      </View>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <MonthHeader
         year={year}
         month={month}
@@ -191,11 +200,16 @@ export default function MonthDetailsScreen() {
           </Pressable>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: COLORS.groupedBg },
+  header: { height: 48, justifyContent: "center", paddingHorizontal: 16 },
+  backBtn: { position: "absolute", left: 16, zIndex: 1 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: COLORS.text, textAlign: "center" },
   screen: { flex: 1, backgroundColor: COLORS.groupedBg },
   content: { padding: 16, gap: 20 },
   section: { gap: 10 },

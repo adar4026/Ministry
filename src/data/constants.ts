@@ -237,6 +237,10 @@ export { formatDateDMY } from "./dateFormat";
 // Monthly service goal in hours (TASK_002 Phase 1; shared with the Today card).
 export const MONTHLY_GOAL = 50;
 
+// Service-year goal in hours (TASK_037; owner-confirmed fixed value — the
+// project has no per-user settings screen to source this from).
+export const YEARLY_GOAL = 600;
+
 // Hours recorded for the month containing `now` (0 if neither a Session nor
 // a record exists yet). `sessions` is optional and defaults to `[]`, so
 // existing call sites (Hours screen, Home's TodayCard) keep working
@@ -392,8 +396,11 @@ function addMonthsClamped(start: Date, n: number): Date {
 }
 
 // UTC-normalized whole-day difference between two calendar dates — avoids
-// any DST/local-time-of-day skew in the millisecond subtraction.
-function daysBetweenUTC(a: Date, b: Date): number {
+// any DST/local-time-of-day skew in the millisecond subtraction. Exported
+// for src/data/periodStats.ts's daysBetweenInclusive() (TASK_037), which
+// needs the same UTC-safe technique plus 1 for an inclusive span length —
+// kept as the single implementation instead of a second copy.
+export function daysBetweenUTC(a: Date, b: Date): number {
   const aUTC = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
   const bUTC = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
   return Math.round((bUTC - aUTC) / 86400000);

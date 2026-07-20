@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { BackButton } from "@/components/BackButton";
 import { useTimer } from "@/hooks/useTimer";
 import { formatDateDMY, toISODate } from "@/data/constants";
 
 export default function TimerScreen() {
-  const router = useRouter();
   const { state, mode, elapsedSec, prefillMin, loaded, recoveryElapsedSec, recoveryStartedAt,
     start, pause, resume, stop, save, discard, continue: continueTimer, confirmClockRollback } = useTimer();
 
@@ -53,11 +53,8 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Таймер</Text>
-          <View style={{ width: 50 }} />
+          <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
+          <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.idleCard}>
@@ -79,11 +76,8 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Таймер</Text>
-          <View style={{ width: 50 }} />
+          <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
+          <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.recoveryCard}>
@@ -126,11 +120,8 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Таймер</Text>
-          <View style={{ width: 50 }} />
+          <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
+          <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.recoveryCard}>
@@ -159,11 +150,8 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Таймер</Text>
-          <View style={{ width: 50 }} />
+          <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
+          <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.runningCard}>
@@ -194,7 +182,7 @@ export default function TimerScreen() {
     if (showSave) {
       return (
         <SafeAreaView style={styles.safe}>
-          <View style={styles.header}>
+          <View style={styles.overlayHeader}>
             <Pressable onPress={() => setShowSave(false)} style={styles.backBtn}>
               <Text style={styles.backText}>Назад</Text>
             </Pressable>
@@ -248,11 +236,8 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Таймер</Text>
-          <View style={{ width: 50 }} />
+          <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
+          <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.pausedCard}>
@@ -281,6 +266,14 @@ export default function TimerScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f8fafc" },
   header: {
+    height: 48,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  unifiedBackBtn: { position: "absolute", left: 16, zIndex: 1 },
+  // Retained for the Save-overlay's own "Назад" (cancel-the-overlay, not
+  // app navigation — see BackButton usage note above) — not converted.
+  overlayHeader: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -289,7 +282,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { paddingVertical: 6, paddingRight: 12 },
   backText: { fontSize: 15, fontWeight: "600", color: "#1e3a5f" },
-  title: { fontSize: 17, fontWeight: "700", color: "#1e293b" },
+  title: { fontSize: 17, fontWeight: "700", color: "#1e293b", textAlign: "center" },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingTop: 4, alignItems: "center" },
 

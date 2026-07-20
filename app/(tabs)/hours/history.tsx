@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BackButton } from "@/components/BackButton";
 import { Modal } from "@/components/Modal";
 import { HistoryCalendar } from "@/components/hours/HistoryCalendar";
 import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
@@ -10,7 +11,7 @@ import { LegacyMonthRow } from "@/components/hours/LegacyMonthRow";
 import { PeriodNav } from "@/components/hours/PeriodNav";
 import { PeriodSwitcher } from "@/components/hours/PeriodSwitcher";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "@/components/hours/historyTokens";
-import { ChevronRightIcon, ClockIcon } from "@/components/icons";
+import { ClockIcon } from "@/components/icons";
 import { addMonths } from "@/data/calendarGrid";
 import { MF, formatClockDuration, toISODate } from "@/data/constants";
 import { formatHistoryListDate } from "@/data/dateFormat";
@@ -75,11 +76,6 @@ export default function HistoryScreen() {
     [records, sessions, period, viewYear, viewMonthIndex0],
   );
 
-  function goBack() {
-    if (router.canGoBack()) router.back();
-    else router.replace("/hours");
-  }
-
   function handlePrev() {
     if (period === "month") {
       const next = addMonths(viewYear, viewMonthIndex0, -1);
@@ -118,9 +114,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} hitSlop={10} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Назад">
-          <ChevronRightIcon size={18} color={C.primaryText} />
-        </Pressable>
+        <BackButton fallbackHref="/hours" background={C.cardBackground} color={C.primaryText} style={styles.backBtn} />
         <Text style={styles.title} pointerEvents="none">
           История
         </Text>
@@ -214,13 +208,6 @@ const styles = StyleSheet.create({
   backBtn: {
     position: "absolute",
     left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.cardBackground,
-    alignItems: "center",
-    justifyContent: "center",
-    transform: [{ rotate: "180deg" }],
     zIndex: 1,
   },
   title: {

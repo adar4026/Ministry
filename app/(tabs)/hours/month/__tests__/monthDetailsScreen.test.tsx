@@ -14,11 +14,13 @@ const mockConfirmAsync = confirmAsync as jest.Mock;
 
 let mockParams: { key?: string } = {};
 jest.mock("expo-router", () => ({
-  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },
   useLocalSearchParams: () => mockParams,
 }));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { router: mockRouter } = jest.requireMock("expo-router") as { router: { push: jest.Mock } };
+const { router: mockRouter } = jest.requireMock("expo-router") as {
+  router: { push: jest.Mock; back: jest.Mock; replace: jest.Mock; canGoBack: jest.Mock };
+};
 
 jest.setTimeout(30000);
 
@@ -191,5 +193,16 @@ describe("MonthDetailsScreen — TASK_034 Session row press/long-press", () => {
     // monthTotal() (Session-first) now resolves from the legacy HourRecord again.
     const { monthTotal } = jest.requireActual("@/data/stats");
     expect(monthTotal(store().records, store().sessions, 2026, 3)).toBe(46);
+  });
+});
+
+describe("MonthDetailsScreen — TASK_037 unified BackButton", () => {
+  it("previously had no way back at all; now renders an accessible BackButton that falls back to /hours", async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    const { root } = await renderScreen("2026-3");
+    const btn = root().findAll((n) => n.props.accessibilityLabel === "Назад")[0];
+    expect(btn).toBeDefined();
+    await act(async () => btn.props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith("/hours");
   });
 });

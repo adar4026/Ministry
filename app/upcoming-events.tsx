@@ -1,7 +1,7 @@
-import { router } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BackButton } from "@/components/BackButton";
 import { DS, HomeBackground, SummaryCard, UpcomingEventRow } from "@/components/dashboard";
 import { upcomingItems } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -21,21 +21,15 @@ export default function UpcomingEventsScreen() {
   // the complete future-dated list, no month/year window.
   const items = useMemo(() => upcomingItems(events, talks, new Date()), [events, talks]);
 
-  function goBack() {
-    // A direct web load/refresh of this route has no history entry to pop.
-    if (router.canGoBack()) router.back();
-    else router.replace("/");
-  }
-
   return (
     <View style={styles.screen}>
       <HomeBackground />
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={styles.header}>
-          <Pressable onPress={goBack} hitSlop={10} style={styles.back} accessibilityRole="button">
-            <Text style={styles.backText}>‹ Назад</Text>
-          </Pressable>
-          <Text style={styles.title}>Ближайшие события</Text>
+          <BackButton fallbackHref="/" background={DS.cardBg} color={DS.navy} style={styles.back} />
+          <Text style={styles.title} pointerEvents="none">
+            Ближайшие события
+          </Text>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -60,15 +54,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    height: 48,
+    justifyContent: "center",
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
   },
-  back: { paddingVertical: 6, paddingRight: 12 },
-  backText: { fontSize: 15, fontWeight: "600", color: DS.accent },
-  title: { fontSize: 18, fontWeight: "700", color: DS.navy },
+  back: { position: "absolute", left: 16, zIndex: 1 },
+  title: { fontSize: 18, fontWeight: "700", color: DS.navy, textAlign: "center" },
   scroll: { flex: 1 },
   content: { padding: 16, paddingTop: 4, paddingBottom: 32 },
   // Same gap as Home's "Последние события" eventList / UpcomingEventsCard's
