@@ -522,3 +522,100 @@ describe("History screen — TASK_034 legacy data recovery and row clicks", () =
     expect(texts()).toContain("2003");
   });
 });
+
+// TASK_035 — session notes reactively appear/update/disappear in the
+// History list. Uses the same saveSession-harness pattern as the "Итого
+// recompute" test above (line ~360): saveSession with a matching `id` edits
+// the existing session in place rather than creating a new one.
+describe("History screen — TASK_035 session notes", () => {
+  it("shows the session's note in the list", async () => {
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 60, "s", { note: "Служение утром" })]));
+    const { texts } = await renderScreen();
+    expect(texts()).toContain("Служение утром");
+  });
+
+  it("shows nothing extra for a session with no note", async () => {
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 60, "s", { note: "" })]));
+    const { texts } = await renderScreen();
+    expect(texts()).not.toEqual(expect.arrayContaining(["—", "Без заметки", "undefined", "null"]));
+  });
+
+  it("editing a session's note elsewhere updates the text shown in History", async () => {
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 60, "s", { note: "Старая заметка" })]));
+    let save: ((input: { id?: string; date: string; durationMinutes: number; note?: string; source: "manual" | "timer" }) => void) | null =
+      null;
+    function Harness() {
+      const store = useStore();
+      save = store.saveSession;
+      return <HistoryScreen />;
+    }
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <StoreProvider>
+          <Harness />
+        </StoreProvider>,
+      );
+      for (let i = 0; i < 6; i++) await Promise.resolve();
+    });
+    const textsOf = (): string[] => {
+      const out: string[] = [];
+      collectText(renderer.toJSON(), out);
+      return out;
+    };
+    expect(textsOf()).toContain("Старая заметка");
+
+    await act(async () => {
+      save!({ id: "s", date: "2026-07-19", durationMinutes: 60, note: "Новая заметка", source: "manual" });
+      for (let i = 0; i < 4; i++) await Promise.resolve();
+    });
+    expect(textsOf()).toContain("Новая заметка");
+    expect(textsOf()).not.toContain("Старая заметка");
+  });
+
+  it("clearing a session's note removes the second line after reload", async () => {
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([session("2026-07-19", 60, "s", { note: "Уйдёт" })]));
+    let save: ((input: { id?: string; date: string; durationMinutes: number; note?: string; source: "manual" | "timer" }) => void) | null =
+      null;
+    function Harness() {
+      const store = useStore();
+      save = store.saveSession;
+      return <HistoryScreen />;
+    }
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <StoreProvider>
+          <Harness />
+        </StoreProvider>,
+      );
+      for (let i = 0; i < 6; i++) await Promise.resolve();
+    });
+    const textsOf = (): string[] => {
+      const out: string[] = [];
+      collectText(renderer.toJSON(), out);
+      return out;
+    };
+    expect(textsOf()).toContain("Уйдёт");
+
+    await act(async () => {
+      save!({ id: "s", date: "2026-07-19", durationMinutes: 60, note: "", source: "manual" });
+      for (let i = 0; i < 4; i++) await Promise.resolve();
+    });
+    expect(textsOf()).not.toContain("Уйдёт");
+  });
+
+  it("two sessions on the same day each show their own note, not mixed up", async () => {
+    await AsyncStorage.setItem(
+      "mj_sessions_v1",
+      JSON.stringify([
+        session("2026-07-19", 60, "first", { note: "Служение утром" }),
+        session("2026-07-19", 45, "second", { note: "Повторное посещение" }),
+      ]),
+    );
+    const { texts } = await renderScreen();
+    const t = texts();
+    expect(t).toContain("Служение утром");
+    expect(t).toContain("Повторное посещение");
+  });
+});

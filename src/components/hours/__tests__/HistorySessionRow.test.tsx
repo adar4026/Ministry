@@ -64,3 +64,94 @@ describe("HistorySessionRow — TASK_034", () => {
     expect(onPress).toHaveBeenNthCalledWith(2, "second");
   });
 });
+
+describe("HistorySessionRow — TASK_035 note display", () => {
+  it("shows the note text when present", () => {
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: "Снежа" })} showDivider={false} />);
+    });
+    const noteText = renderer!.root.findAll((n) => n.children?.includes("Снежа"));
+    expect(noteText.length).toBeGreaterThan(0);
+  });
+
+  it("does not render a second line when there is no note", () => {
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: "" })} showDivider={false} />);
+    });
+    const texts = renderer!.root.findAllByType("Text" as never).length;
+    // Only duration + date Text nodes should exist — no third (note) Text.
+    expect(texts).toBe(2);
+  });
+
+  it("treats a whitespace-only note as empty", () => {
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: "   " })} showDivider={false} />);
+    });
+    const texts = renderer!.root.findAllByType("Text" as never).length;
+    expect(texts).toBe(2);
+  });
+
+  it("caps a long note at 2 lines with ellipsis truncation", () => {
+    const longNote = "Служение утром ".repeat(20).trim();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: longNote })} showDivider={false} />);
+    });
+    const noteNode = renderer!.root.findAll((n) => n.children?.includes(longNote))[0];
+    expect(noteNode.props.numberOfLines).toBe(2);
+    expect(noteNode.props.ellipsizeMode).toBe("tail");
+  });
+
+  it("tapping a row with a note still calls onPress with that row's session.id", () => {
+    const onPress = jest.fn();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(
+        <HistorySessionRow session={session({ id: "note-id", note: "Повторное посещение" })} showDivider={false} onPress={onPress} />,
+      );
+    });
+    act(() => {
+      renderer!.root.findByProps({ accessibilityRole: "button" }).props.onPress();
+    });
+    expect(onPress).toHaveBeenCalledWith("note-id");
+  });
+
+  it("two same-day rows show their own distinct notes", () => {
+    const a = session({ id: "a", date: "2026-07-19", note: "Служение утром" });
+    const b = session({ id: "b", date: "2026-07-19", note: "Повторное посещение" });
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(
+        <>
+          <HistorySessionRow session={a} showDivider onPress={jest.fn()} />
+          <HistorySessionRow session={b} showDivider={false} onPress={jest.fn()} />
+        </>,
+      );
+    });
+    expect(renderer!.root.findAll((n) => n.children?.includes("Служение утром")).length).toBeGreaterThan(0);
+    expect(renderer!.root.findAll((n) => n.children?.includes("Повторное посещение")).length).toBeGreaterThan(0);
+  });
+
+  it("accessibility label includes the note but stays bounded for long notes", () => {
+    const longNote = "Служение утром ".repeat(20).trim();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: longNote })} showDivider={false} />);
+    });
+    const label: string = renderer!.root.findByProps({ accessibilityRole: "button" }).props.accessibilityLabel;
+    expect(label).toContain("заметка");
+    expect(label.length).toBeLessThan(longNote.length);
+  });
+
+  it("accessibility label has no note mention when the note is empty", () => {
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HistorySessionRow session={session({ note: "" })} showDivider={false} />);
+    });
+    const label: string = renderer!.root.findByProps({ accessibilityRole: "button" }).props.accessibilityLabel;
+    expect(label).not.toContain("заметка");
+  });
+});

@@ -16,6 +16,11 @@ import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyToken
 // duration entries a legal, non-rare state (TASK_032 already tested two
 // sessions on one day), the id is the only stable way to know which record
 // was tapped; date/duration alone cannot disambiguate.
+//
+// `note` (TASK_035): rendered trimmed (whitespace-only counts as absent),
+// second line, capped at 2 lines with ellipsis. `marginLeft: 42` matches
+// iconWrap width + topLine gap so the note starts under the duration, not
+// under the icon.
 export function HistorySessionRow({
   session,
   showDivider,
@@ -26,7 +31,11 @@ export function HistorySessionRow({
   onPress?: (id: string) => void;
 }) {
   const label = formatHistoryListDate(session.date, session.source === "timer" ? session.startTime : undefined);
-  const a11yLabel = `Запись ${formatClockDuration(session.durationMinutes)}, ${label}`;
+  const note = session.note?.trim();
+  const notePreview = note && note.length > 60 ? `${note.slice(0, 60)}…` : note;
+  const a11yLabel = notePreview
+    ? `Запись ${formatClockDuration(session.durationMinutes)}, ${label}, заметка: ${notePreview}`
+    : `Запись ${formatClockDuration(session.durationMinutes)}, ${label}`;
 
   return (
     <Pressable
@@ -35,20 +44,25 @@ export function HistorySessionRow({
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
     >
-      <View style={styles.iconWrap}>
-        <ClockIcon size={18} color={C.secondaryText} />
+      <View style={styles.topLine}>
+        <View style={styles.iconWrap}>
+          <ClockIcon size={18} color={C.secondaryText} />
+        </View>
+        <Text style={styles.duration}>{formatClockDuration(session.durationMinutes)}</Text>
+        <Text style={styles.date}>{label}</Text>
       </View>
-      <Text style={styles.duration}>{formatClockDuration(session.durationMinutes)}</Text>
-      <Text style={styles.date}>{label}</Text>
+      {note ? (
+        <Text style={styles.note} numberOfLines={2} ellipsizeMode="tail">
+          {note}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    flexDirection: "column",
     paddingVertical: 14,
   },
   divider: {
@@ -56,6 +70,11 @@ const styles = StyleSheet.create({
     borderBottomColor: C.divider,
   },
   rowPressed: { opacity: 0.6 },
+  topLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   iconWrap: {
     width: 30,
     height: 30,
@@ -66,4 +85,13 @@ const styles = StyleSheet.create({
   },
   duration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
   date: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.primaryText, fontFamily: FONT },
+  note: {
+    marginLeft: 42,
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "400",
+    color: C.secondaryText,
+    textAlign: "left",
+    fontFamily: FONT,
+  },
 });
