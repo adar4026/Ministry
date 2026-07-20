@@ -25,6 +25,7 @@ export type RecordInput = {
   year: number;
   month: number;
   hours: number;
+  creditHours?: number; // TASK_039 — see HourRecord.creditHours
   note?: string;
 };
 export type EventInput = {
@@ -97,6 +98,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       year: input.year,
       month: input.month,
       hours: input.hours,
+      creditHours: input.creditHours,
       note: input.note ?? "",
     };
     setRecords((rs) => (input.id ? rs.map((x) => (x.id === input.id ? rec : x)) : [...rs, rec]));

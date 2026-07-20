@@ -11,9 +11,9 @@ import {
   sessionsForDay,
   sumDurationMinutes,
   totalMinutesForPeriod,
+  totalCreditForPeriod,
   isCurrentMonth,
   isCurrentYear,
-  serviceYearEndYear,
 } from "../stats";
 import type { Session } from "@/types";
 
@@ -457,7 +457,93 @@ describe("totalMinutesForPeriod — year period is a service year, Sep..Aug (TAS
   });
 });
 
-describe("isCurrentMonth / isCurrentYear / serviceYearEndYear (TASK_033, service-year fixed in TASK_038)", () => {
+// TASK_039 — credit-hours counterpart to totalMinutesForPeriod(): same
+// month/year/all period shapes and the same service-year boundary
+// (serviceYearMonths()), but sums creditHours instead of the real total —
+// entirely parallel, never combined with totalMinutesForPeriod()'s result.
+describe("totalCreditForPeriod (TASK_039 — credit hours, separate from the real total)", () => {
+  it("month period returns the given month's creditHours", () => {
+    const records = [{ id: "r1", year: 2025, month: 11, hours: 30, creditHours: 30, note: "" }];
+    expect(totalCreditForPeriod(records, "month", 2025, 11)).toBe(30);
+  });
+
+  it("month period returns 0 when the record has no creditHours", () => {
+    const records = [{ id: "r1", year: 2025, month: 11, hours: 44, note: "" }];
+    expect(totalCreditForPeriod(records, "month", 2025, 11)).toBe(0);
+  });
+
+  it("month period returns 0 when there is no record at all for that month", () => {
+    expect(totalCreditForPeriod([], "month", 2025, 11)).toBe(0);
+  });
+
+  it("year period sums creditHours across the whole Sep..Aug service year", () => {
+    const records = [
+      { id: "r1", year: 2025, month: 9, hours: 44, note: "" }, // no credit
+      { id: "r2", year: 2025, month: 11, hours: 30, creditHours: 30, note: "" },
+      { id: "r3", year: 2026, month: 6, hours: 54, creditHours: 4, note: "" },
+    ];
+    expect(totalCreditForPeriod(records, "year", 2026, 1)).toBe(30 + 4);
+  });
+
+  it("year period respects the service-year boundary — a credit outside Sep..Aug is excluded", () => {
+    const records = [{ id: "r1", year: 2026, month: 9, hours: 40, creditHours: 40, note: "" }]; // belongs to SY 2027
+    expect(totalCreditForPeriod(records, "year", 2026, 1)).toBe(0);
+    expect(totalCreditForPeriod(records, "year", 2027, 1)).toBe(40);
+  });
+
+  it("all period sums creditHours across every record that has one", () => {
+    const records = [
+      { id: "r1", year: 2009, month: 8, hours: 40, creditHours: 40, note: "Саранск" },
+      { id: "r2", year: 2014, month: 8, hours: 30, creditHours: 30, note: "Ейск" },
+      { id: "r3", year: 2025, month: 11, hours: 30, creditHours: 30, note: "Аликанте" },
+      { id: "r4", year: 2025, month: 9, hours: 44, note: "" }, // no credit, must not contribute
+    ];
+    expect(totalCreditForPeriod(records, "all", 2026, 1)).toBe(40 + 30 + 30);
+  });
+
+  it("returns 0 for every period when no record has creditHours at all", () => {
+    const records = [{ id: "r1", year: 2025, month: 11, hours: 30, note: "" }];
+    expect(totalCreditForPeriod(records, "month", 2025, 11)).toBe(0);
+    expect(totalCreditForPeriod(records, "year", 2026, 1)).toBe(0);
+    expect(totalCreditForPeriod(records, "all", 2026, 1)).toBe(0);
+  });
+
+  it("never subtracts from or otherwise touches totalMinutesForPeriod()'s result", () => {
+    const records = [{ id: "r1", year: 2025, month: 11, hours: 30, creditHours: 30, note: "" }];
+    const realTotal = totalMinutesForPeriod(records, [], "month", 2025, 11);
+    expect(realTotal).toBe(30 * 60); // full 30h, credit is not deducted
+  });
+
+  // The real-world scenario that motivated this task: November 2025 had 30
+  // real field-service hours AND a separate 30-hour pioneer-school credit
+  // (the old app displayed 60 — the two summed together — for that month).
+  // Ministry keeps them as two independent figures: the main service-year
+  // total is unaffected by adding creditHours (stays whatever it was before
+  // — here, a small representative multi-month year, not literally the
+  // owner's real 513h), while the credit total for the same year becomes
+  // exactly 30. Neither number is ever derived from the other, and nothing
+  // in the codebase adds them into one "combined 543-style" figure — that
+  // combination, if wanted, happens only in the reader's head from the two
+  // numbers shown side by side.
+  it("real-world case: November's hours:30/creditHours:30 leaves the year's main total unchanged and gives a separate credit total of exactly 30", () => {
+    const records = [
+      { id: "r1", year: 2025, month: 9, hours: 44, note: "" },
+      { id: "r2", year: 2025, month: 10, hours: 50, note: "" },
+      { id: "r3", year: 2025, month: 11, hours: 30, creditHours: 30, note: "Школа пионеров Аликанте +30ч кредит" },
+      { id: "r4", year: 2025, month: 12, hours: 42, note: "" },
+    ];
+    const mainTotalHours = totalMinutesForPeriod(records, [], "year", 2026, 1) / 60;
+    const creditTotalHours = totalCreditForPeriod(records, "year", 2026, 1);
+    expect(mainTotalHours).toBe(44 + 50 + 30 + 42); // November's 30 counts once, as real hours — not 0, not 60
+    expect(creditTotalHours).toBe(30); // shown as its own, separate figure
+  });
+});
+
+// serviceYearEndYear()/currentServiceYearEndYear() themselves are tested
+// exhaustively in src/data/__tests__/serviceYear.test.ts (TASK_038) — this
+// block only checks that isCurrentYear() correctly delegates to that
+// domain rule, not the rule's boundary behavior a second time.
+describe("isCurrentMonth / isCurrentYear (TASK_033, isCurrentYear now service-year-aware per TASK_038)", () => {
   const nowJuly = new Date("2026-07-19T12:00:00.000Z");
   const nowOctober = new Date("2026-10-19T12:00:00.000Z");
 
@@ -465,23 +551,6 @@ describe("isCurrentMonth / isCurrentYear / serviceYearEndYear (TASK_033, service
     expect(isCurrentMonth(2026, 7, nowJuly)).toBe(true);
     expect(isCurrentMonth(2026, 6, nowJuly)).toBe(false);
     expect(isCurrentMonth(2025, 7, nowJuly)).toBe(false);
-  });
-
-  // Local Date constructors (not UTC "Z" ISO strings) on purpose: serviceYearEndYear()
-  // reads getMonth()/getFullYear() in local wall-clock time (matching isCurrentMonth()'s
-  // existing convention), so a UTC-midnight boundary like "2026-08-31T23:59:59.000Z" would
-  // resolve to Sep 1 local in any timezone east of UTC and silently flip the expectation —
-  // exactly the UTC/local mismatch this task was told to avoid.
-  it("serviceYearEndYear: January..August belong to the service year ending in the same calendar year", () => {
-    expect(serviceYearEndYear(nowJuly)).toBe(2026);
-    expect(serviceYearEndYear(new Date(2026, 0, 1, 0, 0, 0))).toBe(2026);
-    expect(serviceYearEndYear(new Date(2026, 7, 31, 23, 59, 59))).toBe(2026);
-  });
-
-  it("serviceYearEndYear: September..December belong to the service year ending the *next* calendar year", () => {
-    expect(serviceYearEndYear(nowOctober)).toBe(2027);
-    expect(serviceYearEndYear(new Date(2026, 8, 1, 0, 0, 0))).toBe(2027);
-    expect(serviceYearEndYear(new Date(2026, 11, 31, 23, 59, 59))).toBe(2027);
   });
 
   it("isCurrentYear is true only for the service year containing `now`, not the plain calendar year", () => {

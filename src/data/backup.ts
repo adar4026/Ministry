@@ -128,6 +128,9 @@ function validateRecord(x: unknown): x is HourRecord {
   if (!isFiniteNumber(x.year) || x.year < 1900 || x.year > 2200) return false;
   if (!isFiniteNumber(x.month) || x.month < 1 || x.month > 12) return false;
   if (!isFiniteNumber(x.hours) || x.hours < 0 || x.hours > 100000) return false;
+  // TASK_039 — optional; a backup written before this field existed simply
+  // omits it, which is valid (undefined = no credit).
+  if (x.creditHours !== undefined && (!isFiniteNumber(x.creditHours) || x.creditHours < 0)) return false;
   if (x.note !== undefined && typeof x.note !== "string") return false;
   return true;
 }

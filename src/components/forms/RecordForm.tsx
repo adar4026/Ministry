@@ -27,6 +27,7 @@ export function RecordForm({
   const [year, setYear] = useState(String(initial?.year ?? now.getFullYear()));
   const [month, setMonth] = useState<number>(initial?.month ?? now.getMonth() + 1);
   const [hours, setHours] = useState(initial ? String(initial.hours) : "");
+  const [creditHours, setCreditHours] = useState(initial?.creditHours ? String(initial.creditHours) : "");
   const [note, setNote] = useState(initial?.note ?? "");
 
   const blockReason = useMemo(() => {
@@ -41,7 +42,11 @@ export function RecordForm({
     const y = parseInt(year, 10);
     const h = parseInt(hours, 10);
     if (!Number.isFinite(y) || !Number.isFinite(h)) return;
-    onSave({ id: initial?.id, year: y, month, hours: h, note });
+    // Empty input means "no credit" (undefined), not zero-as-typed —
+    // distinguishing the two isn't needed today, but avoids writing a
+    // literal 0 into every record that never had this field.
+    const ch = creditHours.trim() === "" ? undefined : parseInt(creditHours, 10);
+    onSave({ id: initial?.id, year: y, month, hours: h, creditHours: Number.isFinite(ch) ? ch : undefined, note });
   }
 
   return (
@@ -60,6 +65,17 @@ export function RecordForm({
           placeholder="0"
         />
       </Field>
+      <Field label="Кредитные часы (школа пионеров и т.п.)">
+        <TextField
+          value={creditHours}
+          onChangeText={setCreditHours}
+          keyboardType="number-pad"
+          placeholder="0"
+        />
+      </Field>
+      <Text style={styles.creditHint}>
+        Отдельно от «Часы» выше — засчитываются в отчёт, но не входят в «Итого» и годовую сумму.
+      </Text>
       <Field label="Заметка">
         <TextField value={note} onChangeText={setNote} placeholder="Необязательно" />
       </Field>
@@ -81,6 +97,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.dangerBg,
     borderRadius: 8,
     padding: 10,
+    marginBottom: 8,
+  },
+  creditHint: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: -4,
     marginBottom: 8,
   },
 });

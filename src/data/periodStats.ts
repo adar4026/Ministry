@@ -23,6 +23,7 @@ import {
 } from "@/data/constants";
 import { dailyMinutesForMonth, sessionsForMonth } from "@/data/stats";
 import { computePaceDeviation, idealCumulativeHours } from "@/data/cumulativeProgress";
+import { parseServiceYearLabel, serviceYearRange } from "@/data/serviceYear";
 
 export { MONTHLY_GOAL, YEARLY_GOAL };
 
@@ -139,10 +140,16 @@ function daysBetweenInclusive(a: Date, b: Date): number {
   return daysBetweenUTC(a, b) + 1;
 }
 
+// Derives its Sep 1/Aug 31 boundary from serviceYearRange() (src/data/
+// serviceYear.ts) — the single canonical source for the service-year
+// boundary (TASK_038) — rather than re-deriving month 8/7 locally. That
+// function returns a half-open [start, endExclusive) range; `end` here is
+// the *inclusive* last day (Aug 31), computed via Date field subtraction
+// (not a literal month number) so it stays correct regardless of DST.
 function serviceYearBounds(syLabel: string): { start: Date; end: Date; totalDays: number } {
-  const startYear = parseInt(syLabel.split("–")[0], 10);
-  const start = new Date(startYear, 8, 1); // Sep 1
-  const end = new Date(startYear + 1, 7, 31); // Aug 31
+  const endYear = parseServiceYearLabel(syLabel);
+  const { start, endExclusive } = serviceYearRange(endYear);
+  const end = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate() - 1);
   const totalDays = daysBetweenInclusive(start, end);
   return { start, end, totalDays };
 }

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRightIcon } from "@/components/icons";
 import { MF } from "@/data/constants";
 import { isCurrentMonth, isCurrentYear, type HistoryPeriod } from "@/data/stats";
+import { serviceYearRange } from "@/data/serviceYear";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
 
 // Period navigation row (TASK_033): ‹ label/subtitle › inside a card, above
@@ -30,7 +31,10 @@ export function PeriodNav({
   let title: string;
   let subtitle: string | null = null;
   // Service year (TASK_038): `year` is the calendar year the displayed
-  // service year *ends* in, so its range is always Sep(year-1)..Aug(year).
+  // service year *ends* in. The range text below reads its start year from
+  // serviceYearRange() (src/data/serviceYear.ts) rather than computing
+  // `year - 1` itself — this component does no boundary arithmetic of its
+  // own, per the domain rule living in exactly one place.
   let rangeLabel: string | null = null;
   if (period === "month") {
     title = `${MF[monthIndex0]} ${year}`;
@@ -38,7 +42,7 @@ export function PeriodNav({
   } else if (period === "year") {
     title = String(year);
     if (isCurrentYear(year, now)) subtitle = "Текущий год";
-    rangeLabel = `Сентябрь ${year - 1} — август ${year}`;
+    rangeLabel = `Сентябрь ${serviceYearRange(year).start.getFullYear()} — август ${year}`;
   } else {
     title = "Весь период";
   }
@@ -112,5 +116,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center" },
   title: { fontSize: 18, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
   subtitle: { fontSize: 13, fontWeight: "600", color: C.todayAccent, fontFamily: FONT, marginTop: 2 },
-  rangeLabel: { fontSize: 12, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 2 },
+  // fontSize 11, not 12: at the 320px minimum supported width, the "Сентябрь
+  // YYYY — август YYYY" string overflows its available ~180px by 1px at 12px
+  // (measured: 181px), so react-native-web's numberOfLines={1} silently
+  // ellipsis-truncates the closing year ("...август 20…"). 11px measures
+  // 167px — clears the 320px minimum with a 13px margin (12px still overflows
+  // by 1px at 320px; nothing smaller than 11 is needed). The string's length
+  // is fixed regardless of which service year is shown (always two 4-digit
+  // years), so this margin holds for every year, not just the current one.
+  rangeLabel: { fontSize: 11, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 2 },
 });

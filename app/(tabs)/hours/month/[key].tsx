@@ -125,6 +125,11 @@ export default function MonthDetailsScreen() {
                 <Text style={styles.legacyLabel}>Всего часов (legacy):</Text>
                 <Text style={styles.legacyValue}>{formatHM(legacyRecord.hours)}</Text>
               </View>
+              {(legacyRecord.creditHours ?? 0) > 0 && (
+                <Text style={styles.legacyCreditNote}>
+                  + {formatHM(legacyRecord.creditHours as number)} кредита — отдельно, не входит в «Итого» выше
+                </Text>
+              )}
               <Pressable
                 style={styles.editRecordBtn}
                 onPress={() => setEditRec(legacyRecord)}
@@ -243,6 +248,7 @@ const styles = StyleSheet.create({
   legacyTotal: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 16 },
   legacyLabel: { fontSize: 14, color: COLORS.muted },
   legacyValue: { fontSize: 23, fontWeight: "700", color: COLORS.text },
+  legacyCreditNote: { fontSize: 13, color: COLORS.muted, marginTop: -12, marginBottom: 16 },
   addSessionBtn: {
     paddingVertical: 14,
     paddingHorizontal: 24,

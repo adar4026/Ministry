@@ -14,7 +14,14 @@ export type HourRecord = {
   id: string;
   year: number; // calendar year
   month: number; // 1–12
-  hours: number; // hours logged that month
+  hours: number; // hours logged that month (may include creditHours below — never subtracted here)
+  // Portion of `hours` that is a credit (e.g. pioneer school attendance),
+  // not real field-service time — TASK_039. Optional/undefined means no
+  // credit. Visible on the record (RecordForm, month detail, History's
+  // legacy row) but excluded from every aggregated total
+  // (resolveMonthTotal() in src/data/stats.ts is the single place that
+  // subtracts it — no other consumer re-derives this).
+  creditHours?: number;
   note: string; // optional note
 };
 

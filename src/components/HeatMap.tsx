@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import { COLORS } from "@/data/constants";
+import { SERVICE_YEAR_MONTH_ORDER } from "@/data/serviceYear";
 
 interface HeatMapProps {
   cells: { date: string; value: number }[];
@@ -44,9 +45,6 @@ function getColorForValue(value: number, maxValue: number): string {
   const localFactor = (factor * stopCount) % 1;
   return interpolateColor(COLOR_STOPS[stopIndex], COLOR_STOPS[stopIndex + 1], localFactor);
 }
-
-// Fixed Sep-Aug service-year grid order (calendar month numbers, 1-12).
-const SERVICE_YEAR_MONTH_ORDER = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8];
 
 export type MonthGridPosition = {
   month: number; // 1-12, the calendar month this grid position represents

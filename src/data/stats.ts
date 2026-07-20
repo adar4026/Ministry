@@ -3,6 +3,7 @@
 // See docs/TASKS/TASK_005_ARCHITECTURE.md §5, §84–86.
 
 import type { HourRecord, Session } from "@/types";
+import { currentServiceYearEndYear, parseServiceYearLabel, serviceYearMonths } from "./serviceYear";
 
 // ---------------------------------------------------------------------------
 // Aggregation Layer (TASK_005A) — the single source for resolving how many
@@ -41,11 +42,22 @@ export function sessionsForMonth(sessions: Session[], year: number, month: numbe
 type MonthTotalRecord = { year: number; month: number; hours: number };
 
 // The authoritative hour total for one month: Session.sum() if at least one
-// Session exists for that month, otherwise the legacy HourRecord's hours (or
-// 0 if neither exists). This is the single primitive every other aggregation
+// Session exists for that month, otherwise the legacy HourRecord's hours, or
+// 0 if neither exists. This is the single primitive every other aggregation
 // function in this layer is built on — never duplicate this resolution logic
 // elsewhere. Private: exported call sites are monthTotal() and
 // monthCellsForSY() below, each preserving its own public parameter shape.
+//
+// creditHours (TASK_039 — e.g. pioneer school attendance) is a completely
+// separate quantity, not a portion of `hours` — this function never reads
+// or subtracts it. Concrete example: a HourRecord with `hours: 30,
+// creditHours: 30` (real-world case — November 2025, 30 real field-service
+// hours plus a separate 30-hour pioneer-school credit) resolves here to
+// exactly 30, not 0 and not 60 — the credit neither reduces nor inflates
+// this number. See monthCredit()/totalCreditForPeriod() below for the
+// parallel credit-only aggregation (which would return 30 for that same
+// record), and HourRecord.creditHours (src/types/index.ts) for why the two
+// are kept apart rather than one being derived from the other.
 function resolveMonthTotal(
   records: MonthTotalRecord[],
   sessions: Session[],
@@ -143,8 +155,9 @@ function unionMonthKeys(records: HourRecord[], sessions: Session[]): { year: num
 // of the *previous* calendar year that actually belongs to the displayed
 // service year (see docs/TASKS/TASK_038_HISTORY_SERVICE_YEAR_FIX.md).
 // `year` here means "the service year ending in August of `year`" — i.e.
-// Sep(year-1)..Aug(year), matching PeriodNav's plain "2026" label and
-// svcYear(year - 1, 9) === svcYear(year, 1) === `${year-1}–${year}`. "all"
+// Sep(year-1)..Aug(year), matching PeriodNav's plain "2026" label — see
+// serviceYearMonths() (src/data/serviceYear.ts), the single canonical
+// source for that month order; this function does not re-derive it. "all"
 // sums the union of every month that has a HourRecord or a Session, with no
 // synthetic start/end date.
 export function totalMinutesForPeriod(
@@ -165,12 +178,47 @@ export function totalMinutesForPeriod(
     );
   }
   if (period === "year") {
-    let sum = 0;
-    for (let m = 9; m <= 12; m++) sum += Math.round(monthTotal(records, sessions, year - 1, m) * 60);
-    for (let m = 1; m <= 8; m++) sum += Math.round(monthTotal(records, sessions, year, m) * 60);
-    return sum;
+    return serviceYearMonths(year).reduce(
+      (sum, { year: y, month: m }) => sum + Math.round(monthTotal(records, sessions, y, m) * 60),
+      0,
+    );
   }
   return Math.round(monthTotal(records, sessions, year, month) * 60);
+}
+
+// The credit hours (TASK_039) recorded for one month — 0 if the month has
+// no legacy HourRecord or the record has no creditHours set. Credit exists
+// only on HourRecord, never Session (it's a monthly-report concept — a
+// pioneer-school attendance credit — not a timed activity), so unlike
+// resolveMonthTotal() this never looks at `sessions` at all.
+function monthCredit(records: HourRecord[], year: number, month: number): number {
+  return records.find((r) => r.year === year && r.month === month)?.creditHours ?? 0;
+}
+
+// The credit-hours counterpart to totalMinutesForPeriod() above — same
+// period shapes (month/year/all), same service-year boundary
+// (serviceYearMonths()), but sums creditHours instead of the real total,
+// and is never added to or subtracted from it. Concrete example (the real
+// case that motivated this function): a service year whose November has
+// `hours: 30, creditHours: 30` and every other month has no credit —
+// totalMinutesForPeriod(..., "year", ...) for that year is unaffected by
+// November's creditHours at all (November still contributes exactly 30),
+// while totalCreditForPeriod(..., "year", ...) for the same year returns
+// 30 — the two numbers are shown side by side (never summed into one
+// "combined" total anywhere in the code; a reader who wants "543" adds
+// 513 + 30 themselves, informally, outside the app). Returned in *hours*
+// (not minutes) since HourRecord.creditHours, like HourRecord.hours, has
+// never carried Session-style minute precision — callers format it
+// directly (formatDurationRu() etc. still expect minutes, so multiply by
+// 60 first).
+export function totalCreditForPeriod(records: HourRecord[], period: HistoryPeriod, year: number, month: number): number {
+  if (period === "all") {
+    return unionMonthKeys(records, []).reduce((sum, { year: y, month: m }) => sum + monthCredit(records, y, m), 0);
+  }
+  if (period === "year") {
+    return serviceYearMonths(year).reduce((sum, { year: y, month: m }) => sum + monthCredit(records, y, m), 0);
+  }
+  return monthCredit(records, year, month);
 }
 
 // Whether (year, month) is the calendar month containing `now` — drives the
@@ -179,23 +227,13 @@ export function isCurrentMonth(year: number, month: number, now: Date = new Date
   return year === now.getFullYear() && month === now.getMonth() + 1;
 }
 
-// The service-year label used by totalMinutesForPeriod()/isCurrentYear()
-// below: the calendar year in which the *current* service year (Sep..Aug)
-// ends — Jan..Aug belong to the service year ending in the same calendar
-// year, Sep..Dec belong to the one ending the *next* calendar year. Local
-// month arithmetic only, no Date/timezone conversion (mirrors svcYear() in
-// src/data/constants.ts, kept local here since stats.ts must not import
-// from constants.ts — constants.ts already imports from stats.ts).
-export function serviceYearEndYear(now: Date = new Date()): number {
-  const month = now.getMonth() + 1;
-  return month >= 9 ? now.getFullYear() + 1 : now.getFullYear();
-}
-
 // Whether `year` (a service-year end-year, e.g. "2026" for Sep 2025..Aug
 // 2026 — see totalMinutesForPeriod()) is the service year containing `now`
 // — drives the "Текущий год" subtitle under the Year-period nav label.
+// Delegates to currentServiceYearEndYear() (src/data/serviceYear.ts) — the
+// boundary rule itself does not live here.
 export function isCurrentYear(year: number, now: Date = new Date()): boolean {
-  return year === serviceYearEndYear(now);
+  return year === currentServiceYearEndYear(now);
 }
 
 /**
@@ -251,13 +289,8 @@ export function monthCellsForSY(
   sessions: Session[],
   syLabel: string, // e.g. "2025–2026"
 ): { date: string; value: number }[] {
-  const [startYearStr] = syLabel.split("–");
-  const startYear = parseInt(startYearStr, 10);
-  // Service year: Sep (month 9) of startYear through Aug (month 8) of startYear+1
-  const monthOrder = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8];
-
-  return monthOrder.map((month) => {
-    const year = month >= 9 ? startYear : startYear + 1;
+  const endYear = parseServiceYearLabel(syLabel);
+  return serviceYearMonths(endYear).map(({ year, month }) => {
     const hours = resolveMonthTotal(records, sessions, year, month);
     return { date: `${year}-${String(month).padStart(2, "0")}`, value: hours };
   });

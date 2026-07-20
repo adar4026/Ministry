@@ -14,8 +14,14 @@ import {
 } from "@/data/constants";
 import type { HourRecord, Session } from "@/types";
 
-function record(year: number, month: number, hours: number, id = `r-${year}-${month}`): HourRecord {
-  return { id, year, month, hours, note: "" };
+function record(
+  year: number,
+  month: number,
+  hours: number,
+  id = `r-${year}-${month}`,
+  creditHours?: number,
+): HourRecord {
+  return { id, year, month, hours, creditHours, note: "" };
 }
 
 function session(
@@ -80,6 +86,38 @@ describe("monthTotal", () => {
     const sessions = [session("2026-06-01", 60)]; // 1h
     // If this were ever a sum (54 + 1 = 55) or an average, this assertion
     // would fail — the rule is exclusive, not additive.
+    expect(monthTotal(records, sessions, 2026, 6)).toBe(1);
+  });
+});
+
+// TASK_039 — creditHours (e.g. pioneer school attendance) is a completely
+// separate field from `hours`, not a portion of it. monthTotal() must be
+// totally blind to creditHours — it neither adds nor subtracts it, in any
+// combination. See "totalCreditForPeriod" below for the parallel,
+// credit-only aggregation this task added instead.
+describe("monthTotal — unaffected by creditHours (TASK_039)", () => {
+  // Real-world case: November 2025 had 30 real field-service hours and a
+  // separate 30-hour pioneer-school credit (`hours: 30, creditHours: 30`).
+  // The month's real total is 30 — not 0 (credit wrongly subtracted from
+  // real hours) and not 60 (credit wrongly added on top of them).
+  it("returns `hours` unchanged regardless of creditHours — no subtraction, no addition", () => {
+    const records = [record(2025, 11, 30, "r-credit", 30)];
+    expect(monthTotal(records, [], 2025, 11)).toBe(30);
+  });
+
+  it("returns `hours` unchanged even when creditHours is 0", () => {
+    const records = [record(2026, 6, 54, "r-zero-credit", 0)];
+    expect(monthTotal(records, [], 2026, 6)).toBe(54);
+  });
+
+  it("a record with no creditHours at all behaves exactly as before", () => {
+    const records = [record(2026, 6, 54)];
+    expect(monthTotal(records, [], 2026, 6)).toBe(54);
+  });
+
+  it("Session-authoritative months are unaffected by the legacy record's creditHours either way", () => {
+    const records = [record(2026, 6, 54, "r-credit", 30)];
+    const sessions = [session("2026-06-01", 60)]; // 1h
     expect(monthTotal(records, sessions, 2026, 6)).toBe(1);
   });
 });
@@ -216,6 +254,16 @@ describe("serviceYearAggregation (unified, session-aware)", () => {
     const sessions = [session("2025-10-05", 120)]; // +2h, session-only month
     const [group] = serviceYearAggregation(records, sessions);
     expect(group.total).toBe(60 + 2 + 40);
+  });
+
+  // TASK_039 — creditHours is a separate field from `hours`, so the Home
+  // "Текущий служебный год" card's group.total (built on monthTotal()) is
+  // unaffected by it, just like History's "Итого" — credit only ever
+  // appears on its own, parallel line (totalCreditForPeriod()).
+  it("is unaffected by creditHours (TASK_039) — group.total is a sum of `hours`, never `hours - creditHours`", () => {
+    const records = [record(2025, 9, 60), record(2025, 11, 30, "r-credit", 30)];
+    const [group] = serviceYearAggregation(records, []);
+    expect(group.total).toBe(90); // Nov's 30h counts in full — credit is never subtracted here
   });
 
   it("sorts months within a service year ascending by year/month", () => {

@@ -17,12 +17,13 @@ import { MF, formatClockDuration, toISODate } from "@/data/constants";
 import { formatHistoryListDate } from "@/data/dateFormat";
 import {
   dailyMinutesForMonth,
-  serviceYearEndYear,
   sessionsForDay,
   sessionsForMonth,
+  totalCreditForPeriod,
   totalMinutesForPeriod,
   type HistoryPeriod,
 } from "@/data/stats";
+import { currentServiceYearEndYear } from "@/data/serviceYear";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
 
@@ -54,7 +55,9 @@ function sortSessions(sessions: Session[]): Session[] {
 // — it cannot reuse `viewYear`, because the two use different calendars:
 // `viewYear` is a plain calendar year (for the month grid), while a service
 // year runs Sep..Aug and is identified by the calendar year it *ends* in
-// (see totalMinutesForPeriod()/serviceYearEndYear() in src/data/stats.ts).
+// (see currentServiceYearEndYear() in src/data/serviceYear.ts, the
+// canonical domain module — this screen does not compute the boundary
+// itself).
 // These only happen to start out equal because `now` here defaults to the
 // literal current moment — during Sep..Dec they'd diverge (e.g. now =
 // October 2026: `viewYear` should default to 2026 for the month grid, but
@@ -62,7 +65,12 @@ function sortSessions(sessions: Session[]): Session[] {
 // Year-period arrows move only `viewServiceYear`, leaving the displayed
 // month untouched per the owner's spec, so returning to Month-period shows
 // the same month again. Only the "Итого" total is period-scoped
-// (totalMinutesForPeriod).
+// (totalMinutesForPeriod). Credit hours (TASK_039 — e.g. pioneer school
+// attendance) get their own parallel figure, creditMinutes
+// (totalCreditForPeriod), shown as a second line on the same card — the two
+// numbers are never combined into one; a HourRecord with `hours: 30,
+// creditHours: 30` contributes 30 to totalMinutes and 30 to creditMinutes,
+// not 0 to one or 60 to the other.
 export default function HistoryScreen() {
   const { records, sessions } = useStore();
 
@@ -72,7 +80,7 @@ export default function HistoryScreen() {
   const [period, setPeriod] = useState<HistoryPeriod>("month");
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonthIndex0, setViewMonthIndex0] = useState(now.getMonth());
-  const [viewServiceYear, setViewServiceYear] = useState(() => serviceYearEndYear(now));
+  const [viewServiceYear, setViewServiceYear] = useState(() => currentServiceYearEndYear(now));
   const [dayPicker, setDayPicker] = useState<{ iso: string; sessions: Session[] } | null>(null);
 
   const dailyMinutes = useMemo(
@@ -94,6 +102,13 @@ export default function HistoryScreen() {
   const totalMinutes = useMemo(
     () => totalMinutesForPeriod(records, sessions, period, period === "year" ? viewServiceYear : viewYear, viewMonthIndex0 + 1),
     [records, sessions, period, viewYear, viewMonthIndex0, viewServiceYear],
+  );
+  // TASK_039 — credit hours get their own line on the "Итого" card, only
+  // for the service-year period (that's the "итоговая карточка служебного
+  // года" the credit belongs on) — never merged into totalMinutes above.
+  const creditMinutes = useMemo(
+    () => (period === "year" ? Math.round(totalCreditForPeriod(records, period, viewServiceYear, viewMonthIndex0 + 1) * 60) : 0),
+    [records, period, viewServiceYear, viewMonthIndex0],
   );
 
   function handlePrev() {
@@ -151,7 +166,7 @@ export default function HistoryScreen() {
           onNext={handleNext}
         />
 
-        <HistoryTotalCard totalMinutes={totalMinutes} />
+        <HistoryTotalCard totalMinutes={totalMinutes} creditMinutes={creditMinutes} />
 
         <HistoryCalendar
           year={viewYear}
@@ -182,6 +197,7 @@ export default function HistoryScreen() {
             <View style={styles.listCard}>
               <LegacyMonthRow
                 hours={legacyRecord.hours}
+                creditHours={legacyRecord.creditHours}
                 onPress={() => router.push(`/hours/month/${viewYear}-${String(viewMonthIndex0 + 1).padStart(2, "0")}`)}
               />
             </View>

@@ -8,6 +8,7 @@ import type { Session as SessionType } from "@/types";
 // hoursForMonth below) and re-exported unchanged for every existing
 // "@/data/constants" consumer.
 import { monthTotal, parseISOYearMonth, sessionsForMonth } from "./stats";
+import { serviceYearEndYear, serviceYearLabel } from "./serviceYear";
 
 export {
   trailingPace,
@@ -81,8 +82,10 @@ export const MF = [
 ];
 
 // Service year starts in September: Sep 2025 – Aug 2026 => "2025–2026".
+// Delegates to src/data/serviceYear.ts, the single canonical source for the
+// Sep..Aug boundary (TASK_038) — this function does not re-derive it.
 export function svcYear(year: number, month: number): string {
-  return month >= 9 ? `${year}–${year + 1}` : `${year - 1}–${year}`;
+  return serviceYearLabel(serviceYearEndYear(year, month));
 }
 
 export type LegacyEntryBlockReason = "current" | "future" | "session";

@@ -25,8 +25,9 @@ function session(date: string, durationMinutes = 60): Session {
 }
 
 // RecordForm defaults to the current year/month; changing only the Year
-// field (index 0 of the three TextInputs: Год, Часы, Заметка) is enough to
-// move the form between past/current/future without touching ChipSelector.
+// field (index 0 of the four TextInputs: Год, Часы, Кредитные часы [TASK_039],
+// Заметка) is enough to move the form between past/current/future without
+// touching ChipSelector.
 function yearInput(root: ReturnType<typeof create>["root"]) {
   return root.findAllByType(TextInput)[0];
 }
@@ -108,5 +109,73 @@ describe("RecordForm — legacy entry Product Rule", () => {
     });
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave.mock.calls[0][0]).toMatchObject({ year: pastYear, hours: 42 });
+  });
+});
+
+// TASK_039 — credit hours (pioneer school etc.): visible on the record, but
+// excluded from aggregated totals (unit-tested separately in
+// src/data/__tests__/aggregation.test.ts). This covers the form-level
+// plumbing: the new field reaches onSave(), and an untouched field doesn't
+// silently write a literal 0 into records that never had this concept.
+describe("RecordForm — credit hours (TASK_039)", () => {
+  const now = new Date();
+  const pastYear = now.getFullYear() - 2;
+
+  function creditInput(root: ReturnType<typeof create>["root"]) {
+    return root.findAllByType(TextInput)[2];
+  }
+
+  it("passes creditHours through to onSave when filled in", () => {
+    const onSave = jest.fn();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<RecordForm sessions={[]} onSave={onSave} />);
+    });
+    act(() => {
+      yearInput(renderer.root).props.onChangeText(String(pastYear));
+    });
+    act(() => {
+      renderer.root.findAllByType(TextInput)[1].props.onChangeText("54");
+    });
+    act(() => {
+      creditInput(renderer.root).props.onChangeText("30");
+    });
+    act(() => {
+      renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ year: pastYear, hours: 54, creditHours: 30 });
+  });
+
+  it("leaves creditHours undefined (not 0) when the field is never touched", () => {
+    const onSave = jest.fn();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<RecordForm sessions={[]} onSave={onSave} />);
+    });
+    act(() => {
+      yearInput(renderer.root).props.onChangeText(String(pastYear));
+    });
+    act(() => {
+      renderer.root.findAllByType(TextInput)[1].props.onChangeText("42");
+    });
+    act(() => {
+      renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+    expect(onSave.mock.calls[0][0].creditHours).toBeUndefined();
+  });
+
+  it("pre-fills the credit field from an existing record's creditHours", () => {
+    const onSave = jest.fn();
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(
+        <RecordForm
+          initial={{ id: "r1", year: pastYear, month: 11, hours: 30, creditHours: 30, note: "" }}
+          sessions={[]}
+          onSave={onSave}
+        />,
+      );
+    });
+    expect(creditInput(renderer!.root).props.value).toBe("30");
   });
 });

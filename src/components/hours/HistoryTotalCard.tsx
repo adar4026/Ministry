@@ -7,14 +7,28 @@ import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyToken
 // disabled — the project has no report-export mechanism yet (see
 // docs/TASKS/TASK_033_HISTORY_PERIOD_FILTERS.md §3); it stays visibly
 // inactive (reduced opacity, disabled prop) rather than firing a fake send.
-export function HistoryTotalCard({ totalMinutes }: { totalMinutes: number }) {
+//
+// `creditMinutes` (TASK_039 — e.g. pioneer school attendance) is a fully
+// separate quantity from `totalMinutes`, never added into it — the caller
+// (history.tsx) computes both independently via totalMinutesForPeriod()/
+// totalCreditForPeriod() (src/data/stats.ts). Shown as its own line only
+// when > 0, so the card matches its usual look whenever there's no credit
+// to report.
+export function HistoryTotalCard({ totalMinutes, creditMinutes = 0 }: { totalMinutes: number; creditMinutes?: number }) {
   return (
     <View>
       <Text style={styles.heading}>Итого</Text>
       <View style={styles.card}>
-        <Text style={styles.value} numberOfLines={2}>
-          {formatDurationRu(totalMinutes)}
-        </Text>
+        <View style={styles.valueWrap}>
+          <Text style={styles.value} numberOfLines={2}>
+            {formatDurationRu(totalMinutes)}
+          </Text>
+          {creditMinutes > 0 && (
+            <Text style={styles.creditLine} numberOfLines={2}>
+              + {formatDurationRu(creditMinutes)} кредит (не в итоге)
+            </Text>
+          )}
+        </View>
         <Pressable
           disabled
           style={styles.shareBtn}
@@ -41,7 +55,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
   },
-  value: { flex: 1, fontSize: 20, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
+  valueWrap: { flex: 1 },
+  value: { fontSize: 20, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
+  creditLine: { fontSize: 13, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 4 },
   shareBtn: {
     width: 44,
     height: 44,
