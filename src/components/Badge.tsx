@@ -1,9 +1,18 @@
 import { StyleSheet, Text, View } from "react-native";
-import { CAT } from "@/data/constants";
-import type { Category } from "@/types";
+import { categoryMeta } from "@/data/constants";
+import type { CustomCategory } from "@/types";
 
-export function Badge({ category }: { category: Category }) {
-  const c = CAT[category] ?? CAT.other;
+// `category` is a system Category key or a CustomCategory.id (TASK_045).
+// `customCategories` is optional/defaults to `[]` so every existing call
+// site (that only ever passed system categories) keeps working unchanged.
+export function Badge({
+  category,
+  customCategories = [],
+}: {
+  category: string;
+  customCategories?: CustomCategory[];
+}) {
+  const c = categoryMeta(category, customCategories);
   return (
     <View style={[styles.badge, { backgroundColor: c.bg }]}>
       <Text style={[styles.text, { color: c.tx }]}>{c.label}</Text>

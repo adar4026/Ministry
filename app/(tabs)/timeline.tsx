@@ -1,21 +1,17 @@
 import { useMemo, useState } from "react";
+import { router } from "expo-router";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Badge } from "@/components/Badge";
-import { ChipSelector, TextField } from "@/components/ui";
+import { ChipSelector, Field, PrimaryButton, TextField } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
 import { SwipeableDeleteRow } from "@/components/timeline/SwipeableDeleteRow";
 import { TIMELINE_COLORS } from "@/components/timeline/timelineTokens";
 import { DS, HomeBackground } from "@/components/dashboard";
-import {
-  CAT,
-  CATEGORY_KEYS,
-  TALK_CATEGORY,
-  formatDateDMY,
-  talkTitle,
-  timeElapsed,
-} from "@/data/constants";
+import { PlusIcon } from "@/components/icons";
+import { CAT, CATEGORY_KEYS, TALK_CATEGORY, categoryMeta, formatDateDMY, talkTitle } from "@/data/constants";
+import { eventElapsed, formatEventElapsed } from "@/data/eventElapsed";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
 
@@ -36,7 +32,10 @@ const FILTER_LABEL_OVERRIDES: Partial<Record<string, string>> = {
   school: "Школы",
 };
 
-const FILTER_OPTIONS = [
+// System-only filter chips — the fixed part of the row. User-created topics
+// (TASK_045) are appended at render time (see filterOptions below) since
+// they come from live store state, not a module-level constant.
+const SYSTEM_FILTER_OPTIONS = [
   { value: "all", label: "Все" },
   { value: TALK_FILTER, label: "Публичные" },
   ...CATEGORY_KEYS.map((k) => ({
@@ -50,11 +49,23 @@ type TimelineItem =
   | { kind: "talk"; id: string; date: string; talk: Talk };
 
 export default function TimelineScreen() {
-  const { events, talks, saveEvent, deleteEvent, saveTalk, deleteTalk } = useStore();
+  const { events, talks, customCategories, saveEvent, deleteEvent, saveTalk, deleteTalk, addCustomCategory } =
+    useStore();
   const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
   const [editTalk, setEditTalk] = useState<Talk | null>(null);
+  const [addingTopic, setAddingTopic] = useState(false);
+  const [topicName, setTopicName] = useState("");
+  const [topicError, setTopicError] = useState<string | null>(null);
+
+  // TASK_045 — a chip per user-created topic, appended after the system
+  // ones; appears immediately once addCustomCategory() saves it (same
+  // reactive StoreContext, no remount needed).
+  const filterOptions = useMemo(
+    () => [...SYSTEM_FILTER_OPTIONS, ...customCategories.map((c) => ({ value: c.id, label: c.name }))],
+    [customCategories],
+  );
 
   // Combine events + talks at the UI layer only; both collections stay separate.
   const items = useMemo<TimelineItem[]>(() => {
@@ -93,10 +104,53 @@ export default function TimelineScreen() {
     ]);
   }
 
+  function closeTopicModal() {
+    setAddingTopic(false);
+    setTopicName("");
+    setTopicError(null);
+  }
+
+  function submitTopic() {
+    const result = addCustomCategory(topicName);
+    if (!result.ok) {
+      setTopicError(result.error === "empty" ? "Введите название темы." : "Такая тема уже существует.");
+      return;
+    }
+    closeTopicModal();
+  }
+
   return (
     <View style={styles.screen}>
       <HomeBackground />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>События</Text>
+          <Text style={styles.pageSubtitle}>Важные даты и мероприятия</Text>
+        </View>
+
+        <View style={styles.actionsRow}>
+          {/* TASK_045 — reuses the existing /add route + EventForm (via a
+              `focus` param) instead of a second, independent creation form. */}
+          <Pressable
+            onPress={() => router.push(`/add?focus=event`)}
+            accessibilityRole="button"
+            accessibilityLabel="Добавить событие"
+            style={({ pressed }) => [styles.actionBtn, styles.actionBtnPrimary, pressed && styles.pressed]}
+          >
+            <PlusIcon size={15} color={DS.onAccent} />
+            <Text style={styles.actionTextPrimary}>Добавить событие</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setAddingTopic(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Добавить тему"
+            style={({ pressed }) => [styles.actionBtn, styles.actionBtnSecondary, pressed && styles.pressed]}
+          >
+            <PlusIcon size={15} color={DS.navy} />
+            <Text style={styles.actionTextSecondary}>Добавить тему</Text>
+          </Pressable>
+        </View>
+
         <TextField
           value={query}
           onChangeText={setQuery}
@@ -105,7 +159,7 @@ export default function TimelineScreen() {
         />
         <View style={styles.filter}>
           <ChipSelector
-            options={FILTER_OPTIONS}
+            options={filterOptions}
             value={filter}
             onChange={setFilter}
             idleTextColor={TIMELINE_COLORS.topicText}
@@ -123,7 +177,9 @@ export default function TimelineScreen() {
               >
                 <View style={styles.card}>
                   <View style={styles.titleRow}>
-                    <View style={[styles.dot, { backgroundColor: (CAT[it.ev.category] ?? CAT.other).dot }]} />
+                    <View
+                      style={[styles.dot, { backgroundColor: categoryMeta(it.ev.category, customCategories).dot }]}
+                    />
                     <Text style={styles.title} numberOfLines={1}>{it.ev.title}</Text>
                     <Pressable onPress={() => setEditEv(it.ev)} hitSlop={8}>
                       <Text style={styles.edit}>✏</Text>
@@ -132,9 +188,9 @@ export default function TimelineScreen() {
                   <View style={styles.metaRow}>
                     <View style={styles.metaText}>
                       <Text style={styles.date}>{formatDateDMY(it.date)}</Text>
-                      <Text style={styles.elapsed}>{timeElapsed(it.date)}</Text>
+                      <Text style={styles.elapsed}>{formatEventElapsed(eventElapsed(it.date))}</Text>
                     </View>
-                    <Badge category={it.ev.category} />
+                    <Badge category={it.ev.category} customCategories={customCategories} />
                   </View>
                 </View>
               </SwipeableDeleteRow>
@@ -159,7 +215,7 @@ export default function TimelineScreen() {
                         {it.talk.location ? `  —  ${it.talk.location}` : ""}
                         {it.talk.number ? `  ·  №${it.talk.number}` : ""}
                       </Text>
-                      <Text style={styles.elapsed}>{timeElapsed(it.date)}</Text>
+                      <Text style={styles.elapsed}>{formatEventElapsed(eventElapsed(it.date))}</Text>
                     </View>
                     <View style={[styles.talkBadge, { backgroundColor: TALK_CATEGORY.bg }]}>
                       <Text style={[styles.talkBadgeText, { color: TALK_CATEGORY.tx }]}>{TALK_CATEGORY.label}</Text>
@@ -175,6 +231,7 @@ export default function TimelineScreen() {
           {editEv && (
             <EventForm
               initial={editEv}
+              customCategories={customCategories}
               onSave={(input) => { saveEvent(input); setEditEv(null); }}
               onDelete={() => confirmDeleteEvent(editEv.id)}
             />
@@ -190,6 +247,25 @@ export default function TimelineScreen() {
             />
           )}
         </Modal>
+
+        <Modal visible={addingTopic} title="Новая тема" onClose={closeTopicModal}>
+          <Field label="Название">
+            <TextField
+              value={topicName}
+              onChangeText={(v) => { setTopicName(v); setTopicError(null); }}
+              placeholder="Например, Конгрессы"
+            />
+          </Field>
+          {topicError ? <Text style={styles.topicError}>{topicError}</Text> : null}
+          <View style={styles.topicActions}>
+            <Pressable onPress={closeTopicModal} style={styles.topicCancelBtn}>
+              <Text style={styles.topicCancelText}>Отмена</Text>
+            </Pressable>
+            <View style={styles.topicSaveWrap}>
+              <PrimaryButton label="Сохранить" onPress={submitTopic} />
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -201,7 +277,31 @@ const styles = StyleSheet.create({
   // <HomeBackground /> layering its gradient on top. No page-local
   // background color — this page no longer has one of its own.
   screen: { flex: 1, backgroundColor: DS.homeBase },
+  scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
+  // TASK_045 — same header treatment as Profile (TASK_044): large navy
+  // title, light-blue subtitle, same horizontal inset, inside the
+  // scrollable content above the search field.
+  pageHeader: { paddingHorizontal: 4, marginBottom: 16 },
+  pageTitle: { fontSize: 28, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
+  pageSubtitle: { fontSize: 14, color: DS.subText, marginTop: 2 },
+  actionsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+    minHeight: 44,
+  },
+  actionBtnPrimary: { backgroundColor: DS.accent },
+  actionBtnSecondary: { backgroundColor: "#ffffff", borderWidth: 1, borderColor: DS.divider },
+  actionTextPrimary: { flexShrink: 1, color: DS.onAccent, fontWeight: "700", fontSize: 13, textAlign: "center" },
+  actionTextSecondary: { flexShrink: 1, color: DS.navy, fontWeight: "700", fontSize: 13, textAlign: "center" },
+  pressed: { opacity: 0.85 },
   search: { marginBottom: 10 },
   filter: { marginBottom: 14 },
   list: { gap: 12 },
@@ -221,4 +321,17 @@ const styles = StyleSheet.create({
   elapsed: { fontSize: 14, fontWeight: "600", color: TIMELINE_COLORS.durationAccent },
   talkBadge: { paddingVertical: 2, paddingHorizontal: 8, borderRadius: 20, alignSelf: "flex-start" },
   talkBadgeText: { fontSize: 11, fontWeight: "700" },
+  topicError: { color: TIMELINE_COLORS.danger, fontSize: 13, marginTop: -6, marginBottom: 10 },
+  topicActions: { flexDirection: "row", gap: 8, marginTop: 4 },
+  topicCancelBtn: {
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: DS.divider,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topicCancelText: { color: TIMELINE_COLORS.primaryText, fontWeight: "600", fontSize: 15 },
+  topicSaveWrap: { flex: 1 },
 });

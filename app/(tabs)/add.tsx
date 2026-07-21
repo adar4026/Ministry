@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text } from "react-native";
 import { Card } from "@/components/ui";
@@ -8,7 +9,15 @@ import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
 export default function AddScreen() {
-  const { sessions, saveRecord, saveEvent, saveTalk } = useStore();
+  const { sessions, customCategories, saveRecord, saveEvent, saveTalk } = useStore();
+  // TASK_045 — the "События" screen's "＋ Добавить событие" action links
+  // here as `/add?focus=event` (same pattern as `/entry?id=…` elsewhere) to
+  // land directly in event-creation mode, with no intermediate record-type
+  // choice: only the event card renders, the other two are skipped rather
+  // than requiring a scroll past them. Reached via the tab bar's "+" (no
+  // param), all three cards render exactly as before.
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const eventOnly = focus === "event";
   // Bumping a key remounts the form, clearing its fields after a successful add.
   const [recKey, setRecKey] = useState(0);
   const [evKey, setEvKey] = useState(0);
@@ -16,25 +25,28 @@ export default function AddScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Card>
-        <Text style={styles.title}>Добавить месяц (часы)</Text>
-        <Text style={styles.hint}>Запишите часы за конкретный месяц</Text>
-        <RecordForm
-          key={`rec-${recKey}`}
-          sessions={sessions}
-          onSave={(input) => {
-            saveRecord(input);
-            setRecKey((k) => k + 1);
-            Alert.alert("Готово", "Запись о часах добавлена.");
-          }}
-        />
-      </Card>
+      {!eventOnly && (
+        <Card>
+          <Text style={styles.title}>Добавить месяц (часы)</Text>
+          <Text style={styles.hint}>Запишите часы за конкретный месяц</Text>
+          <RecordForm
+            key={`rec-${recKey}`}
+            sessions={sessions}
+            onSave={(input) => {
+              saveRecord(input);
+              setRecKey((k) => k + 1);
+              Alert.alert("Готово", "Запись о часах добавлена.");
+            }}
+          />
+        </Card>
+      )}
 
       <Card>
         <Text style={styles.title}>Добавить событие</Text>
         <Text style={styles.hint}>Переезд, назначение, школа и т.д.</Text>
         <EventForm
           key={`ev-${evKey}`}
+          customCategories={customCategories}
           onSave={(input) => {
             saveEvent(input);
             setEvKey((k) => k + 1);
@@ -43,18 +55,20 @@ export default function AddScreen() {
         />
       </Card>
 
-      <Card>
-        <Text style={styles.title}>Добавить речь</Text>
-        <Text style={styles.hint}>Публичная речь с номером и датой</Text>
-        <TalkForm
-          key={`talk-${talkKey}`}
-          onSave={(input) => {
-            saveTalk(input);
-            setTalkKey((k) => k + 1);
-            Alert.alert("Готово", "Речь добавлена.");
-          }}
-        />
-      </Card>
+      {!eventOnly && (
+        <Card>
+          <Text style={styles.title}>Добавить речь</Text>
+          <Text style={styles.hint}>Публичная речь с номером и датой</Text>
+          <TalkForm
+            key={`talk-${talkKey}`}
+            onSave={(input) => {
+              saveTalk(input);
+              setTalkKey((k) => k + 1);
+              Alert.alert("Готово", "Речь добавлена.");
+            }}
+          />
+        </Card>
+      )}
     </ScrollView>
   );
 }

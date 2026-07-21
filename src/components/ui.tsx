@@ -85,6 +85,7 @@ export function ChipSelector<T extends string | number>({
             style={[styles.chip, active ? styles.chipActive : styles.chipIdle]}
           >
             <Text
+              numberOfLines={1}
               style={[
                 styles.chipText,
                 idleTextColor && !active ? { color: idleTextColor } : null,
@@ -142,7 +143,11 @@ const styles = StyleSheet.create({
   dangerBtnText: { color: COLORS.danger, fontWeight: "600", fontSize: 15 },
   pressed: { opacity: 0.75 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1 },
+  // maxWidth (TASK_045) caps a single chip so a long label (e.g. a
+  // user-created event topic) ellipsizes instead of overflowing the row —
+  // existing labels here are all short system words, well under this cap,
+  // so no visible change for them.
+  chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, maxWidth: 200 },
   chipIdle: { backgroundColor: "#fff", borderColor: COLORS.border },
   chipActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
   chipText: { fontSize: 13, color: COLORS.muted, fontWeight: "600" },

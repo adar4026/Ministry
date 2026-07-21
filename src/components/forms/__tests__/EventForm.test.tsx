@@ -1,11 +1,27 @@
 // TASK_022 — EventForm's date field shows/accepts DD-MM-YYYY (the app-wide
 // visible format); the ISO value the store contract requires is only built
 // internally, at submit().
-import { act, create } from "react-test-renderer";
-import { TextInput } from "react-native";
+import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { Pressable, Text, TextInput } from "react-native";
 import { EventForm } from "@/components/forms/EventForm";
 import { PrimaryButton } from "@/components/ui";
-import type { MinistryEvent } from "@/types";
+import type { CustomCategory, MinistryEvent } from "@/types";
+
+// react-native's `Pressable` export is `React.memo(InnerPressable)` —
+// react-test-renderer reports a TestInstance's `.type` as the inner
+// function, not the memo wrapper (same convention as
+// app/(tabs)/__tests__/timeline.test.tsx).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PressableInner = (Pressable as any).type;
+
+function pressableAncestorOfText(root: ReactTestRenderer["root"], text: string) {
+  const textNode = root.findAllByType(Text).find((n) => n.props.children === text);
+  if (!textNode) return undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let node: any = textNode.parent;
+  while (node && node.type !== PressableInner) node = node.parent;
+  return node ?? undefined;
+}
 
 jest.setTimeout(30000);
 
@@ -87,5 +103,65 @@ describe("EventForm — TASK_022 date display", () => {
       renderer.root.findByType(PrimaryButton).props.onPress();
     });
     expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
+// TASK_045 — user-created topics appear in the same ChipSelector as the
+// system categories, both when creating and when editing an event.
+describe("EventForm — custom categories (TASK_045)", () => {
+  const CUSTOM: CustomCategory[] = [{ id: "cc1", name: "Конгрессы" }];
+
+  it("omits any custom-category chip when none are passed (existing callers unaffected)", () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<EventForm onSave={jest.fn()} />);
+    });
+    const texts = renderer.root.findAllByType(Text).map((n) => n.props.children);
+    expect(texts).not.toContain("Конгрессы");
+  });
+
+  it("shows a chip for each passed custom category", () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<EventForm customCategories={CUSTOM} onSave={jest.fn()} />);
+    });
+    const texts = renderer.root.findAllByType(Text).map((n) => n.props.children);
+    expect(texts).toContain("Конгрессы");
+  });
+
+  it("saves an event with a custom category's id when its chip is selected", () => {
+    const onSave = jest.fn();
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<EventForm customCategories={CUSTOM} onSave={onSave} />);
+    });
+    const { date, title } = inputs(renderer.root);
+    act(() => {
+      date.props.onChangeText("28-06-2026");
+      title.props.onChangeText("Конгресс округа");
+    });
+    const chip = pressableAncestorOfText(renderer.root, "Конгрессы");
+    expect(chip).toBeTruthy();
+    act(() => {
+      chip!.props.onPress();
+    });
+    act(() => {
+      renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0]).toMatchObject({ category: "cc1" });
+  });
+
+  it("preserves an existing event's custom category when editing without changing it", () => {
+    const onSave = jest.fn();
+    const initial: MinistryEvent = { id: "e2", date: "2026-06-01", title: "Встреча", category: "cc1" };
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<EventForm initial={initial} customCategories={CUSTOM} onSave={onSave} />);
+    });
+    act(() => {
+      renderer.root.findByType(PrimaryButton).props.onPress();
+    });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ category: "cc1" });
   });
 });

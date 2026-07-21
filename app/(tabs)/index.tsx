@@ -23,7 +23,7 @@ export function formatHomeDate(now: Date): string {
 }
 
 export default function Dashboard() {
-  const { records, sessions, events, profile, saveProfile, saveRecord, deleteRecord } = useStore();
+  const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
   const profileInitials = profile.displayName?.trim()[0]?.toUpperCase();
 
@@ -119,7 +119,7 @@ export default function Dashboard() {
           <SectionHeader title="Последние события" />
           <View style={styles.eventList}>
             {recentEvents.map((ev) => (
-              <EventCard key={ev.id} event={ev} />
+              <EventCard key={ev.id} event={ev} customCategories={customCategories} />
             ))}
           </View>
         </View>

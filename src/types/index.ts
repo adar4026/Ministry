@@ -46,11 +46,23 @@ export type UserProfile = {
   events: ProfileEvent[];
 };
 
+// A user-defined event topic (TASK_045), created on-device to supplement the
+// fixed system `Category` union below. Stable `id` (never the display text)
+// is what MinistryEvent.category references for a user-created topic.
+export type CustomCategory = {
+  id: string;
+  name: string;
+};
+
 export type MinistryEvent = {
   id: string;
   date: string; // ISO: "2026-06-28"
   title: string;
-  category: Category;
+  // A system `Category` value, or a `CustomCategory.id` (TASK_045) — widened
+  // from the closed `Category` union so user-created topics can be
+  // referenced by their stable id without a migration of existing events
+  // (whose values are still valid `Category` strings).
+  category: string;
 };
 
 export type Talk = {

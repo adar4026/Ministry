@@ -1,4 +1,4 @@
-import type { Category, HourRecord, MinistryEvent, Session, Talk } from "@/types";
+import type { Category, CustomCategory, HourRecord, MinistryEvent, Session, Talk } from "@/types";
 import type { Session as SessionType } from "@/types";
 
 // sessionsForMonth() and monthTotal() live in ./stats (TASK_008 relocation —
@@ -68,6 +68,27 @@ export const CAT: Record<
 };
 
 export const CATEGORY_KEYS = Object.keys(CAT) as Category[];
+
+// Single visual style for every user-created topic (TASK_045) — distinct
+// from all six system categories and from TALK_CATEGORY's indigo, so a
+// custom topic never reads as an existing built-in one.
+const CUSTOM_CATEGORY_STYLE = { bg: "#cffafe", tx: "#155e75", dot: "#06b6d4" };
+
+// Resolves an event's `category` (a system Category key OR a
+// CustomCategory.id, TASK_045) to display metadata. Falls back to
+// CAT.other for anything unresolved — the same fallback every existing
+// caller (Badge, EventCard, the Events timeline) already used for any
+// unrecognized category before this task.
+export function categoryMeta(
+  categoryId: string,
+  customCategories: CustomCategory[] = [],
+): { label: string; bg: string; tx: string; dot: string } {
+  const system = (CAT as Record<string, (typeof CAT)[Category]>)[categoryId];
+  if (system) return system;
+  const custom = customCategories.find((c) => c.id === categoryId);
+  if (custom) return { label: custom.name, ...CUSTOM_CATEGORY_STYLE };
+  return CAT.other;
+}
 
 // Display metadata for public talks shown in the unified Events timeline.
 // Talks keep their own collection (see StoreContext); this is UI-only styling
@@ -208,26 +229,6 @@ export function serviceYearAggregation(records: HourRecord[], sessions: Session[
 // Simple unique id for user-created entries.
 export const uid = (): string =>
   "x" + Date.now() + Math.random().toString(36).slice(2, 5);
-
-// Time elapsed since an ISO date ("YYYY-MM-DD"), relative to now.
-// "Сегодня" for today, "X мес." under a year, "X лет Y мес." from a year on.
-export function timeElapsed(isoDate: string, now: Date = new Date()): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const event = new Date(y, m - 1, d);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (event.getTime() === today.getTime()) return "Сегодня";
-
-  let months = (today.getFullYear() - event.getFullYear()) * 12 + (today.getMonth() - event.getMonth());
-  if (today.getDate() < event.getDate()) months -= 1;
-  months = Math.max(0, months);
-
-  if (months < 12) return `${months} мес.`;
-
-  const years = Math.floor(months / 12);
-  const remMonths = months % 12;
-  return `${years} лет ${remMonths} мес.`;
-}
 
 // The one canonical full-date display formatter lives in dateFormat.ts
 // (TASK_022) — re-exported here so the many existing call sites that

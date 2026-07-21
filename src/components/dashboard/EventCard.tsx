@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Badge } from "@/components/Badge";
-import { CAT } from "@/data/constants";
+import { categoryMeta } from "@/data/constants";
 import { calendarElapsed, formatDateDMY, formatElapsedRu } from "@/data/dateFormat";
-import type { MinistryEvent } from "@/types";
+import type { CustomCategory, MinistryEvent } from "@/types";
 import { DS } from "./tokens";
 import { SummaryCard } from "./SummaryCard";
 
@@ -17,12 +17,16 @@ import { SummaryCard } from "./SummaryCard";
 // subordinate to title and metadata per the section's hierarchy.
 export function EventCard({
   event,
+  customCategories = [],
   onPress,
 }: {
   event: MinistryEvent;
+  // Optional/defaults to `[]` (TASK_045) — existing callers that only ever
+  // rendered system-category events keep working unchanged.
+  customCategories?: CustomCategory[];
   onPress?: (event: MinistryEvent) => void;
 }) {
-  const dotColor = (CAT[event.category] ?? CAT.other).dot;
+  const dotColor = categoryMeta(event.category, customCategories).dot;
   const elapsed = formatElapsedRu(calendarElapsed(event.date));
   return (
     <SummaryCard onPress={onPress ? () => onPress(event) : undefined} style={styles.card}>
@@ -37,7 +41,7 @@ export function EventCard({
           <Text style={styles.date}>{formatDateDMY(event.date)}</Text>
           {elapsed ? <Text style={styles.elapsed}>{elapsed}</Text> : null}
         </View>
-        <Badge category={event.category} />
+        <Badge category={event.category} customCategories={customCategories} />
       </View>
     </SummaryCard>
   );

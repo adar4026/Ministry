@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
-import { uid } from "@/data/constants";
-import type { HourRecord, MinistryEvent, ProfileEvent, Session, Talk, UserProfile } from "@/types";
+import { CAT, uid } from "@/data/constants";
+import type { CustomCategory, HourRecord, MinistryEvent, ProfileEvent, Session, Talk, UserProfile } from "@/types";
 
 // AsyncStorage keys — see ARCHITECTURE.md. Bump the version + write a migration
 // if the shape of any of these arrays ever changes.
@@ -12,6 +12,7 @@ const KEYS = {
   talks: "mj_talks_v1",
   sessions: "mj_sessions_v1",
   profile: "mj_profile_v1",
+  customCategories: "mj_custom_categories_v1",
 } as const;
 
 // Re-exported for src/data/backupImport.ts (TASK_013) — single source of
@@ -25,6 +26,9 @@ const SEED_SESSIONS: Session[] = [];
 // — that file's empty-array contract is specifically about the four
 // original collections, see CLAUDE.md).
 const SEED_PROFILE: UserProfile = { events: [] };
+
+// TASK_045 — no user-created event topics on first run.
+const SEED_CUSTOM_CATEGORIES: CustomCategory[] = [];
 
 // Hard cap on profile events (TASK_042 revision — was 4, now 3) — enforced
 // here, not just in the UI, so no caller (including a future backup-restore
@@ -78,6 +82,13 @@ export type ProfileInput = {
   events: ProfileEventInput[];
 };
 
+// TASK_045 — result of an addCustomCategory() attempt. "empty" is a
+// blank/whitespace-only name; "duplicate" matches an existing system or
+// custom topic case/whitespace-insensitively.
+export type AddCustomCategoryResult =
+  | { ok: true; category: CustomCategory }
+  | { ok: false; error: "empty" | "duplicate" };
+
 // Full-replace input for TASK_013 backup restore (see
 // src/data/backupImport.ts / src/components/settings/BackupSection.tsx).
 // Bypasses the per-item save*() helpers — the caller has already validated
@@ -98,6 +109,7 @@ type StoreValue = {
   talks: Talk[];
   sessions: Session[];
   profile: UserProfile;
+  customCategories: CustomCategory[];
   loaded: boolean;
   saveRecord: (input: RecordInput) => void;
   deleteRecord: (id: string) => void;
@@ -108,6 +120,7 @@ type StoreValue = {
   saveSession: (input: SessionInput) => void;
   deleteSession: (id: string) => void;
   saveProfile: (input: ProfileInput) => void;
+  addCustomCategory: (name: string) => AddCustomCategoryResult;
   replaceAllData: (data: ReplaceAllDataInput) => void;
 };
 
@@ -119,8 +132,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [talks, setTalks, tLoaded] = usePersistentState<Talk[]>(KEYS.talks, SEED_TALKS);
   const [sessions, setSessions, sLoaded] = usePersistentState<Session[]>(KEYS.sessions, SEED_SESSIONS);
   const [profile, setProfile, pLoaded] = usePersistentState<UserProfile>(KEYS.profile, SEED_PROFILE);
+  const [customCategories, setCustomCategories, ccLoaded] = usePersistentState<CustomCategory[]>(
+    KEYS.customCategories,
+    SEED_CUSTOM_CATEGORIES,
+  );
 
-  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded;
+  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded && ccLoaded;
 
   // TASK_042 revision — normalizes a profile persisted by the previous
   // (uncommitted, never-shipped) 4-event limit down to the current 3-event
@@ -211,6 +228,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  // TASK_045 — trims + collapses internal whitespace runs before both the
+  // empty check and the duplicate check, per the product rule ("не
+  // учитывать регистр и лишние пробелы"). Checked against system category
+  // labels too (not just other custom topics) so a custom "Пионер" can't
+  // shadow the built-in one.
+  function addCustomCategory(name: string): AddCustomCategoryResult {
+    const normalized = name.trim().replace(/\s+/g, " ");
+    if (!normalized) return { ok: false, error: "empty" };
+
+    const key = normalized.toLowerCase();
+    const systemLabels = Object.values(CAT).map((c) => c.label.toLowerCase());
+    const customNames = customCategories.map((c) => c.name.toLowerCase());
+    if (systemLabels.includes(key) || customNames.includes(key)) {
+      return { ok: false, error: "duplicate" };
+    }
+
+    const category: CustomCategory = { id: uid(), name: normalized };
+    setCustomCategories((cs) => [...cs, category]);
+    return { ok: true, category };
+  }
+
   function replaceAllData(data: ReplaceAllDataInput) {
     setRecords(data.records);
     setEvents(data.events);
@@ -224,6 +262,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     talks,
     sessions,
     profile,
+    customCategories,
     loaded,
     saveRecord,
     deleteRecord,
@@ -234,6 +273,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     saveSession,
     deleteSession,
     saveProfile,
+    addCustomCategory,
     replaceAllData,
   };
 

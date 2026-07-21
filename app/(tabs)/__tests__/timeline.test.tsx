@@ -17,6 +17,10 @@ import { StoreProvider, useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
 import TimelineScreen from "../timeline";
 
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { router: mockRouter } = jest.requireMock("expo-router") as { router: { push: jest.Mock } };
+
 jest.mock("react-native-gesture-handler", () => {
   const RN = jest.requireActual("react-native");
   return {
@@ -115,6 +119,13 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
 });
+
+// Helper to find the TextInput inside a given Field-wrapped modal, matched by
+// its current placeholder (same shape as other TextField lookups in this
+// file, e.g. `placeholder: "Поиск..."`).
+function textFieldByPlaceholder(root: ReactTestRenderer["root"], placeholder: string) {
+  return root.findByProps({ placeholder });
+}
 
 describe("Events screen (TASK_041) — top topic filters", () => {
   it("renames the topic labels and does not add «Задания»", async () => {
@@ -261,5 +272,112 @@ describe("Events screen (TASK_041) — swipe-to-delete", () => {
       .findAllByType(require("react-native").TextInput)
       .find((n: { props: { value?: string } }) => n.props.value === "Редактируемое событие");
     expect(titleInput).toBeTruthy();
+  });
+});
+
+// TASK_045 — header block, "Добавить событие"/"Добавить тему" actions, and
+// the exact (non-rounded) calendar duration on cards.
+describe("Events screen (TASK_045) — header and actions", () => {
+  it("shows the page title and subtitle above the search field", async () => {
+    const { texts } = await renderScreen();
+    const t = texts();
+    expect(t).toContain("События");
+    expect(t).toContain("Важные даты и мероприятия");
+  });
+
+  it("'Добавить событие' navigates to /add?focus=event, reusing the existing form/route", async () => {
+    const { root } = await renderScreen();
+    const btn = pressableAncestorOfText(root(), "Добавить событие");
+    expect(btn).toBeTruthy();
+    await act(async () => {
+      btn!.props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith("/add?focus=event");
+  });
+
+  it("shows the exact calendar duration (with a day remainder), not a whole month rounded off", async () => {
+    // 12 days back from "today" is always < 1 calendar month, regardless of
+    // when this test runs — no month-boundary ambiguity to account for.
+    const today = new Date();
+    const past = new Date(today);
+    past.setDate(past.getDate() - 12);
+    const iso = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, "0")}-${String(past.getDate()).padStart(2, "0")}`;
+    await AsyncStorage.setItem("mj_events_v1", JSON.stringify([evt("e1", iso, "Старое событие", "other")]));
+    const { texts } = await renderScreen();
+    expect(texts()).toContain("прошло 12 дн.");
+  });
+});
+
+describe("Events screen (TASK_045) — custom topics", () => {
+  it("rejects an empty topic name with a visible message and no filter chip added", async () => {
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
+    });
+    await act(async () => {
+      pressableAncestorOfText(root(), "Сохранить")!.props.onPress();
+    });
+    expect(texts()).toContain("Введите название темы.");
+  });
+
+  it("creates a new topic and shows it immediately as a filter chip", async () => {
+    const { root, texts, store } = await renderScreen();
+    await act(async () => {
+      pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
+    });
+    const input = textFieldByPlaceholder(root(), "Например, Конгрессы");
+    await act(async () => {
+      input.props.onChangeText("Конгрессы");
+    });
+    await act(async () => {
+      pressableAncestorOfText(root(), "Сохранить")!.props.onPress();
+    });
+    expect(store().customCategories.map((c) => c.name)).toContain("Конгрессы");
+    expect(texts()).toContain("Конгрессы");
+  });
+
+  it("rejects a duplicate topic name (case/whitespace-insensitive) with a visible message", async () => {
+    const { root, texts, store } = await renderScreen();
+    await act(async () => {
+      store().addCustomCategory("Поездки");
+    });
+    await act(async () => {
+      pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
+    });
+    const input = textFieldByPlaceholder(root(), "Например, Конгрессы");
+    await act(async () => {
+      input.props.onChangeText("  поездки  ");
+    });
+    await act(async () => {
+      pressableAncestorOfText(root(), "Сохранить")!.props.onPress();
+    });
+    expect(texts()).toContain("Такая тема уже существует.");
+    expect(store().customCategories).toHaveLength(1);
+  });
+
+  it("shows an event tagged with a custom topic when that topic's filter is selected", async () => {
+    await AsyncStorage.setItem(
+      "mj_custom_categories_v1",
+      JSON.stringify([{ id: "cc1", name: "Конгрессы" }]),
+    );
+    await AsyncStorage.setItem(
+      "mj_events_v1",
+      JSON.stringify([
+        evt("e1", "2026-07-01", "Окружной конгресс", "cc1"),
+        evt("e2", "2026-07-02", "Другое событие", "other"),
+      ]),
+    );
+    const { root, texts } = await renderScreen();
+    expect(texts()).toEqual(expect.arrayContaining(["Окружной конгресс", "Другое событие"]));
+
+    const chip = pressableAncestorOfText(root(), "Конгрессы");
+    expect(chip).toBeTruthy();
+    await act(async () => {
+      chip!.props.onPress();
+    });
+
+    const t = texts();
+    expect(t).toContain("Окружной конгресс");
+    expect(t).not.toContain("Другое событие");
   });
 });

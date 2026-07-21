@@ -325,6 +325,110 @@ describe("StoreContext — TASK_009 empty-seed behavior", () => {
   });
 });
 
+// TASK_045 — user-created event topics. System categories/`CAT` are
+// unaffected; this is purely the new customCategories collection + its one
+// mutator, addCustomCategory().
+describe("StoreContext — addCustomCategory (TASK_045)", () => {
+  it("starts with an empty customCategories array", async () => {
+    const { get } = await renderStore();
+    expect(get().loaded).toBe(true);
+    expect(get().customCategories).toEqual([]);
+  });
+
+  it("creates a new topic with a generated id", async () => {
+    const { get } = await renderStore();
+    let result: ReturnType<Store["addCustomCategory"]>;
+    await act(async () => {
+      result = get().addCustomCategory("Конгрессы");
+    });
+    expect(result!.ok).toBe(true);
+    expect(get().customCategories).toHaveLength(1);
+    expect(get().customCategories[0].name).toBe("Конгрессы");
+    expect(get().customCategories[0].id).toBeTruthy();
+  });
+
+  it("trims surrounding whitespace and collapses internal runs before saving", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().addCustomCategory("  Особые   дни  ");
+    });
+    expect(get().customCategories[0].name).toBe("Особые дни");
+  });
+
+  it("rejects an empty name", async () => {
+    const { get } = await renderStore();
+    let result: ReturnType<Store["addCustomCategory"]>;
+    await act(async () => {
+      result = get().addCustomCategory("");
+    });
+    expect(result!).toEqual({ ok: false, error: "empty" });
+    expect(get().customCategories).toEqual([]);
+  });
+
+  it("rejects a whitespace-only name", async () => {
+    const { get } = await renderStore();
+    let result: ReturnType<Store["addCustomCategory"]>;
+    await act(async () => {
+      result = get().addCustomCategory("   ");
+    });
+    expect(result!).toEqual({ ok: false, error: "empty" });
+    expect(get().customCategories).toEqual([]);
+  });
+
+  it("rejects a duplicate of an existing custom topic, case/whitespace-insensitively", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().addCustomCategory("Поездки");
+    });
+    let result: ReturnType<Store["addCustomCategory"]>;
+    await act(async () => {
+      result = get().addCustomCategory("  поездки  ");
+    });
+    expect(result!).toEqual({ ok: false, error: "duplicate" });
+    expect(get().customCategories).toHaveLength(1);
+  });
+
+  it("rejects a name that duplicates an existing system category label", async () => {
+    const { get } = await renderStore();
+    let result: ReturnType<Store["addCustomCategory"]>;
+    await act(async () => {
+      // "Пионер" is CAT.pioneer's label — a custom topic must not shadow it.
+      result = get().addCustomCategory("пионер");
+    });
+    expect(result!).toEqual({ ok: false, error: "duplicate" });
+    expect(get().customCategories).toEqual([]);
+  });
+
+  it("persists customCategories to AsyncStorage under mj_custom_categories_v1", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().addCustomCategory("Конгрессы");
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const raw = await AsyncStorage.getItem("mj_custom_categories_v1");
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw as string);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].name).toBe("Конгрессы");
+  });
+
+  it("survives a simulated app restart (remount against the same storage)", async () => {
+    const first = await renderStore();
+    await act(async () => {
+      first.get().addCustomCategory("Собрания");
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const second = await renderStore();
+    expect(second.get().customCategories).toHaveLength(1);
+    expect(second.get().customCategories[0].name).toBe("Собрания");
+  });
+});
+
 // TASK_013 production bug fix regression tests. Root cause: react-native-web's
 // Alert.alert() is a no-op (its entire implementation is `static alert() {}`),
 // so the button callback that used to trigger window.location.reload() after
