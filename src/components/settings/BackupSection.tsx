@@ -7,6 +7,8 @@ import { performImport, readCurrentData, BackupImportError } from "@/data/backup
 import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 import { Modal } from "@/components/Modal";
 import { DangerButton, PrimaryButton } from "@/components/ui";
+import { DownloadIcon, RefreshCwIcon } from "@/components/icons";
+import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 
 // Date portion via the app-wide canonical formatter (TASK_022) — was a
 // locally-grown "DD.MM.YYYY" (dots); only the separator changes, the
@@ -23,7 +25,10 @@ const PLATFORM_UNSUPPORTED_MESSAGE =
 
 type Feedback = { kind: "success" | "error"; title: string; message: string };
 
-export function BackupSection() {
+// `last` (TASK_044) controls whether the second row ("Резервная копия")
+// draws its bottom divider — false when the caller places another row
+// (e.g. "Синхронизация") right after it inside the same card.
+export function BackupSection({ last = true }: { last?: boolean } = {}) {
   const { records, events, talks, sessions, replaceAllData } = useStore();
   const [exporting, setExporting] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -146,11 +151,27 @@ export function BackupSection() {
   const busy = exporting || picking || importing;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.description}>
-        Создайте резервную копию, чтобы перенести данные между Safari и приложением на экране «Домой» или
-        восстановить их позже.
-      </Text>
+    <>
+      <ProfileSettingsRow
+        icon={DownloadIcon}
+        title="Экспорт данных"
+        subtitle="Сохранить копию данных приложения"
+        accessibilityLabel="Экспортировать данные"
+        onPress={handleExport}
+        disabled={busy}
+        busy={exporting}
+        last={false}
+      />
+      <ProfileSettingsRow
+        icon={RefreshCwIcon}
+        title="Резервная копия"
+        subtitle="Создать или восстановить копию данных"
+        accessibilityLabel="Импортировать данные"
+        onPress={handlePickImport}
+        disabled={busy}
+        busy={picking}
+        last={last}
+      />
 
       {feedback && (
         <View style={[styles.feedback, feedback.kind === "success" ? styles.feedbackSuccess : styles.feedbackError]}>
@@ -181,32 +202,6 @@ export function BackupSection() {
           </Pressable>
         </View>
       )}
-
-      <View style={styles.buttonRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Экспортировать данные"
-          disabled={busy}
-          onPress={handleExport}
-          style={({ pressed }) => [styles.exportBtn, (pressed || busy) && styles.pressed]}
-        >
-          {exporting ? <ActivityIndicator color="#fff" /> : <Text style={styles.exportBtnText}>Экспортировать данные</Text>}
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Импортировать данные"
-          disabled={busy}
-          onPress={handlePickImport}
-          style={({ pressed }) => [styles.importBtn, (pressed || busy) && styles.pressed]}
-        >
-          {picking ? (
-            <ActivityIndicator color={COLORS.blue} />
-          ) : (
-            <Text style={styles.importBtnText}>Импортировать данные</Text>
-          )}
-        </Pressable>
-      </View>
 
       <Modal visible={!!preview} title="Импорт резервной копии" onClose={handleCancelPreview}>
         {preview && (
@@ -258,13 +253,11 @@ export function BackupSection() {
           </View>
         )}
       </Modal>
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 16 },
-  description: { fontSize: 13, color: COLORS.muted, marginBottom: 12, lineHeight: 18 },
   feedback: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -280,30 +273,6 @@ const styles = StyleSheet.create({
   feedbackSuccessText: { color: "#166534" },
   feedbackErrorText: { color: COLORS.danger },
   feedbackClose: { fontSize: 16, fontWeight: "700", paddingHorizontal: 2 },
-  buttonRow: { flexDirection: "row", gap: 10, paddingBottom: 4 },
-  exportBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: COLORS.blue,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  exportBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  importBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: COLORS.blue,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  importBtnText: { color: COLORS.blue, fontWeight: "700", fontSize: 14 },
-  pressed: { opacity: 0.7 },
   warning: {
     fontSize: 14,
     fontWeight: "700",

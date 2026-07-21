@@ -124,3 +124,112 @@ export function ChevronRightIcon({ size = 18, color }: IconProps) {
     </Svg>
   );
 }
+
+// TASK_044 — Profile page redesign: icons for ProfileSettingsRow entries.
+// Same minimal 24x24 stroke-based style as the icons above.
+export function BellIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M10 18a2 2 0 0 0 4 0" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function TargetIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={2} />
+      <Circle cx={12} cy={12} r={5} stroke={color} strokeWidth={2} />
+      <Circle cx={12} cy={12} r={1.2} fill={color} />
+    </Svg>
+  );
+}
+
+export function PaletteIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 4a8 8 0 1 0 0 16c1.5 0 1.6-1.2.8-2-.5-.5-.3-1.3.5-1.3H15a4 4 0 0 0 4-4c0-4.5-3.5-8.7-7-8.7Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Circle cx={8} cy={11} r={1} fill={color} />
+      <Circle cx={9.5} cy={15} r={1} fill={color} />
+      <Circle cx={14} cy={8.5} r={1} fill={color} />
+    </Svg>
+  );
+}
+
+export function GlobeIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={2} />
+      <Line x1={3} y1={12} x2={21} y2={12} stroke={color} strokeWidth={2} />
+      <Path
+        d="M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function DownloadIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 3v12" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M7 10l5 5 5-5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M4 19h16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function RefreshCwIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20 12a8 8 0 1 1-2.6-5.9" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M20 4v5h-5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function CloudIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 18a4 4 0 0 1-.5-7.97A5 5 0 0 1 16 8.06 4.5 4.5 0 0 1 17.5 18H7Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function InfoIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={2} />
+      <Line x1={12} y1={11} x2={12} y2={16} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Circle cx={12} cy={8} r={1} fill={color} />
+    </Svg>
+  );
+}
+
+export function MessageIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 5h16v11H8l-4 4V5Z" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+    </Svg>
+  );
+}
