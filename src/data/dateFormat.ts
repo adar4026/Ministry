@@ -182,3 +182,18 @@ export function formatElapsedRu(elapsed: CalendarElapsed): string {
   if (elapsed.days > 0 || parts.length === 0) parts.push(`${elapsed.days} дн.`);
   return parts.join(" ");
 }
+
+// Compact duration for the Profile hero card's event rows (TASK_042 §5/§6).
+// Deliberately distinct from formatElapsedRu() above: no dots ("2 г 1 мес",
+// not "2 г. 1 мес."), no day component (the card only ever shows years and
+// months), and "менее 1 мес" instead of a "0 дн." fallback when nothing full
+// has elapsed yet. Built on the same calendarElapsed() calendar-exact
+// years/months — no separate elapsed-time math.
+export function formatProfileEventElapsed(elapsed: CalendarElapsed): string {
+  if (elapsed.years === 0 && elapsed.months === 0) return "менее 1 мес";
+
+  const parts: string[] = [];
+  if (elapsed.years > 0) parts.push(`${elapsed.years} г`);
+  if (elapsed.months > 0) parts.push(`${elapsed.months} мес`);
+  return parts.join(" ");
+}

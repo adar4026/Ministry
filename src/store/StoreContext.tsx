@@ -1,8 +1,8 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
 import { uid } from "@/data/constants";
-import type { HourRecord, MinistryEvent, Session, Talk } from "@/types";
+import type { HourRecord, MinistryEvent, ProfileEvent, Session, Talk, UserProfile } from "@/types";
 
 // AsyncStorage keys — see ARCHITECTURE.md. Bump the version + write a migration
 // if the shape of any of these arrays ever changes.
@@ -11,6 +11,7 @@ const KEYS = {
   events: "mj_events_v1",
   talks: "mj_talks_v1",
   sessions: "mj_sessions_v1",
+  profile: "mj_profile_v1",
 } as const;
 
 // Re-exported for src/data/backupImport.ts (TASK_013) — single source of
@@ -18,6 +19,17 @@ const KEYS = {
 export const STORAGE_KEYS = KEYS;
 
 const SEED_SESSIONS: Session[] = [];
+
+// TASK_042 — empty profile, no pre-filled name/photo/events. Same
+// locally-defined-seed pattern as SEED_SESSIONS above (not src/data/seed.js
+// — that file's empty-array contract is specifically about the four
+// original collections, see CLAUDE.md).
+const SEED_PROFILE: UserProfile = { events: [] };
+
+// Hard cap on profile events (TASK_042 revision — was 4, now 3) — enforced
+// here, not just in the UI, so no caller (including a future backup-restore
+// path) can ever persist a 4th event.
+const MAX_PROFILE_EVENTS = 3;
 
 // Inputs accepted by the save* functions (id absent => create, id present => update).
 export type RecordInput = {
@@ -51,6 +63,21 @@ export type SessionInput = {
   source: Session["source"];
 };
 
+// TASK_042 — full-replace input for the Profile edit sheet. `events` missing
+// an `id` are treated as new; saveProfile() below is the single place that
+// generates ids and enforces the 4-event cap, mirroring backupImport's
+// "one place applies the write" convention.
+export type ProfileEventInput = {
+  id?: string;
+  title: string;
+  date: string;
+};
+export type ProfileInput = {
+  displayName?: string;
+  profilePhotoUri?: string;
+  events: ProfileEventInput[];
+};
+
 // Full-replace input for TASK_013 backup restore (see
 // src/data/backupImport.ts / src/components/settings/BackupSection.tsx).
 // Bypasses the per-item save*() helpers — the caller has already validated
@@ -70,6 +97,7 @@ type StoreValue = {
   events: MinistryEvent[];
   talks: Talk[];
   sessions: Session[];
+  profile: UserProfile;
   loaded: boolean;
   saveRecord: (input: RecordInput) => void;
   deleteRecord: (id: string) => void;
@@ -79,6 +107,7 @@ type StoreValue = {
   deleteTalk: (id: string) => void;
   saveSession: (input: SessionInput) => void;
   deleteSession: (id: string) => void;
+  saveProfile: (input: ProfileInput) => void;
   replaceAllData: (data: ReplaceAllDataInput) => void;
 };
 
@@ -89,8 +118,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [events, setEvents, eLoaded] = usePersistentState<MinistryEvent[]>(KEYS.events, SEED_EVENTS);
   const [talks, setTalks, tLoaded] = usePersistentState<Talk[]>(KEYS.talks, SEED_TALKS);
   const [sessions, setSessions, sLoaded] = usePersistentState<Session[]>(KEYS.sessions, SEED_SESSIONS);
+  const [profile, setProfile, pLoaded] = usePersistentState<UserProfile>(KEYS.profile, SEED_PROFILE);
 
-  const loaded = rLoaded && eLoaded && tLoaded && sLoaded;
+  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded;
+
+  // TASK_042 revision — normalizes a profile persisted by the previous
+  // (uncommitted, never-shipped) 4-event limit down to the current 3-event
+  // cap, once, right after hydration. Never touches storage before `pLoaded`
+  // (same hydration-guard convention as every other collection here) and is
+  // a no-op for any profile already within the limit.
+  useEffect(() => {
+    if (pLoaded && profile.events.length > MAX_PROFILE_EVENTS) {
+      setProfile((p) => ({ ...p, events: p.events.slice(0, MAX_PROFILE_EVENTS) }));
+    }
+  }, [pLoaded, profile.events.length]);
 
   function saveRecord(input: RecordInput) {
     const rec: HourRecord = {
@@ -156,6 +197,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSessions((ss) => ss.filter((x) => x.id !== id));
   }
 
+  function saveProfile(input: ProfileInput) {
+    const name = input.displayName?.trim();
+    const events: ProfileEvent[] = input.events.slice(0, MAX_PROFILE_EVENTS).map((e) => ({
+      id: e.id || uid(),
+      title: e.title.trim(),
+      date: e.date,
+    }));
+    setProfile({
+      displayName: name ? name : undefined,
+      profilePhotoUri: input.profilePhotoUri,
+      events,
+    });
+  }
+
   function replaceAllData(data: ReplaceAllDataInput) {
     setRecords(data.records);
     setEvents(data.events);
@@ -168,6 +223,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     events,
     talks,
     sessions,
+    profile,
     loaded,
     saveRecord,
     deleteRecord,
@@ -177,6 +233,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteTalk,
     saveSession,
     deleteSession,
+    saveProfile,
     replaceAllData,
   };
 

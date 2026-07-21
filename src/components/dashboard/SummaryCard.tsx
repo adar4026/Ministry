@@ -18,6 +18,7 @@ export function SummaryCard({
   onPress,
   children,
   style,
+  accessibilityLabel,
 }: {
   title?: string;
   accent?: string;
@@ -25,6 +26,11 @@ export function SummaryCard({
   onPress?: () => void;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  // TASK_042 — optional a11y label for the pressable card as a whole (e.g.
+  // Profile's hero card, which has no `title` header to derive one from).
+  // Only applied when `onPress` is set; existing callers that don't pass it
+  // are unaffected.
+  accessibilityLabel?: string;
 }) {
   const inner = (
     <View style={[styles.card, style]}>
@@ -43,7 +49,12 @@ export function SummaryCard({
 
   if (!onPress) return inner;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => (pressed ? styles.pressed : undefined)}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => (pressed ? styles.pressed : undefined)}
+    >
       {inner}
     </Pressable>
   );

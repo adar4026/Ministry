@@ -106,6 +106,140 @@ describe("StoreContext — Session CRUD", () => {
   });
 });
 
+// TASK_042 — Profile hero card storage. Mirrors the Session CRUD suite
+// above: empty-by-default seed, no baptism/pioneer preset fields, a single
+// full-replace saveProfile(), and the 4-event cap enforced in the data layer
+// itself (not just the UI) so no caller can ever persist a 5th event.
+describe("StoreContext — Profile (TASK_042)", () => {
+  it("starts with an empty profile — no name, no photo, no preset events", async () => {
+    const { get } = await renderStore();
+    expect(get().loaded).toBe(true);
+    expect(get().profile).toEqual({ events: [] });
+  });
+
+  it("never seeds baptism/pioneer/move as default events", async () => {
+    const { get } = await renderStore();
+    const titles = get().profile.events.map((e) => e.title.toLowerCase());
+    expect(titles).not.toEqual(expect.arrayContaining([expect.stringContaining("крещен")]));
+    expect(titles).not.toEqual(expect.arrayContaining([expect.stringContaining("пионер")]));
+  });
+
+  it("saveProfile sets displayName, photo, and events", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({
+        displayName: "Александр",
+        profilePhotoUri: "file:///photo.jpg",
+        events: [{ title: "Крещение", date: "2016-08-15" }],
+      });
+    });
+    expect(get().profile.displayName).toBe("Александр");
+    expect(get().profile.profilePhotoUri).toBe("file:///photo.jpg");
+    expect(get().profile.events).toHaveLength(1);
+    expect(get().profile.events[0].title).toBe("Крещение");
+    expect(get().profile.events[0].id).toBeTruthy();
+  });
+
+  it("trims displayName and drops it to undefined when blank/whitespace-only", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({ displayName: "   ", events: [] });
+    });
+    expect(get().profile.displayName).toBeUndefined();
+  });
+
+  it("trims a padded displayName", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({ displayName: "  Александр  ", events: [] });
+    });
+    expect(get().profile.displayName).toBe("Александр");
+  });
+
+  it("caps events at 3 even if the caller passes more", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({
+        events: [
+          { title: "A", date: "2020-01-01" },
+          { title: "B", date: "2020-01-02" },
+          { title: "C", date: "2020-01-03" },
+          { title: "D", date: "2020-01-04" },
+          { title: "E", date: "2020-01-05" },
+        ],
+      });
+    });
+    expect(get().profile.events).toHaveLength(3);
+    expect(get().profile.events.map((e) => e.title)).toEqual(["A", "B", "C"]);
+  });
+
+  it("preserves an existing event's id when it is passed back unchanged", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({ events: [{ title: "Пионер", date: "2022-09-01" }] });
+    });
+    const firstId = get().profile.events[0].id;
+
+    await act(async () => {
+      get().saveProfile({ events: [{ id: firstId, title: "Пионер (изменено)", date: "2022-09-01" }] });
+    });
+    expect(get().profile.events).toHaveLength(1);
+    expect(get().profile.events[0].id).toBe(firstId);
+    expect(get().profile.events[0].title).toBe("Пионер (изменено)");
+  });
+
+  it("persists the profile to AsyncStorage under mj_profile_v1", async () => {
+    const { get } = await renderStore();
+    await act(async () => {
+      get().saveProfile({ displayName: "Тест", events: [] });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const raw = await AsyncStorage.getItem("mj_profile_v1");
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw as string).displayName).toBe("Тест");
+  });
+
+  // TASK_042 revision — the previous (uncommitted, never-shipped) draft used
+  // a 4-event limit; this proves a profile already persisted with 4 events
+  // is safely normalized down to 3 on load, keeping the first three in order.
+  it("normalizes a previously-saved 4-event profile down to the current 3-event limit on load", async () => {
+    await AsyncStorage.setItem(
+      "mj_profile_v1",
+      JSON.stringify({
+        displayName: "Александр",
+        events: [
+          { id: "1", title: "A", date: "2020-01-01" },
+          { id: "2", title: "B", date: "2020-01-02" },
+          { id: "3", title: "C", date: "2020-01-03" },
+          { id: "4", title: "D", date: "2020-01-04" },
+        ],
+      }),
+    );
+    const { get } = await renderStore();
+    expect(get().profile.events).toHaveLength(3);
+    expect(get().profile.events.map((e) => e.id)).toEqual(["1", "2", "3"]);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const raw = await AsyncStorage.getItem("mj_profile_v1");
+    expect(JSON.parse(raw as string).events).toHaveLength(3);
+  });
+
+  it("does not touch a profile already within the 3-event limit", async () => {
+    const threeEvents = [
+      { id: "1", title: "A", date: "2020-01-01" },
+      { id: "2", title: "B", date: "2020-01-02" },
+      { id: "3", title: "C", date: "2020-01-03" },
+    ];
+    await AsyncStorage.setItem("mj_profile_v1", JSON.stringify({ events: threeEvents }));
+    const { get } = await renderStore();
+    expect(get().profile.events).toEqual(threeEvents);
+  });
+});
+
 // TASK_009: src/data/seed.js's SEED_RECORDS/SEED_EVENTS/SEED_TALKS are now
 // empty arrays. These tests prove existing device data still loads ahead of
 // the empty seed, that a fresh install starts empty, and that a second

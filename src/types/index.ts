@@ -25,6 +25,27 @@ export type HourRecord = {
   note: string; // optional note
 };
 
+// A user-defined memorable date on the Profile hero card (TASK_042) — no
+// fixed "baptism"/"pioneer" fields; the user names and dates every entry
+// themselves. Intentionally separate from MinistryEvent (timeline/Home) and
+// Talk — this is profile-only data, never mixed with sessions/hours/timeline
+// aggregation.
+export type ProfileEvent = {
+  id: string;
+  title: string;
+  date: string; // ISO: "2026-06-28"
+};
+
+// Profile hero card data (TASK_042). `events` holds at most 4 entries — the
+// array order is the display order. Both `displayName` and
+// `profilePhotoUri` are optional; an absent/empty profile renders as the
+// card's empty state, not as pre-filled system fields.
+export type UserProfile = {
+  displayName?: string;
+  profilePhotoUri?: string;
+  events: ProfileEvent[];
+};
+
 export type MinistryEvent = {
   id: string;
   date: string; // ISO: "2026-06-28"

@@ -6,6 +6,7 @@ import {
   formatDateDMY,
   formatElapsedRu,
   formatHistoryListDate,
+  formatProfileEventElapsed,
   isValidDMY,
   parseDMYToISO,
   pluralDaysRu,
@@ -239,5 +240,52 @@ describe("calendarElapsed / formatElapsedRu", () => {
     const elapsed = calendarElapsed("2099-01-01", new Date(2026, 6, 18));
     expect(elapsed.isFuture).toBe(true);
     expect(formatElapsedRu(elapsed)).toBe("");
+  });
+});
+
+// TASK_042 — Profile hero card's compact duration format: no dots, no day
+// component (unlike formatElapsedRu above), "менее 1 мес" instead of "0 дн."
+describe("formatProfileEventElapsed (TASK_042 Profile hero card)", () => {
+  function elapsed(iso: string, now: Date) {
+    return formatProfileEventElapsed(calendarElapsed(iso, now));
+  }
+
+  it("shows years and months without dots when both are present", () => {
+    expect(elapsed("2016-08-15", new Date(2026, 6, 20))).toBe("9 г 11 мес");
+  });
+
+  it("shows only years when months are exactly zero", () => {
+    expect(elapsed("2024-07-20", new Date(2026, 6, 20))).toBe("2 г");
+  });
+
+  it("shows only months when years are zero", () => {
+    expect(elapsed("2026-01-15", new Date(2026, 6, 20))).toBe("6 мес");
+  });
+
+  it("shows 'менее 1 мес' when less than a full calendar month has elapsed", () => {
+    expect(elapsed("2026-07-05", new Date(2026, 6, 20))).toBe("менее 1 мес");
+  });
+
+  it("shows 'менее 1 мес' for today's date (zero elapsed)", () => {
+    expect(elapsed("2026-07-20", new Date(2026, 6, 20))).toBe("менее 1 мес");
+  });
+
+  it("never uses the long-form 'года'/'месяцев' words", () => {
+    const out = elapsed("2016-08-15", new Date(2026, 6, 20));
+    expect(out).not.toMatch(/года|лет|месяц/);
+  });
+
+  it("never contains a day component or dots", () => {
+    const out = elapsed("2016-08-17", new Date(2026, 6, 20));
+    expect(out).not.toMatch(/дн\.?|\./);
+  });
+
+  it("handles a leap-year date without crashing", () => {
+    expect(elapsed("2024-02-29", new Date(2026, 2, 1))).toBe("2 г");
+  });
+
+  it("does not produce a negative or future-looking result for a future date", () => {
+    const out = elapsed("2099-01-01", new Date(2026, 6, 20));
+    expect(out).toBe("менее 1 мес");
   });
 });

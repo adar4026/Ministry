@@ -1,18 +1,11 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Avatar } from "@/components/Avatar";
 import { BackupSection } from "@/components/settings/BackupSection";
+import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
+import { ProfileHeroCard } from "@/components/profile/ProfileHeroCard";
 import { COLORS } from "@/data/constants";
-
-const PROFILE = {
-  name: "Пользователь",
-  facts: [
-    ["Крещён", "—"],
-    ["Пионер с", "—"],
-    ["Стаж", "—"],
-    ["G-8", "—"],
-  ] as [string, string][],
-};
+import { useStore } from "@/store/StoreContext";
 
 const APP_VERSION = "0.4.4";
 
@@ -66,20 +59,24 @@ function Row({
 }
 
 export default function ProfileScreen() {
+  const { profile, saveProfile } = useStore();
+  const [editOpen, setEditOpen] = useState(false);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Avatar size={72} />
-        <Text style={styles.name}>{PROFILE.name}</Text>
-        <View style={styles.facts}>
-          {PROFILE.facts.map(([label, value]) => (
-            <View key={label} style={styles.fact}>
-              <Text style={styles.factLabel}>{label.toUpperCase()}</Text>
-              <Text style={styles.factValue}>{value}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      <ProfileHeroCard
+        profile={profile}
+        onPress={() => setEditOpen(true)}
+        onInvalidPhoto={() =>
+          saveProfile({ displayName: profile.displayName, events: profile.events, profilePhotoUri: undefined })
+        }
+      />
+      <ProfileEditSheet
+        visible={editOpen}
+        profile={profile}
+        onSave={saveProfile}
+        onClose={() => setEditOpen(false)}
+      />
 
       <SectionCard title="Настройки">
         {SETTINGS.map((label, i) => (
@@ -106,24 +103,6 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
-  header: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 20,
-    alignItems: "center",
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  name: { fontSize: 21, fontWeight: "700", color: COLORS.text, marginTop: 12 },
-  facts: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 20, marginTop: 14 },
-  fact: { alignItems: "center" },
-  factLabel: { fontSize: 9, letterSpacing: 1, color: COLORS.muted },
-  factValue: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginTop: 2 },
   section: {},
   sectionTitle: { fontSize: 13, fontWeight: "700", color: COLORS.muted, marginBottom: 8, marginLeft: 4, textTransform: "uppercase", letterSpacing: 1 },
   sectionBody: {
