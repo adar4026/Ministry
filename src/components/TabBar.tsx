@@ -1,6 +1,6 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import type { ComponentType } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@/data/constants";
 import { CalendarIcon, ChartIcon, HomeIcon, type IconProps, PersonIcon, PlusIcon } from "@/components/icons";
@@ -95,7 +95,17 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
 const styles = StyleSheet.create({
   wrap: {
-    position: "absolute",
+    // TASK_046: "fixed" pins the bar to the browser viewport itself on web,
+    // immune to iOS Safari's dynamic viewport-height recalculation during
+    // scroll (the "absolute" value stays anchored to the nearest positioned
+    // ancestor's layout box, which can visually shift when that ancestor's
+    // %-based height is recomputed). Native (iOS/Android) is unaffected by
+    // that class of bug — a sibling ScrollView's momentum/bounce doesn't
+    // move this View there — so it keeps "absolute" there.
+    // react-native-web (already a dependency) passes "fixed" through as a
+    // valid CSS position value; RN itself has no "fixed" position value, so
+    // this must stay web-only.
+    position: Platform.OS === "web" ? "fixed" : "absolute",
     left: 0,
     right: 0,
     bottom: 0,

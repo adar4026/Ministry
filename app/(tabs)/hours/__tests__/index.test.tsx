@@ -8,6 +8,7 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { TimerHeroCard } from "@/components/hours/TimerHeroCard";
 import { HoursNavList } from "@/components/hours/HoursNavList";
+import { HomeBackground } from "@/components/dashboard";
 import HoursDashboard from "../index";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
@@ -102,6 +103,11 @@ describe("Hours screen — TASK_031 redesign", () => {
     expect(t).not.toContain("Оперёд");
     expect(t).not.toContain("Отстаёт");
     expect(t).not.toContain("В графике");
+  });
+
+  it("TASK_046: reuses HomeBackground instead of its own flat background", async () => {
+    const { root } = await renderScreen();
+    expect(root().findAllByType(HomeBackground)).toHaveLength(1);
   });
 
   it("starts and stops the timer through the same screen (integration, current architecture)", async () => {

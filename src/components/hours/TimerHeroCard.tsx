@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useTimer } from "@/hooks/useTimer";
 import { formatElapsed } from "@/data/timer";
 import { formatDateDMY, toISODate } from "@/data/constants";
+import { confirmAsync } from "@/utils/confirm";
 import { HOURS_COLORS as C } from "./hoursTokens";
 
 // The main visual element of the "Часы" screen (TASK_031). Embeds the
@@ -27,6 +28,7 @@ export function TimerHeroCard() {
     resume,
     stop,
     save,
+    discard,
   } = useTimer();
 
   const [showSave, setShowSave] = useState(false);
@@ -58,6 +60,16 @@ export function TimerHeroCard() {
     const trimmedNote = saveNote.trim();
     save({ date: sessionDate, durationMinutes: saveDuration, note: trimmedNote ? trimmedNote : undefined });
     setShowSave(false);
+  }
+
+  // TASK_046: explicit, confirmed full cancel of a stopped/paused session —
+  // distinct from the Save form's "Отмена" (which only hides the form and
+  // returns to this same paused view, unchanged). Only this path calls
+  // discard(), which fully resets useTimer() state (idle, bankedSeconds: 0)
+  // and persists that reset to mj_timer_v1.
+  async function handleCancelSession() {
+    const confirmed = await confirmAsync("Отменить сессию?", "Текущее время не будет сохранено.");
+    if (confirmed) discard();
   }
 
   // Recovery-screen / clock-rollback: deliberately not reimplemented here
@@ -207,6 +219,16 @@ export function TimerHeroCard() {
           <Text style={styles.dangerBtnText}>Стоп</Text>
         </Pressable>
       </View>
+      {!isRunning && (
+        <Pressable
+          onPress={handleCancelSession}
+          style={({ pressed }) => [styles.cancelLink, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Отменить сессию без сохранения"
+        >
+          <Text style={styles.cancelLinkText}>Отменить сессию</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -217,6 +239,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 20,
     gap: 4,
+    // TASK_046: same soft shadow as Home's cards (HoursHeroCard/SummaryCard,
+    // src/components/dashboard) so this card reads consistently against the
+    // now-shared HomeBackground gradient instead of its own flat gray.
+    shadowColor: "#3c5090",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   attentionCard: { gap: 10 },
   attentionText: { fontSize: 14, color: C.secondaryText, lineHeight: 19 },
@@ -236,6 +266,11 @@ const styles = StyleSheet.create({
   },
   hint: { fontSize: 14, color: C.secondaryText, marginBottom: 16 },
   actionsRow: { flexDirection: "row", gap: 10 },
+  // TASK_046: low-emphasis full-cancel action, only shown once stopped
+  // (paused) — deliberately separate from "Стоп" above it and from the Save
+  // form's "Отмена" (which just re-opens this same view without discarding).
+  cancelLink: { alignItems: "center", justifyContent: "center", paddingVertical: 12, marginTop: 2 },
+  cancelLinkText: { color: C.danger, fontWeight: "600", fontSize: 14 },
   flex1: { flex: 1 },
   fullWidth: { alignSelf: "stretch" },
   primaryBtn: {

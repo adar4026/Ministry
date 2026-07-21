@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, TextInput } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { BackButton } from "@/components/BackButton";
 import { useTimer } from "@/hooks/useTimer";
 import { formatDateDMY, toISODate } from "@/data/constants";
+import { confirmAsync } from "@/utils/confirm";
 
 export default function TimerScreen() {
   const { state, mode, elapsedSec, prefillMin, loaded, recoveryElapsedSec, recoveryStartedAt,
@@ -37,6 +38,25 @@ export default function TimerScreen() {
     const trimmedNote = saveNote.trim();
     save({ date: sessionDate, durationMinutes: saveDuration, note: trimmedNote ? trimmedNote : undefined });
     setShowSave(false);
+  };
+
+  // TASK_046: explicit, confirmed full cancel of a stopped/paused session —
+  // distinct from the Save overlay's "Отмена"/"Назад" (which only close the
+  // overlay and return to this same paused view, unchanged). Only this path
+  // calls discard(), which fully resets useTimer() state (idle,
+  // bankedSeconds: 0) and persists that reset to mj_timer_v1.
+  const handleCancelSession = async () => {
+    const confirmed = await confirmAsync("Отменить сессию?", "Текущее время не будет сохранено.");
+    if (confirmed) discard();
+  };
+
+  // TASK_046: was a bare Alert.alert(...) with a destructive onPress —
+  // react-native-web's Alert.alert is a no-op, so this confirmation silently
+  // did nothing on the deployed web build (see
+  // docs/TASKS/TASK_046.md §3.2 and TASK_034's confirmAsync precedent).
+  const handleDiscardRecovery = async () => {
+    const confirmed = await confirmAsync("Удалить?", "Всё отслеженное время будет потеряно.");
+    if (confirmed) discard();
   };
 
   // Helper to format HH:MM from seconds
@@ -102,10 +122,7 @@ export default function TimerScreen() {
               <Pressable onPress={stop} style={styles.recoveryBtnSecondary}>
                 <Text style={styles.recoveryBtnTextSecondary}>Стоп</Text>
               </Pressable>
-              <Pressable onPress={() => Alert.alert("Удалить?", "Все отслеженное время будет потеряно.", [
-                { text: "Отмена", style: "cancel" },
-                { text: "Удалить", style: "destructive", onPress: discard },
-              ])} style={styles.recoveryBtnDanger}>
+              <Pressable onPress={handleDiscardRecovery} style={styles.recoveryBtnDanger}>
                 <Text style={styles.recoveryBtnTextDanger}>Удалить</Text>
               </Pressable>
             </View>
@@ -254,6 +271,14 @@ export default function TimerScreen() {
                 <Text style={styles.btnTextSecondary}>Стоп</Text>
               </Pressable>
             </View>
+            <Pressable
+              onPress={handleCancelSession}
+              style={styles.cancelLink}
+              accessibilityRole="button"
+              accessibilityLabel="Отменить сессию без сохранения"
+            >
+              <Text style={styles.cancelLinkText}>Отменить сессию</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -319,6 +344,12 @@ const styles = StyleSheet.create({
   pausedCard: { width: "100%", alignItems: "center", gap: 12 },
   statusBadgePaused: { fontSize: 13, fontWeight: "700", color: "#f59e0b", backgroundColor: "#fef9c3", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   pausedActions: { flexDirection: "row", gap: 12, width: "100%", marginTop: 8 },
+  // TASK_046: low-emphasis full-cancel action, shown only once stopped
+  // (paused) — deliberately separate from "Стоп" above it and from the Save
+  // overlay's "Отмена"/"Назад" (which just re-open this same view without
+  // discarding).
+  cancelLink: { alignItems: "center", justifyContent: "center", paddingVertical: 12, marginTop: 4, width: "100%" },
+  cancelLinkText: { color: "#dc2626", fontWeight: "600", fontSize: 14 },
 
   // Save overlay
   saveField: { width: "100%", gap: 6, marginTop: 4 },

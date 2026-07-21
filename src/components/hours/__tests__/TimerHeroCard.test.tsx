@@ -6,11 +6,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { Text, TextInput } from "react-native";
 import { StoreProvider, useStore } from "@/store/StoreContext";
+import { confirmAsync } from "@/utils/confirm";
 import { TimerHeroCard } from "@/components/hours/TimerHeroCard";
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { router: mockRouter } = jest.requireMock("expo-router") as { router: { push: jest.Mock } };
+
+// TASK_046: the new "Отменить сессию" full-cancel action goes through
+// confirmAsync (not a bare Alert.alert, a total no-op on react-native-web —
+// see src/utils/confirm.ts and docs/TASKS/TASK_046.md §4.3) — mocked here so
+// the test controls the outcome deterministically.
+jest.mock("@/utils/confirm", () => ({ confirmAsync: jest.fn() }));
+const mockConfirmAsync = confirmAsync as jest.Mock;
 
 jest.setTimeout(30000);
 
@@ -152,6 +160,84 @@ describe("TimerHeroCard — TASK_031", () => {
       expect(store().sessions[0].source).toBe("timer");
       expect(store().sessions[0].durationMinutes).toBe(3);
       expect(texts()).toContain("Таймер не запущен");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("paused view exposes 'Отменить сессию', and Save form's Отмена alone does not discard (existing business logic unchanged)", async () => {
+    const T0 = new Date("2026-07-19T10:00:00.000Z");
+    jest.useFakeTimers();
+    jest.setSystemTime(T0);
+    try {
+      const { root, texts } = await renderCard();
+      await act(async () => { buttonWithLabel(root(), "Начать служение")?.props.onPress(); });
+      await act(async () => { jest.setSystemTime(new Date(T0.getTime() + 125_000)); });
+      await act(async () => { buttonWithLabel(root(), "Стоп")?.props.onPress(); });
+      await act(async () => { buttonWithLabel(root(), "Отмена")?.props.onPress(); });
+
+      expect(texts()).toContain("Пауза");
+      expect(texts()).toContain("Продолжить");
+      expect(texts()).toContain("Отменить сессию");
+      expect(mockConfirmAsync).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("confirmed 'Отменить сессию' fully discards: card returns to idle, mj_timer_v1 reset, banked time gone", async () => {
+    const T0 = new Date("2026-07-19T10:00:00.000Z");
+    jest.useFakeTimers();
+    jest.setSystemTime(T0);
+    mockConfirmAsync.mockResolvedValue(true);
+    try {
+      const { root, texts } = await renderCard();
+      await act(async () => { buttonWithLabel(root(), "Начать служение")?.props.onPress(); });
+      await act(async () => { jest.setSystemTime(new Date(T0.getTime() + 125_000)); });
+      await act(async () => { buttonWithLabel(root(), "Стоп")?.props.onPress(); });
+      await act(async () => { buttonWithLabel(root(), "Отмена")?.props.onPress(); });
+
+      await act(async () => {
+        buttonWithLabel(root(), "Отменить сессию")?.props.onPress();
+        await Promise.resolve();
+      });
+
+      expect(mockConfirmAsync).toHaveBeenCalledWith("Отменить сессию?", "Текущее время не будет сохранено.");
+      expect(texts()).toContain("Таймер не запущен");
+      expect(texts()).toContain("Начать служение");
+      expect(texts()).not.toContain("Пауза");
+
+      const raw = await AsyncStorage.getItem("mj_timer_v1");
+      expect(JSON.parse(raw as string)).toEqual({
+        status: "idle",
+        startedAt: null,
+        firstStartedAt: null,
+        bankedSeconds: 0,
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("declining the 'Отменить сессию' confirmation leaves the paused session untouched", async () => {
+    const T0 = new Date("2026-07-19T10:00:00.000Z");
+    jest.useFakeTimers();
+    jest.setSystemTime(T0);
+    mockConfirmAsync.mockResolvedValue(false);
+    try {
+      const { root, texts } = await renderCard();
+      await act(async () => { buttonWithLabel(root(), "Начать служение")?.props.onPress(); });
+      await act(async () => { jest.setSystemTime(new Date(T0.getTime() + 60_000)); });
+      await act(async () => { buttonWithLabel(root(), "Стоп")?.props.onPress(); });
+      await act(async () => { buttonWithLabel(root(), "Отмена")?.props.onPress(); });
+
+      await act(async () => {
+        buttonWithLabel(root(), "Отменить сессию")?.props.onPress();
+        await Promise.resolve();
+      });
+
+      expect(texts()).toContain("Пауза");
+      expect(texts()).toContain("Продолжить");
     } finally {
       jest.useRealTimers();
     }

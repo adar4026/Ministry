@@ -47,37 +47,52 @@ export function HoursNavList() {
   ];
 
   return (
-    <View style={styles.card}>
-      {items.map((item, i) => (
-        <Pressable
-          key={item.key}
-          onPress={item.onPress}
-          disabled={item.disabled}
-          style={({ pressed }) => [
-            styles.row,
-            i < items.length - 1 && styles.rowDivider,
-            item.disabled && styles.rowDisabled,
-            pressed && !item.disabled && styles.rowPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={`${item.label}. ${item.subtitle}`}
-          accessibilityState={{ disabled: !!item.disabled }}
-        >
-          <View style={styles.iconBg}>
-            <item.Icon size={19} color={C.accent} />
-          </View>
-          <View style={styles.textWrap}>
-            <Text style={styles.label}>{item.label}</Text>
-            <Text style={styles.subtitle}>{item.subtitle}</Text>
-          </View>
-          <ChevronRightIcon size={18} color={C.tertiaryText} />
-        </Pressable>
-      ))}
+    <View style={styles.cardShadow}>
+      <View style={styles.card}>
+        {items.map((item, i) => (
+          <Pressable
+            key={item.key}
+            onPress={item.onPress}
+            disabled={item.disabled}
+            style={({ pressed }) => [
+              styles.row,
+              i < items.length - 1 && styles.rowDivider,
+              item.disabled && styles.rowDisabled,
+              pressed && !item.disabled && styles.rowPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label}. ${item.subtitle}`}
+            accessibilityState={{ disabled: !!item.disabled }}
+          >
+            <View style={styles.iconBg}>
+              <item.Icon size={19} color={C.accent} />
+            </View>
+            <View style={styles.textWrap}>
+              <Text style={styles.label}>{item.label}</Text>
+              <Text style={styles.subtitle}>{item.subtitle}</Text>
+            </View>
+            <ChevronRightIcon size={18} color={C.tertiaryText} />
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // TASK_046: shadow lives on an outer, non-clipping wrapper — a shadow and
+  // overflow:"hidden" on the same View clip the shadow away on iOS. Same
+  // soft shadow as Home's cards (HoursHeroCard/SummaryCard,
+  // src/components/dashboard) so this card reads consistently against the
+  // now-shared HomeBackground gradient instead of its own flat gray.
+  cardShadow: {
+    borderRadius: 22,
+    shadowColor: "#3c5090",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
   card: {
     backgroundColor: C.cardBackground,
     borderRadius: 22,
