@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { SummaryCard, DS } from "@/components/dashboard";
 import { calendarElapsed, formatDateDMY, formatProfileEventElapsed } from "@/data/dateFormat";
 import type { UserProfile } from "@/types";
@@ -31,18 +31,6 @@ export function ProfileHeroCard({
   const hasPhoto = !!profile.profilePhotoUri;
   const isEmpty = !hasName && !hasPhoto && profile.events.length === 0;
 
-  const [photoFailed, setPhotoFailed] = useState(false);
-  // A newly-picked/removed photo deserves a fresh chance to load, even if a
-  // previous URI had failed.
-  useEffect(() => {
-    setPhotoFailed(false);
-  }, [profile.profilePhotoUri]);
-
-  function handlePhotoError() {
-    setPhotoFailed(true);
-    onInvalidPhoto?.();
-  }
-
   if (isEmpty) {
     return (
       <SummaryCard onPress={onPress} style={styles.card} accessibilityLabel="Настроить профиль">
@@ -57,21 +45,16 @@ export function ProfileHeroCard({
   }
 
   const initials = trimmedName?.[0]?.toUpperCase();
-  const showPhoto = hasPhoto && !photoFailed;
 
   return (
     <SummaryCard onPress={onPress} style={styles.card} accessibilityLabel="Открыть профиль для редактирования">
       <View style={styles.header}>
-        {showPhoto ? (
-          <Image
-            source={{ uri: profile.profilePhotoUri }}
-            style={styles.photo}
-            onError={handlePhotoError}
-            accessibilityLabel="Фотография профиля"
-          />
-        ) : (
-          <Avatar size={72} initials={initials} />
-        )}
+        <ProfileAvatar
+          photoUri={profile.profilePhotoUri}
+          initials={initials}
+          size={72}
+          onInvalidPhoto={onInvalidPhoto}
+        />
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
           {hasName ? trimmedName : "Мой профиль"}
         </Text>
@@ -118,7 +101,6 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 14, color: DS.subText, textAlign: "center" },
   emptyAction: { fontSize: 15, fontWeight: "600", color: DS.accent, marginTop: 6 },
   header: { alignItems: "center", gap: 10 },
-  photo: { width: 72, height: 72, borderRadius: 36 },
   name: { fontSize: 21, fontWeight: "800", color: DS.navy, textAlign: "center" },
   eventsRow: { flexDirection: "row", gap: 6, marginTop: 18 },
   eventCol: { flex: 1, minWidth: 0 },

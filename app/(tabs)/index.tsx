@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Avatar } from "@/components/Avatar";
 import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
@@ -23,8 +23,9 @@ export function formatHomeDate(now: Date): string {
 }
 
 export default function Dashboard() {
-  const { records, sessions, events, saveRecord, deleteRecord } = useStore();
+  const { records, sessions, events, profile, saveProfile, saveRecord, deleteRecord } = useStore();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
+  const profileInitials = profile.displayName?.trim()[0]?.toUpperCase();
 
   // Session-aware unified service-year aggregation (TASK_005A addendum) —
   // Home no longer aggregates HourRecord directly. Months tracked only via
@@ -79,7 +80,17 @@ export default function Dashboard() {
             </Text>
             <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
           </View>
-          <Avatar size={35} onPress={() => router.push("/profile")} />
+          <ProfileAvatar
+            photoUri={profile.profilePhotoUri}
+            initials={profileInitials}
+            size={40}
+            hitSlop={2}
+            onPress={() => router.push("/profile")}
+            accessibilityLabel="Открыть профиль"
+            onInvalidPhoto={() =>
+              saveProfile({ displayName: profile.displayName, events: profile.events, profilePhotoUri: undefined })
+            }
+          />
         </View>
 
         <HoursHeroCard />
@@ -146,7 +157,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 35,
+    minHeight: 40,
   },
   headerText: { flex: 1, marginRight: 12 },
   pageTitle: { fontSize: 23, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
