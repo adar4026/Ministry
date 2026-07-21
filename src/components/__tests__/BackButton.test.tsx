@@ -76,4 +76,30 @@ describe("BackButton", () => {
     const btn = findBackButton(renderer!.root);
     expect(btn.props.hitSlop).toBe(4); // (44-36)/2
   });
+
+  describe("alwaysReplace (TASK_045A)", () => {
+    it("replaces to fallbackHref instead of popping, even when there is history to pop", async () => {
+      mockRouter.canGoBack.mockReturnValue(true);
+      let renderer: ReactTestRenderer;
+      await act(async () => {
+        renderer = create(<BackButton fallbackHref="/timeline" alwaysReplace />);
+      });
+      const btn = findBackButton(renderer!.root);
+      await act(async () => btn.props.onPress());
+      expect(mockRouter.replace).toHaveBeenCalledWith("/timeline");
+      expect(mockRouter.back).not.toHaveBeenCalled();
+    });
+
+    it("still replaces to fallbackHref when there is no history to pop", async () => {
+      mockRouter.canGoBack.mockReturnValue(false);
+      let renderer: ReactTestRenderer;
+      await act(async () => {
+        renderer = create(<BackButton fallbackHref="/timeline" alwaysReplace />);
+      });
+      const btn = findBackButton(renderer!.root);
+      await act(async () => btn.props.onPress());
+      expect(mockRouter.replace).toHaveBeenCalledWith("/timeline");
+      expect(mockRouter.back).not.toHaveBeenCalled();
+    });
+  });
 });

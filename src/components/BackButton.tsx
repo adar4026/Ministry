@@ -9,6 +9,17 @@ interface BackButtonProps {
   // direct/deep-link load. Each screen owns its own logically-parent route;
   // there is no single app-wide default that's always correct.
   fallbackHref: string;
+  // Skips the canGoBack()/back() history pop and always replaces to
+  // fallbackHref instead (TASK_045A). Needed for screens reached via a
+  // *cross-tab* push (e.g. `/add?focus=event` from `timeline.tsx` — both are
+  // sibling Tabs.Screen routes, not nested in a shared Stack): switching tabs
+  // via the tab bar itself never pushes a history entry, so the entry
+  // canGoBack()/back() would pop to is whatever was open *before* the tab was
+  // switched to, not the tab that pushed this screen. Screens nested in their
+  // own Stack (hours/timer.tsx, hours/history.tsx, upcoming-events.tsx) don't
+  // have this problem — back() there always pops to the correct parent —
+  // so they leave this false (default).
+  alwaysReplace?: boolean;
   // Visual overrides so the button reads correctly against a screen's own
   // token palette (history.tsx/upcoming-events.tsx each define their own
   // color constants) — defaults match the shared COLORS used everywhere
@@ -25,9 +36,16 @@ interface BackButtonProps {
 // 44px, which is also the minimum touch target Apple/WCAG require — no
 // extra hitSlop needed at the default size; hitSlop grows to compensate
 // only if a caller shrinks `size` below 44.
-export function BackButton({ fallbackHref, background = COLORS.card, color = COLORS.text, size = 44, style }: BackButtonProps) {
+export function BackButton({
+  fallbackHref,
+  alwaysReplace = false,
+  background = COLORS.card,
+  color = COLORS.text,
+  size = 44,
+  style,
+}: BackButtonProps) {
   function handlePress() {
-    if (router.canGoBack()) router.back();
+    if (!alwaysReplace && router.canGoBack()) router.back();
     else router.replace(fallbackHref as any);
   }
 

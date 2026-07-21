@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Card } from "@/components/ui";
+import { BackButton } from "@/components/BackButton";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
@@ -25,6 +26,17 @@ export default function AddScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {eventOnly && (
+        <View style={styles.header}>
+          {/* TASK_045A — alwaysReplace: "add" and "timeline" are sibling
+              Tabs.Screen routes, not nested in a shared Stack, so back()'s
+              history pop lands wherever the tab bar was before it switched
+              to "Мероприятия" (that switch itself never pushed a history
+              entry) — not on "Мероприятия" itself. See BackButton.tsx. */}
+          <BackButton fallbackHref="/timeline" alwaysReplace />
+        </View>
+      )}
+
       {!eventOnly && (
         <Card>
           <Text style={styles.title}>Добавить месяц (часы)</Text>
@@ -75,6 +87,7 @@ export default function AddScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
+  header: { height: 44 },
   title: { fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
   hint: { fontSize: 13, color: COLORS.muted, marginBottom: 16 },
 });
