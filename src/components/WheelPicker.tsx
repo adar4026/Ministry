@@ -57,6 +57,16 @@ export function WheelPicker({
   );
   const [scrollOffset, setScrollOffset] = useState(selectedIndex * ITEM_HEIGHT);
   const didInitialScroll = useRef(false);
+  // react-native-web's ScrollViewBase accepts onScrollEndDrag/
+  // onMomentumScrollEnd as props but never actually invokes them — its
+  // internal settle-debounce (ScrollViewBase.js `handleScrollEnd`) only
+  // re-fires plain `onScroll`. On web, then, `handleScrollEnd` below would
+  // never run: the row still *looks* centered (opacity is driven by the
+  // always-firing onScroll -> scrollOffset state) but the value silently
+  // never commits — visually right, functionally stuck. This timer is that
+  // missing signal for web only; native iOS/Android already gets a real
+  // onScrollEndDrag/onMomentumScrollEnd from the platform and is untouched.
+  const webSettleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the index this component itself last scrolled to, so the
   // resync effect below can tell "value changed because the user picked a
   // row" (already matches, no-op) apart from "value changed from outside"
@@ -87,12 +97,19 @@ export function WheelPicker({
     const clamped = Math.min(Math.max(index, 0), items.length - 1);
     lastScrolledIndex.current = clamped;
     scrollRef.current?.scrollTo({ y: clamped * ITEM_HEIGHT, animated: true });
+    // Both haptic and onChange gate on the same ref, not the `value` prop —
+    // `value` only reflects this settle once the parent has re-rendered
+    // with it, which on a fast settle-then-settle-again (e.g. a real
+    // onMomentumScrollEnd racing the web debounce below) can still be the
+    // *previous* value. A ref updates immediately, so two settles landing
+    // on the same index only ever commit once, regardless of React's
+    // render timing.
     if (clamped !== lastHapticIndex.current) {
       lastHapticIndex.current = clamped;
       triggerSelectionHaptic();
+      const item = items[clamped];
+      if (item) onChange(item.value);
     }
-    const item = items[clamped];
-    if (item && item.value !== value) onChange(item.value);
   }
 
   // `onScrollEndDrag`'s `contentOffset` is where the finger let go, not
@@ -112,6 +129,33 @@ export function WheelPicker({
     const index = Math.round(offsetY / ITEM_HEIGHT);
     snapToIndex(index);
   }
+
+  // Every real scroll tick reschedules this — so it only actually fires
+  // 130ms after the *last* one, i.e. once the wheel has stopped moving.
+  // 130ms is comfortably past RNW's own 100ms internal settle debounce
+  // (ScrollViewBase.js), so this always sees the final resting offset, not
+  // a mid-scroll one. Native iOS/Android ignore this entirely — they get a
+  // real onScrollEndDrag/onMomentumScrollEnd from the platform, which fires
+  // (and calls snapToIndex) well before this timer would. When it *does*
+  // fire there, `snapToIndex`'s own idempotency (no duplicate onChange/
+  // haptic for an index that's already current) makes the redundant call
+  // harmless rather than a double-fire.
+  function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    setScrollOffset(e.nativeEvent.contentOffset.y);
+    if (Platform.OS !== "web") return;
+    if (webSettleTimeout.current != null) clearTimeout(webSettleTimeout.current);
+    webSettleTimeout.current = setTimeout(() => handleScrollEnd(e), 130);
+  }
+
+  // Belt-and-braces cleanup: without this, a picker unmounted mid-scroll
+  // (e.g. the user backs out of the screen right after a flick) leaves a
+  // pending timer that fires `onChange`/`scrollTo` against an unmounted
+  // component once the 130ms elapses.
+  useEffect(() => {
+    return () => {
+      if (webSettleTimeout.current != null) clearTimeout(webSettleTimeout.current);
+    };
+  }, []);
 
   function handleAccessibilityAction(e: AccessibilityActionEvent) {
     if (e.nativeEvent.actionName === "increment") snapToIndex(selectedIndex + 1);
@@ -146,7 +190,7 @@ export function WheelPicker({
         onContentSizeChange={handleContentSizeChange}
         onMomentumScrollEnd={handleScrollEnd}
         onScrollEndDrag={handleScrollEnd}
-        onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.y)}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         accessibilityRole="adjustable"
         accessibilityLabel={accessibilityLabel}

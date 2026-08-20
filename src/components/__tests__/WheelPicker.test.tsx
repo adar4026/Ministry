@@ -1,4 +1,5 @@
 import { act, create } from "react-test-renderer";
+import { Platform } from "react-native";
 import { WheelPicker } from "@/components/WheelPicker";
 
 jest.mock("expo-haptics", () => ({ selectionAsync: jest.fn(() => Promise.resolve()) }));
@@ -278,6 +279,262 @@ describe("WheelPicker", () => {
         pressableRows(renderer.root)[1].props.onPress();
       });
       expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  // react-native-web's ScrollViewBase accepts onScrollEndDrag/
+  // onMomentumScrollEnd as props but never actually invokes them (verified
+  // by reading node_modules/react-native-web/src/exports/ScrollView/
+  // ScrollViewBase.js: its internal settle-debounce only ever re-fires
+  // plain `onScroll`). Without a fallback, the web build of this app never
+  // committed a value after a scroll — the row visually re-centered
+  // (opacity is driven by the always-firing onScroll -> scrollOffset
+  // state) but onChange/snapToIndex never ran, so the wheel looked right
+  // and saved nothing. Confirmed live (localhost:8082/entry, react-native-
+  // web 0.21.2) before this fix and again after, both via direct scroll
+  // simulation and a real save round-tripped through localStorage.
+  describe("web scroll-end fallback (no native onScrollEndDrag/onMomentumScrollEnd)", () => {
+    const originalOS = Platform.OS;
+
+    beforeEach(() => {
+      Platform.OS = "web";
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      Platform.OS = originalOS;
+      jest.useRealTimers();
+    });
+
+    it("commits the value via a debounce after the last onScroll tick, with no onScrollEndDrag/onMomentumScrollEnd at all", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScroll({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      expect(onChange).not.toHaveBeenCalled(); // still inside the debounce window
+      act(() => {
+        jest.advanceTimersByTime(130);
+      });
+      expect(onChange).toHaveBeenCalledWith(2);
+    });
+
+    it("reschedules the debounce on every tick, so a fast flick's intermediate onScroll events don't settle early", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      const scrollView = findScrollView(renderer.root);
+      for (const r of [0.5, 1, 1.7, 2.4, 3]) {
+        act(() => {
+          scrollView.props.onScroll({ nativeEvent: { contentOffset: { y: r * ROW_HEIGHT } } });
+          jest.advanceTimersByTime(80); // < 130ms: must not let the debounce fire between ticks
+        });
+      }
+      expect(onChange).not.toHaveBeenCalled();
+      act(() => {
+        jest.advanceTimersByTime(130);
+      });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(3);
+    });
+
+    it("does not schedule the web debounce on native platforms (they get a real onScrollEndDrag/onMomentumScrollEnd instead)", () => {
+      Platform.OS = "ios";
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScroll({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("clears the pending debounce on unmount, so it never fires against an unmounted picker", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScroll({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      act(() => {
+        renderer.unmount();
+      });
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does not double-fire onChange if a real settle event and the web debounce both resolve to the same index", () => {
+      // Idempotency check: on a platform where both signals somehow arrive
+      // (e.g. a future RNW version that starts firing the native-named
+      // events too), snapToIndex's own "already at this index" guard must
+      // make the second call a harmless no-op, not a duplicate commit.
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      const scrollView = findScrollView(renderer.root);
+      act(() => {
+        scrollView.props.onScroll({ nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } } });
+      });
+      act(() => {
+        scrollView.props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } } });
+      });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      act(() => {
+        jest.advanceTimersByTime(130);
+      });
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Explicit coverage matching the owner's requested scenario list
+  // (slow drag / fast flick / stop-between-rows / first-last / open-reset-
+  // reopen / state-equals-center-equals-saved). Several of these scenarios
+  // are already exercised above under more implementation-focused names —
+  // these are kept separate, with names matching the request directly, so
+  // the mapping from "what was asked for" to "what's covered" stays
+  // traceable without hunting through the whole file.
+  describe("named scenario coverage (slow drag / flick / boundaries / open-reset-reopen)", () => {
+    it("slow drag: settles on the row the finger released on when momentum carries no further (onScrollEndDrag with no targetContentOffset)", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScrollEndDrag({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      expect(onChange).toHaveBeenCalledWith(2);
+    });
+
+    it("fast flick with inertia: settles on the native momentum target (targetContentOffset), not the release-moment row", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onScrollEndDrag({
+          nativeEvent: {
+            contentOffset: { y: 0.6 * ROW_HEIGHT },
+            targetContentOffset: { y: 3 * ROW_HEIGHT },
+          },
+        });
+      });
+      expect(onChange).toHaveBeenCalledWith(3);
+    });
+
+    it("stopping exactly between two rows rounds to the nearer row (Math.round semantics: .5 rounds up)", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 1.5 * ROW_HEIGHT } }, // exactly between rows 1 and 2
+        });
+      });
+      expect(onChange).toHaveBeenCalledWith(2);
+    });
+
+    it("first value: a scroll-end at or before the first row clamps to index 0, never goes negative", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={1} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: -0.5 * ROW_HEIGHT } }, // overscroll past the top
+        });
+      });
+      expect(onChange).toHaveBeenCalledWith(0);
+    });
+
+    it("last value: a scroll-end at or past the last row clamps to the last index, never overflows", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 10 * ROW_HEIGHT } }, // overscroll past the bottom
+        });
+      });
+      expect(onChange).toHaveBeenCalledWith(ITEMS[ITEMS.length - 1].value);
+    });
+
+    it("open: mounting with a non-zero initial value seeds the scroll offset and centered row to that value, not row 0", () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={3} onChange={jest.fn()} />);
+      });
+      expect(findScrollView(renderer.root).props.contentOffset.y).toBe(3 * ROW_HEIGHT);
+      expect(findScrollView(renderer.root).props.accessibilityValue.text).toBe("3 часа");
+    });
+
+    it("reset: an externally-forced value change (e.g. a form 'Сбросить' action) re-centers the wheel without an onChange feedback loop", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={3} onChange={onChange} />);
+      });
+      act(() => {
+        renderer.update(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(findScrollView(renderer.root).props.accessibilityValue.text).toBe("0 часов");
+    });
+
+    it("reopen: the settled value, the centered row's label, and what a caller would persist all agree", () => {
+      const onChange = jest.fn();
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={0} onChange={onChange} />);
+      });
+      act(() => {
+        findScrollView(renderer.root).props.onMomentumScrollEnd({
+          nativeEvent: { contentOffset: { y: 2 * ROW_HEIGHT } },
+        });
+      });
+      // This is exactly what SessionForm's setHours(...) receives, and thus
+      // exactly what ends up in durationMinutes at save time.
+      const committedValue = onChange.mock.calls[0][0];
+      expect(committedValue).toBe(2);
+
+      // Re-mount as a caller reopening this same record would (a fresh
+      // WheelPicker seeded with the value that got saved) — the centered
+      // row must show that exact value, not something it happened to drift
+      // to.
+      act(() => {
+        renderer = create(<WheelPicker items={ITEMS} value={committedValue} onChange={jest.fn()} />);
+      });
+      expect(findScrollView(renderer.root).props.accessibilityValue.text).toBe("2 часа");
     });
   });
 });
