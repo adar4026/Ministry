@@ -361,7 +361,7 @@ describe("upcomingDateLabel (TASK_048)", () => {
     const label = upcomingDateLabel(iso(2026, 9, 4), now);
     expect(label.primary).toBe("Через 15 дней");
     expect(label.secondary).toBe("4 сентября");
-    expect(label.urgency).toBe("later");
+    expect(label.urgency).toBe("upcoming");
   });
 
   it("marks the next few days as 'soon' but still names the day count", () => {
@@ -380,6 +380,16 @@ describe("upcomingDateLabel (TASK_048)", () => {
   it("keeps the relative phrase exactly at the 30-day boundary", () => {
     expect(upcomingDateLabel(iso(2026, 9, 19), now).primary).toBe("Через 30 дней");
     expect(upcomingDateLabel(iso(2026, 9, 20), now).primary).toBe("20 сентября");
+  });
+
+  it("TASK_049: is 'soon' at exactly 7 days and 'upcoming' at exactly 8 days", () => {
+    expect(upcomingDateLabel(iso(2026, 8, 27), now).urgency).toBe("soon"); // diff = 7
+    expect(upcomingDateLabel(iso(2026, 8, 28), now).urgency).toBe("upcoming"); // diff = 8
+  });
+
+  it("TASK_049: is 'upcoming' at exactly 30 days and 'later' at exactly 31 days", () => {
+    expect(upcomingDateLabel(iso(2026, 9, 19), now).urgency).toBe("upcoming"); // diff = 30
+    expect(upcomingDateLabel(iso(2026, 9, 20), now).urgency).toBe("later"); // diff = 31
   });
 
   it("flags a past date as overdue in words, not by color alone", () => {

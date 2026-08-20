@@ -62,6 +62,12 @@ export const DS = {
   // `subInk` above is tuned for white (4.89:1) and drops to 3.6:1 against the
   // gradient's darker top stop, so on-tint captions get their own value.
   onTintInk: "#46566e",
+  // TASK_049 — "Сегодня" on the "Ближайшие события" urgency scale.
+  // Deliberately distinct from `warnInk` (amber, used for "Завтра" / 2-7
+  // days): the scale has 5 visually different tiers, and reusing warnInk for
+  // both today and the next week would collapse two of them into one color.
+  // Tailwind orange-700 -> 5.17:1 on DS.cardBg.
+  todayInk: "#c2410c",
 } as const;
 
 // Gradient stops for the goal ring (blue -> green -> amber).

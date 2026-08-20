@@ -8,12 +8,16 @@ import { SummaryCard } from "./SummaryCard";
 // (see tokens.ts), and — importantly — color is never the only signal: the
 // label text itself ("Просрочено" / "Сегодня" / "Завтра" / "Через N дней")
 // states the urgency in words.
+// TASK_049 — 5-tier owner scale: overdue (red) / today (orange) /
+// tomorrow+soon, i.e. 1-7 days (amber) / upcoming, i.e. 8-30 days (brand
+// accent blue) / later, i.e. >30 days (neutral gray-blue).
 const URGENCY_COLOR: Record<UpcomingUrgency, string> = {
-  overdue: DS.danger, // error
-  today: DS.warnInk, // warning accent
-  tomorrow: DS.tealInk, // softer accent
-  soon: DS.tealInk,
-  later: DS.subInk, // neutral secondary
+  overdue: DS.danger, // red
+  today: DS.todayInk, // orange
+  tomorrow: DS.warnInk, // amber
+  soon: DS.warnInk, // amber
+  upcoming: DS.accentInk, // brand accent blue
+  later: DS.subInk, // neutral gray-blue
 };
 
 // One combined event+talk upcoming item (TASK_007's UpcomingEventsCard

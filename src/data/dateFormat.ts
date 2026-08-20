@@ -236,7 +236,11 @@ export function formatDateHuman(iso: string, now: Date = new Date()): string {
 // How soon an upcoming item is due. Drives color only — every variant also
 // has a self-sufficient text label (see upcomingDateLabel), so the state is
 // never communicated by color alone.
-export type UpcomingUrgency = "overdue" | "today" | "tomorrow" | "soon" | "later";
+// TASK_049: "upcoming" (8-30 days) was split out of what used to be a single
+// "later" bucket covering both 8-30 days and >30 days — the owner's color
+// scale treats those two ranges differently (brand accent vs. neutral).
+// "later" keeps its original meaning (>30 days only).
+export type UpcomingUrgency = "overdue" | "today" | "tomorrow" | "soon" | "upcoming" | "later";
 
 export type UpcomingDateLabel = {
   // Always present, always human-readable on its own.
@@ -275,7 +279,7 @@ export function upcomingDateLabel(iso: string, now: Date = new Date()): Upcoming
     return {
       primary: `Через ${diff} ${pluralDaysRu(diff)}`,
       secondary: absolute,
-      urgency: diff <= SOON_DAYS ? "soon" : "later",
+      urgency: diff <= SOON_DAYS ? "soon" : "upcoming",
     };
   }
   return { primary: absolute, secondary: null, urgency: "later" };
