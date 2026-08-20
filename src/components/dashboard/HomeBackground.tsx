@@ -10,8 +10,18 @@ import { HOME_GRADIENT } from "./tokens";
 // short strip behind a single component, and the rest of the scrollable
 // content stays flat. Presentational only, no data/props.
 const GRADIENT_HEIGHT = 360;
+const DEFAULT_STOPS = [0, 0.55, 1] as const;
 
-export function HomeBackground() {
+type HomeBackgroundProps = {
+  // TASK_053 — optional overrides so the Home screen can render its own
+  // mint gradient (HOME_MINT_GRADIENT/HOME_MINT_GRADIENT_STOPS in tokens.ts)
+  // while Hours/Timeline/Profile/upcoming-events keep getting the original
+  // HOME_GRADIENT/DEFAULT_STOPS below unchanged.
+  colors?: readonly [string, string, string];
+  stops?: readonly [number, number, number];
+};
+
+export function HomeBackground({ colors = HOME_GRADIENT, stops = DEFAULT_STOPS }: HomeBackgroundProps = {}) {
   // TASK_019: the root Stack keeps the previous screen mounted underneath
   // the new /upcoming-events screen, so two <HomeBackground> instances can
   // exist in the DOM at once. On web, SVG gradient ids are global — a
@@ -23,9 +33,9 @@ export function HomeBackground() {
       <Svg width="100%" height={GRADIENT_HEIGHT} style={styles.svg}>
         <Defs>
           <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={HOME_GRADIENT[0]} />
-            <Stop offset="0.55" stopColor={HOME_GRADIENT[1]} />
-            <Stop offset="1" stopColor={HOME_GRADIENT[2]} />
+            <Stop offset={stops[0]} stopColor={colors[0]} />
+            <Stop offset={stops[1]} stopColor={colors[1]} />
+            <Stop offset={stops[2]} stopColor={colors[2]} />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height={GRADIENT_HEIGHT} fill={`url(#${gradientId})`} />

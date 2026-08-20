@@ -8,6 +8,7 @@ import { RecordForm } from "@/components/forms/RecordForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
+import { HOME_MINT_GRADIENT, HOME_MINT_GRADIENT_STOPS } from "@/components/dashboard/tokens";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord } from "@/types";
@@ -80,7 +81,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.screen}>
-      <HomeBackground />
+      <HomeBackground colors={HOME_MINT_GRADIENT} stops={HOME_MINT_GRADIENT_STOPS} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
@@ -156,10 +157,13 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  // Home-only screen background (TASK_010): near-white base under the
-  // HomeBackground gradient overlay; the shared Tabs sceneStyle bg is
-  // untouched, so Hours/Events/Add/Profile are unaffected.
-  screen: { flex: 1, backgroundColor: DS.homeBase },
+  // Home-only screen background (TASK_010; mint gradient TASK_053):
+  // near-white base under the HomeBackground gradient overlay; the shared
+  // Tabs sceneStyle bg is untouched, so Hours/Events/Add/Profile are
+  // unaffected. DS.homeMintBase (not DS.homeBase) matches this screen's own
+  // HOME_MINT_GRADIENT final stop — the other four HomeBackground call sites
+  // keep DS.homeBase/HOME_GRADIENT untouched.
+  screen: { flex: 1, backgroundColor: DS.homeMintBase },
   // Bounded height so the ScrollView scrolls on native now that it is nested
   // inside the screen View (was the tab-screen root before TASK_010); on web
   // this is a no-op. Mirrors the Hours screen's flex:1 scroll container.

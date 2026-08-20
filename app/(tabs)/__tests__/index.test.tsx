@@ -5,10 +5,12 @@
 // screen.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScrollView } from "react-native";
+import { Stop } from "react-native-svg";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { TAB_BAR_HEIGHT } from "@/components/TabBar";
+import { DS, HOME_GRADIENT, HOME_MINT_GRADIENT } from "@/components/dashboard/tokens";
 import Dashboard from "../index";
 
 const mockPush = jest.fn();
@@ -195,5 +197,35 @@ describe("Global add vs. contextual add — TASK_048", () => {
     walk(renderer.toJSON());
     expect(out).toContain("Добавить часы");
     expect(out).not.toContain("Добавить");
+  });
+});
+
+// TASK_053 — Home's mounted background must be the owner's exact mint spec
+// (180deg, #DCEFE9 0% / #EDF6F3 42% / #F7FAF9 100%), and must NOT be the
+// HOME_GRADIENT that Hours/Timeline/Profile/upcoming-events still render via
+// the same shared <HomeBackground> component (regression guard against
+// accidentally editing HOME_GRADIENT in place instead of passing Home's own
+// override props — that would also mint the other four screens).
+describe("Home mint gradient background — TASK_053", () => {
+  it("renders HOME_MINT_GRADIENT at stops [0, 0.42, 1], not the shared HOME_GRADIENT", async () => {
+    const { renderer } = await renderScreen();
+    const stops = renderer.root.findAllByType(Stop).map((s) => ({ offset: s.props.offset, color: s.props.stopColor }));
+    expect(stops).toEqual([
+      { offset: 0, color: HOME_MINT_GRADIENT[0] },
+      { offset: 0.42, color: HOME_MINT_GRADIENT[1] },
+      { offset: 1, color: HOME_MINT_GRADIENT[2] },
+    ]);
+    expect(HOME_MINT_GRADIENT).toEqual(["#DCEFE9", "#EDF6F3", "#F7FAF9"]);
+    expect(stops.map((s) => s.color)).not.toEqual([...HOME_GRADIENT]);
+  });
+
+  it("the screen's flat base color is DS.homeMintBase, matching the gradient's own final stop", async () => {
+    const { renderer } = await renderScreen();
+    const scrollView = renderer.root.findByType(ScrollView);
+    // The `screen` View is ScrollView's parent; walk up one level.
+    const screenView = scrollView.parent!;
+    const flat = [screenView.props.style].flat(Infinity).reduce((acc: object, s: object) => ({ ...acc, ...s }), {});
+    expect((flat as { backgroundColor: string }).backgroundColor).toBe(DS.homeMintBase);
+    expect(DS.homeMintBase).toBe("#F7FAF9");
   });
 });

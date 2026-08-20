@@ -6,7 +6,7 @@ import { TabBar, useTabBarContentInset } from "@/components/TabBar";
 // barrel: the barrel also pulls in HoursHeroCard -> StoreContext, which this
 // layout is itself an ancestor of, and the resulting import cycle left
 // HOME_GRADIENT undefined on first evaluation (TypeError in TabsLayout).
-import { DS, HOME_GRADIENT } from "@/components/dashboard/tokens";
+import { DS, HOME_MINT_GRADIENT } from "@/components/dashboard/tokens";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -22,10 +22,14 @@ export default function TabsLayout() {
   //    `edges` (and therefore the guarantee that content never slides under
   //    system elements) stays exactly as before.
   // 2. The scene's own bottom padding strip (the band behind the tab bar) is
-  //    painted by sceneStyle's background — DS.homeBase on Home removes the
-  //    visible seam between the Home background and that band.
+  //    painted by sceneStyle's background — DS.homeMintBase on Home removes
+  //    the visible seam between the Home background and that band.
   //
-  // Every other tab keeps COLORS.bg on both.
+  // TASK_053: Home's two colors below switched from HOME_GRADIENT[0]/
+  // DS.homeBase to HOME_MINT_GRADIENT[0]/DS.homeMintBase (Home's own mint
+  // gradient) — still gated on `isHome`, so Hours/Timeline/Profile/
+  // upcoming-events (which reuse <HomeBackground/> with the original
+  // HOME_GRADIENT) are unaffected. Every other tab keeps COLORS.bg on both.
   const pathname = usePathname();
   const isHome = pathname === "/";
   // Real clearance for the bar (bar height + home-indicator inset + gap)
@@ -36,7 +40,7 @@ export default function TabsLayout() {
 
   return (
     <SafeAreaView
-      style={[styles.safe, isHome && { backgroundColor: HOME_GRADIENT[0] }]}
+      style={[styles.safe, isHome && { backgroundColor: HOME_MINT_GRADIENT[0] }]}
       edges={["top", "left", "right"]}
     >
       {loaded ? (
@@ -45,7 +49,7 @@ export default function TabsLayout() {
           screenOptions={{
             headerShown: false,
             sceneStyle: {
-              backgroundColor: isHome ? DS.homeBase : COLORS.bg,
+              backgroundColor: isHome ? DS.homeMintBase : COLORS.bg,
               // Home owns its own bottom clearance on the ScrollView's
               // content (see app/(tabs)/index.tsx) so its background runs
               // edge-to-edge and the content scrolls under the floating bar

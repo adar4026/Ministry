@@ -68,6 +68,13 @@ export const DS = {
   // both today and the next week would collapse two of them into one color.
   // Tailwind orange-700 -> 5.17:1 on DS.cardBg.
   todayInk: "#c2410c",
+  // TASK_053 — flat base under the Home screen's OWN mint gradient
+  // (HOME_MINT_GRADIENT below), matching its final stop so the area past
+  // the fixed-height <HomeBackground> blends in seamlessly. Deliberately a
+  // new token rather than repurposing `homeBase`: that one is shared by
+  // Hours/Timeline/Profile/upcoming-events (all reuse <HomeBackground /> with
+  // its default HOME_GRADIENT), which this task must not touch.
+  homeMintBase: "#F7FAF9",
 } as const;
 
 // Gradient stops for the goal ring (blue -> green -> amber).
@@ -83,3 +90,15 @@ export const ACCENT_RING_STOPS = ["#8fadf7", DS.accent, "#2d55c7"] as const;
 // not Apple's exact green. Local to the Home screen — does not affect global
 // COLORS or other screens.
 export const HOME_GRADIENT = ["#cfe3d9", "#e3ece8", "#eef2f0"] as const;
+
+// TASK_053 — Home screen's own vertical gradient: calm light mint-blue,
+// per the owner's exact spec (180deg, #DCEFE9 0% / #EDF6F3 42% / #F7FAF9
+// 100%). Kept as a SEPARATE constant from HOME_GRADIENT above rather than
+// changing its values in place: HOME_GRADIENT (and DS.homeBase) are also
+// consumed, via the same <HomeBackground /> component, by Hours, Timeline,
+// Profile and /upcoming-events — this task's scope is Home only.
+export const HOME_MINT_GRADIENT = ["#DCEFE9", "#EDF6F3", "#F7FAF9"] as const;
+// Stop offsets (0-1) matching the spec's 0% / 42% / 100%, passed alongside
+// HOME_MINT_GRADIENT to <HomeBackground> — the default offsets ([0, 0.55, 1]
+// in HomeBackground.tsx) stay the ones the other four screens get.
+export const HOME_MINT_GRADIENT_STOPS = [0, 0.42, 1] as const;

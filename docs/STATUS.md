@@ -1,15 +1,68 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_052 — снята верхняя граница в 30 дней для
-`Через N дней` на карточках «Ближайшие события»: теперь у любого будущего
-события (кроме `Сегодня`/`Завтра`) есть и абсолютная дата, и точный
-относительный срок, сколь угодно далеко — тем же утверждённым стилем
-(TASK_050/051). Architecture Review Checklist (ADR-007) пройден без
-замечаний. Полная документация —
-`docs/TASKS/TASK_052_UPCOMING_EVENTS_NO_DAY_CAP.md`._
+_Последнее обновление: TASK_053 — Главная получила собственный спокойный
+светлый мятно-голубой вертикальный градиент фона (180deg, #DCEFE9 0% /
+#EDF6F3 42% / #F7FAF9 100%, точно по ТЗ владельца), начинающийся сразу под
+status bar. Реализован через новые Home-only токены
+(`HOME_MINT_GRADIENT`/`HOME_MINT_GRADIENT_STOPS`/`DS.homeMintBase`) и
+необязательные пропсы `<HomeBackground colors stops>` — общий
+`HOME_GRADIENT`/`DS.homeBase`, которым по-прежнему пользуются
+Hours/Timeline/Profile/`upcoming-events` через тот же компонент, не
+тронут. Белые карточки, нижняя навигация (белая), синие действия,
+типографика, вёрстка, логика экранов — без изменений. Architecture Review
+Checklist (ADR-007) пройден без замечаний. Полная документация —
+`docs/TASKS/TASK_053_HOME_MINT_GRADIENT_BACKGROUND.md`._
 
 Реализация завершена, задеплоена на GitHub Pages
 (https://adar4026.github.io/Ministry/).
+
+## TASK_053 — коротко
+
+Задача: закрепить для Главной градиент `linear-gradient(180deg, #DCEFE9
+0%, #EDF6F3 42%, #F7FAF9 100%)` вместо прежнего `HOME_GRADIENT`
+(`#cfe3d9 → #e3ece8 → #eef2f0`, TASK_010/017), не задев остальные четыре
+экрана, которые рендерят тот же презентационный компонент
+`<HomeBackground />` (`src/components/dashboard/HomeBackground.tsx`):
+Hours (TASK_046), Timeline, Profile, `/upcoming-events`.
+
+Решение — не редактировать `HOME_GRADIENT`/`DS.homeBase` "на месте" (это
+задело бы все пять экранов), а:
+
+1. Добавить в `src/components/dashboard/tokens.ts` отдельные Home-only
+   константы `HOME_MINT_GRADIENT = ["#DCEFE9", "#EDF6F3", "#F7FAF9"]`,
+   `HOME_MINT_GRADIENT_STOPS = [0, 0.42, 1]`, `DS.homeMintBase =
+   "#F7FAF9"` — существующие `HOME_GRADIENT`/`DS.homeBase` не менялись.
+2. Дать `<HomeBackground />` необязательные пропсы `colors`/`stops` с
+   дефолтами, воспроизводящими прежнее поведение 1:1 (`HOME_GRADIENT`,
+   `[0, 0.55, 1]`) — четыре не-Home экрана вызывают компонент без пропсов
+   и не заметили изменения.
+3. `app/(tabs)/index.tsx`: `<HomeBackground colors={HOME_MINT_GRADIENT}
+   stops={HOME_MINT_GRADIENT_STOPS} />`, `styles.screen.backgroundColor`
+   → `DS.homeMintBase`.
+4. `app/(tabs)/_layout.tsx`: обе точки, гейтованные `isHome` (верхняя
+   safe-area-полоса, нижняя scene-полоса, TASK_048), переключены на
+   `HOME_MINT_GRADIENT[0]`/`DS.homeMintBase` — остальные вкладки
+   продолжают получать `COLORS.bg`.
+
+Тесты: новый файл `src/components/dashboard/__tests__/
+HomeBackground.test.tsx` (4 теста — дефолтные пропсы = старый градиент,
+кастомные пропсы = мятный градиент, `DS.homeMintBase` = финальный стоп
+`HOME_MINT_GRADIENT`, два набора констант не совпадают); 2 новых теста в
+`app/(tabs)/__tests__/index.test.tsx` (смонтированный экран Главной
+рендерит именно мятные стопы `[0, 0.42, 1]`, плоский фон экрана =
+`DS.homeMintBase`).
+
+`npx tsc --noEmit` — чисто. `npx jest` — **964/964, 0 failed** (66/66
+suites, +6 к базе TASK_052). `git diff --check` — чисто. Живая проверка
+на dev-сервере (мобильный viewport 375×812): Главная — градиент от
+`#DCEFE9` вплотную к хедеру без белой полосы, стопы подтверждены через
+`document.querySelectorAll('stop')` (`0/0.42/1` → `#DCEFE9/#EDF6F3/
+#F7FAF9`), белые карточки на месте, нижний таб-бар — вычисленный
+`background-color: rgb(255, 255, 255)`; `/hours`, `/timeline`, `/profile`
+— стопы всё ещё `0/0.55/1` → `#cfe3d9/#e3ece8/#eef2f0` (исходный
+`HOME_GRADIENT`, не задет). Консоль браузера — без ошибок.
+
+---
 
 ## TASK_052 — коротко
 
