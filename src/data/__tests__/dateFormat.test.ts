@@ -392,6 +392,15 @@ describe("upcomingDateLabel (TASK_048)", () => {
     expect(upcomingDateLabel(iso(2026, 9, 20), now).urgency).toBe("later"); // diff = 31
   });
 
+  it("TASK_050: exposes the bare day count only for 'Через N дней' rows", () => {
+    expect(upcomingDateLabel(iso(2026, 8, 23), now).days).toBe(3); // soon
+    expect(upcomingDateLabel(iso(2026, 9, 4), now).days).toBe(15); // upcoming
+    expect(upcomingDateLabel(iso(2026, 8, 20), now).days).toBeNull(); // today
+    expect(upcomingDateLabel(iso(2026, 8, 21), now).days).toBeNull(); // tomorrow
+    expect(upcomingDateLabel(iso(2026, 8, 18), now).days).toBeNull(); // overdue
+    expect(upcomingDateLabel(iso(2026, 10, 6), now).days).toBeNull(); // later (>30 days)
+  });
+
   it("flags a past date as overdue in words, not by color alone", () => {
     const label = upcomingDateLabel(iso(2026, 8, 18), now);
     expect(label.primary).toBe("Просрочено");

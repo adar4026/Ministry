@@ -89,7 +89,11 @@ describe("UpcomingEventsCard — TASK_048 human relative statuses", () => {
     await act(async () => {
       store().saveEvent({ date: futureISO(15), title: "Конгресс", category: "other" });
     });
-    const rendered = texts().join(" ");
+    // TASK_050: "Через 15 дней" now renders as three separate Text leaves
+    // (navy "Через " / orange "15" / navy " дней") so the words and the
+    // number can carry different colors — collapse the collectText helper's
+    // artificial inter-leaf spacing before matching the full phrase.
+    const rendered = texts().join(" ").replace(/\s+/g, " ");
     expect(rendered).toContain("Через 15 дней");
     // A human month name, never a bare numeric month.
     expect(rendered).toMatch(/\d{1,2} (января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/);

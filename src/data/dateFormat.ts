@@ -250,6 +250,12 @@ export type UpcomingDateLabel = {
   // dates where `primary` IS the calendar date).
   secondary: string | null;
   urgency: UpcomingUrgency;
+  // TASK_050: the bare day count for a "Через N дней" primary (diff 2-30,
+  // i.e. urgency "soon" or "upcoming") — lets the renderer highlight just
+  // the number without parsing it back out of `primary`. Null for every
+  // other row shape (overdue/today/tomorrow/far-future), where `primary`
+  // is not of that form.
+  days: number | null;
 };
 
 // Day count past which a relative phrase stops being useful and the plain
@@ -265,22 +271,23 @@ const SOON_DAYS = 7;
 export function upcomingDateLabel(iso: string, now: Date = new Date()): UpcomingDateLabel {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   const absolute = formatDateHuman(iso, now);
-  if (!m) return { primary: absolute, secondary: null, urgency: "later" };
+  if (!m) return { primary: absolute, secondary: null, urgency: "later", days: null };
 
   const [, yStr, moStr, dStr] = m;
   const target = new Date(Number(yStr), Number(moStr) - 1, Number(dStr));
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const diff = daysBetweenUTC(today, target);
 
-  if (diff < 0) return { primary: "Просрочено", secondary: absolute, urgency: "overdue" };
-  if (diff === 0) return { primary: "Сегодня", secondary: null, urgency: "today" };
-  if (diff === 1) return { primary: "Завтра", secondary: null, urgency: "tomorrow" };
+  if (diff < 0) return { primary: "Просрочено", secondary: absolute, urgency: "overdue", days: null };
+  if (diff === 0) return { primary: "Сегодня", secondary: null, urgency: "today", days: null };
+  if (diff === 1) return { primary: "Завтра", secondary: null, urgency: "tomorrow", days: null };
   if (diff <= RELATIVE_HORIZON_DAYS) {
     return {
       primary: `Через ${diff} ${pluralDaysRu(diff)}`,
       secondary: absolute,
       urgency: diff <= SOON_DAYS ? "soon" : "upcoming",
+      days: diff,
     };
   }
-  return { primary: absolute, secondary: null, urgency: "later" };
+  return { primary: absolute, secondary: null, urgency: "later", days: null };
 }
