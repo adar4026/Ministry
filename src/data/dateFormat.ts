@@ -197,3 +197,86 @@ export function formatProfileEventElapsed(elapsed: CalendarElapsed): string {
   if (elapsed.months > 0) parts.push(`${elapsed.months} мес`);
   return parts.join(" ");
 }
+
+// ---------------------------------------------------------------------------
+// Home-scoped human date presentation (TASK_048)
+//
+// The Home screen's event cards previously rendered raw `formatDateDMY()`
+// output ("20-08-2026"), which reads as a technical record rather than a
+// human date. TASK_022's DD-MM-YYYY contract is deliberately NOT revoked —
+// it remains canonical for forms, History, the timer, the Events timeline
+// and Profile. The two functions below are the Home/upcoming-events
+// presentation layer only.
+// ---------------------------------------------------------------------------
+
+// Genitive month names for "4 сентября" phrasing — the same grammatical case
+// as MONTHS_GEN on the Home header (app/(tabs)/index.tsx), spelled out in
+// full rather than MONTH_ABBR_GEN's History-list abbreviations.
+const MONTHS_GEN_FULL = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+];
+
+// "YYYY-MM-DD" -> "4 сентября", or "4 сентября 2026" when the year differs
+// from `now`'s year (the only case where the year actually carries
+// information on a screen that is always anchored to today). Malformed
+// input is returned unchanged — same convention as formatDateDMY() above.
+export function formatDateHuman(iso: string, now: Date = new Date()): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const [, yStr, moStr, dStr] = m;
+  const y = Number(yStr);
+  const mo = Number(moStr);
+  const d = Number(dStr);
+  if (mo < 1 || mo > 12) return iso;
+  const base = `${d} ${MONTHS_GEN_FULL[mo - 1]}`;
+  return y === now.getFullYear() ? base : `${base} ${y}`;
+}
+
+// How soon an upcoming item is due. Drives color only — every variant also
+// has a self-sufficient text label (see upcomingDateLabel), so the state is
+// never communicated by color alone.
+export type UpcomingUrgency = "overdue" | "today" | "tomorrow" | "soon" | "later";
+
+export type UpcomingDateLabel = {
+  // Always present, always human-readable on its own.
+  primary: string;
+  // Absolute calendar date, shown only when it adds context the relative
+  // phrase doesn't already carry (null for today/tomorrow, and for far
+  // dates where `primary` IS the calendar date).
+  secondary: string | null;
+  urgency: UpcomingUrgency;
+};
+
+// Day count past which a relative phrase stops being useful and the plain
+// calendar date becomes the primary label ("через 47 дней" is not something
+// anyone reasons about; "6 октября" is).
+const RELATIVE_HORIZON_DAYS = 30;
+// Above this, "через N дней" is informational rather than urgent.
+const SOON_DAYS = 7;
+
+// Human relative status for a Home event card. Calendar-day based (both
+// dates normalized to local midnight via daysBetweenUTC), so it never drifts
+// with the time of day or DST.
+export function upcomingDateLabel(iso: string, now: Date = new Date()): UpcomingDateLabel {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const absolute = formatDateHuman(iso, now);
+  if (!m) return { primary: absolute, secondary: null, urgency: "later" };
+
+  const [, yStr, moStr, dStr] = m;
+  const target = new Date(Number(yStr), Number(moStr) - 1, Number(dStr));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = daysBetweenUTC(today, target);
+
+  if (diff < 0) return { primary: "Просрочено", secondary: absolute, urgency: "overdue" };
+  if (diff === 0) return { primary: "Сегодня", secondary: null, urgency: "today" };
+  if (diff === 1) return { primary: "Завтра", secondary: null, urgency: "tomorrow" };
+  if (diff <= RELATIVE_HORIZON_DAYS) {
+    return {
+      primary: `Через ${diff} ${pluralDaysRu(diff)}`,
+      secondary: absolute,
+      urgency: diff <= SOON_DAYS ? "soon" : "later",
+    };
+  }
+  return { primary: absolute, secondary: null, urgency: "later" };
+}

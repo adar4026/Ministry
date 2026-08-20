@@ -31,15 +31,31 @@ function renderTexts(event: MinistryEvent): string[] {
 }
 
 describe("EventCard", () => {
-  it("renders the date as DD-MM-YYYY, not YYYY-MM-DD", () => {
+  // TASK_048: Home's event cards speak the same human date language as the
+  // upcoming cards. The DD-MM-YYYY form (TASK_022) is still canonical
+  // everywhere outside Home — forms, History, the timer, the timeline,
+  // Profile — it is just no longer what these cards show.
+  it("renders the date in human form, not DD-MM-YYYY or raw ISO", () => {
+    // A past year, so the year component is part of the expected output —
+    // the current year is deliberately omitted (see the next test).
+    const year = new Date().getFullYear() - 2;
     const texts = renderTexts({
       id: "e1",
-      date: "2026-05-24",
+      date: `${year}-05-24`,
       title: "Назначение служебным помощником",
       category: "appointment",
-    });
-    expect(texts.join(" ")).toContain("24-05-2026");
-    expect(texts.join(" ")).not.toContain("2026-05-24");
+    }).join(" ");
+    expect(texts).toContain(`24 мая ${year}`);
+    expect(texts).not.toContain(`24-05-${year}`);
+    expect(texts).not.toContain(`${year}-05-24`);
+  });
+
+  it("omits the year for an event in the current year", () => {
+    const now = new Date();
+    const iso = `${now.getFullYear()}-03-04`;
+    const texts = renderTexts({ id: "e-cur", date: iso, title: "Событие", category: "other" }).join(" ");
+    expect(texts).toContain("4 марта");
+    expect(texts).not.toContain(`4 марта ${now.getFullYear()}`);
   });
 
   it("renders a long title and a long category label without crashing", () => {

@@ -72,6 +72,58 @@ beforeEach(async () => {
   mockRouter.push.mockClear();
 });
 
+describe("UpcomingEventsCard — TASK_048 human relative statuses", () => {
+  it("labels today's and tomorrow's events in words, with no redundant calendar date", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      store().saveEvent({ date: futureISO(0), title: "Сегодняшнее", category: "other" });
+      store().saveEvent({ date: futureISO(1), title: "Завтрашнее", category: "other" });
+    });
+    const rendered = texts();
+    expect(rendered).toContain("Сегодня");
+    expect(rendered).toContain("Завтра");
+  });
+
+  it("labels a mid-range event with a day count plus a human calendar date", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      store().saveEvent({ date: futureISO(15), title: "Конгресс", category: "other" });
+    });
+    const rendered = texts().join(" ");
+    expect(rendered).toContain("Через 15 дней");
+    // A human month name, never a bare numeric month.
+    expect(rendered).toMatch(/\d{1,2} (января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/);
+  });
+
+  it("never renders the technical DD-MM-YYYY date form on Home", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      store().saveEvent({ date: futureISO(0), title: "A", category: "other" });
+      store().saveEvent({ date: futureISO(3), title: "B", category: "other" });
+      store().saveEvent({ date: futureISO(200), title: "C", category: "other" });
+    });
+    expect(texts().join(" ")).not.toMatch(/\d{2}-\d{2}-\d{4}/);
+  });
+
+  it("falls back to a plain calendar date beyond the relative horizon", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      store().saveEvent({ date: futureISO(200), title: "Далёкое", category: "other" });
+    });
+    const rendered = texts().join(" ");
+    expect(rendered).not.toContain("Через 200");
+    expect(rendered).toMatch(/\d{1,2} \p{L}+ \d{4}/u);
+  });
+
+  it("renders the event title alone — never glued to a date", async () => {
+    const { store, texts } = await renderCard();
+    await act(async () => {
+      store().saveEvent({ date: futureISO(2), title: "Оплатить Telegram Premium", category: "other" });
+    });
+    expect(texts()).toContain("Оплатить Telegram Premium");
+  });
+});
+
 describe("UpcomingEventsCard — TASK_019", () => {
   it("renders the empty state and hides 'Показать все' when there are no upcoming events", async () => {
     const { texts } = await renderCard();

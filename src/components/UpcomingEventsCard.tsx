@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SummaryCard, UpcomingEventRow } from "@/components/dashboard";
 import { COLORS, upcomingItems } from "@/data/constants";
+import { DS } from "@/components/dashboard";
 import { useStore } from "@/store/StoreContext";
 
 const HOME_LIMIT = 3;
@@ -52,12 +53,14 @@ export function UpcomingEventsCard() {
 
 const styles = StyleSheet.create({
   // Same gap as "Последние события"'s eventList (app/(tabs)/index.tsx).
-  list: { gap: 11 },
+  list: { gap: 10 },
   // Radius/shadow/background come from SummaryCard's defaults (TASK_017) —
   // only the wider padding this card always had is kept here.
-  card: { padding: 20 },
+  card: { padding: 16 },
   empty: { fontSize: 15, color: COLORS.muted, paddingVertical: 8 },
   showAll: { marginTop: 4, alignItems: "center", paddingVertical: 6 },
-  showAllText: { fontSize: 15, fontWeight: "700", color: COLORS.accent },
+  // DS.accentInk (TASK_048): COLORS.accent measured 3.26:1 against the Home
+  // background this link sits on.
+  showAllText: { fontSize: 15, fontWeight: "700", color: DS.accentInk },
   pressed: { opacity: 0.7 },
 });

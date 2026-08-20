@@ -39,6 +39,29 @@ export const DS = {
   // exactly, kept as its own DS token rather than importing the global
   // palette into Home-scoped tokens.
   danger: "#dc2626",
+  // TASK_048 — WCAG-AA (>= 4.5:1 on DS.cardBg) variants of the three
+  // semantic text roles Home uses for small (12-15px) labels. Deliberately
+  // ADDED rather than changing `subText`/`metaText`/`greenInk`/`amberInk`
+  // above: those tokens are also consumed by Profile, Timeline and the
+  // /upcoming-events header, which are outside this task's scope.
+  //   subInk     #5f7290 -> 4.89:1 (subText was 3.61:1, metaText 3.03:1)
+  //   successInk #15803d -> 5.01:1 (greenInk was 3.47:1)
+  //   warnInk    #b45309 -> 5.02:1 (amberInk was 4.00:1, durationAccent 3.18:1)
+  // `danger` (4.83:1) and `tealInk` (5.43:1) already pass and are reused
+  // as-is for the error / soft-accent roles.
+  subInk: "#5f7290",
+  successInk: "#15803d",
+  warnInk: "#b45309",
+  // Darker end of the app's own accent-blue family (it is ACCENT_RING_STOPS'
+  // last stop). `accent` (#3f6fe0) and COLORS.accent (#3b82f6) measure
+  // 3.9-4.1:1 as label text on the tinted surfaces Home puts them on
+  // (heroBg, COLORS.light, homeBase); this passes at 5.6-5.7:1 without
+  // leaving the brand hue.
+  accentInk: "#2d55c7",
+  // Secondary text sitting on the Home gradient rather than on a white card.
+  // `subInk` above is tuned for white (4.89:1) and drops to 3.6:1 against the
+  // gradient's darker top stop, so on-tint captions get their own value.
+  onTintInk: "#46566e",
 } as const;
 
 // Gradient stops for the goal ring (blue -> green -> amber).

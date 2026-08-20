@@ -1,7 +1,7 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import type { ComponentType } from "react";
+import { useContext, type ComponentType } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@/data/constants";
 import { CalendarIcon, ChartIcon, HomeIcon, type IconProps, PersonIcon, PlusIcon } from "@/components/icons";
 
@@ -18,6 +18,51 @@ const TAB_ICON: Record<string, ComponentType<IconProps>> = {
 
 const ACTIVE_BG = "#f1f5f9"; // light gray pill behind the active tab
 const INACTIVE_COLOR = COLORS.text; // dark
+
+// Bar geometry, kept as named parts so TAB_BAR_HEIGHT below stays derived
+// from the same numbers the stylesheet uses instead of being a second,
+// silently-drifting copy of them (TASK_048).
+const BAR_V_PADDING = 8;
+const BAR_BORDER_WIDTH = 1;
+const TAB_INNER_V_PADDING = 6;
+const TAB_INNER_GAP = 3;
+const TAB_ICON_SIZE = 20;
+const TAB_LABEL_LINE_HEIGHT = 14;
+
+// Floor for the gap the wrapper leaves below the bar when the platform
+// reports no bottom safe-area inset (web, older iPhones, Android without a
+// gesture bar) — the `insets.bottom || 12` the wrapper itself applies.
+const BAR_MIN_BOTTOM_PADDING = 12;
+
+// Height of the bar box itself (border box), WITHOUT the space the wrapper
+// leaves below it. Screens must not use this alone — see
+// useTabBarContentInset().
+export const TAB_BAR_HEIGHT =
+  BAR_V_PADDING * 2 +
+  BAR_BORDER_WIDTH * 2 +
+  TAB_INNER_V_PADDING * 2 +
+  TAB_ICON_SIZE +
+  TAB_INNER_GAP +
+  TAB_LABEL_LINE_HEIGHT;
+
+// Breathing room between the last piece of scrollable content and the top
+// edge of the bar — the "плюс безопасный отступ" part of the contract.
+export const TAB_BAR_CONTENT_GAP = 16;
+
+// The bottom inset scrollable content must reserve so nothing ends up hidden
+// behind the fixed/absolute bar. Mirrors the wrapper's own geometry exactly:
+// bar height + `insets.bottom || BAR_MIN_BOTTOM_PADDING` + a safe gap.
+// Replaces the hardcoded 90, which was smaller than the bar actually
+// occupies on any device with a home indicator (67 + 34 = 101).
+export function useTabBarContentInset(gap: number = TAB_BAR_CONTENT_GAP): number {
+  // Reads the context directly instead of calling useSafeAreaInsets(), which
+  // throws when no SafeAreaProvider is mounted above it. Screens call this
+  // helper from their own render path, including in isolated component tests
+  // that mount a screen without the app shell — a spacing helper must
+  // degrade to the no-inset value there, not crash the tree.
+  const insets = useContext(SafeAreaInsetsContext);
+  return TAB_BAR_HEIGHT + (insets?.bottom || BAR_MIN_BOTTOM_PADDING) + gap;
+}
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -50,7 +95,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         style={styles.tab}
       >
         <View style={[styles.tabInner, isFocused && styles.tabInnerActive]}>
-          <Icon size={20} color={color} />
+          <Icon size={TAB_ICON_SIZE} color={color} />
           <Text
             style={[styles.label, isFocused && styles.labelActive, { color }]}
             numberOfLines={1}
@@ -65,7 +110,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [first, second, ...rest] = TAB_ORDER;
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom || 12 }]}>
+    <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom || BAR_MIN_BOTTOM_PADDING }]}>
       <View style={styles.bar}>
         {renderTab(first)}
         {renderTab(second)}
@@ -116,11 +161,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     backgroundColor: COLORS.card,
     borderRadius: 28,
-    borderWidth: 1,
+    borderWidth: BAR_BORDER_WIDTH,
     borderColor: COLORS.border,
     paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: BAR_V_PADDING,
+    paddingBottom: BAR_V_PADDING,
     marginHorizontal: 20,
     shadowColor: "#0f172a",
     shadowOpacity: 0.12,
@@ -136,12 +181,14 @@ const styles = StyleSheet.create({
   tabInner: {
     width: "100%",
     alignItems: "center",
-    gap: 3,
-    paddingVertical: 6,
+    gap: TAB_INNER_GAP,
+    paddingVertical: TAB_INNER_V_PADDING,
     borderRadius: 16,
   },
   tabInnerActive: { backgroundColor: ACTIVE_BG },
-  label: { fontSize: 11, fontWeight: "500" },
+  // Explicit lineHeight (was the platform default) so TAB_BAR_HEIGHT is an
+  // exact figure rather than an estimate that differs between web and native.
+  label: { fontSize: 11, fontWeight: "500", lineHeight: TAB_LABEL_LINE_HEIGHT },
   labelActive: { fontWeight: "600" },
   centerSlot: {
     width: 60,
@@ -163,5 +210,11 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabPressed: { opacity: 0.85 },
-  centerLabel: { fontSize: 11, fontWeight: "600", color: COLORS.text, marginTop: 3 },
+  centerLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: TAB_LABEL_LINE_HEIGHT,
+    color: COLORS.text,
+    marginTop: TAB_INNER_GAP,
+  },
 });

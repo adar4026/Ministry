@@ -52,17 +52,69 @@ function allTexts(renderer: ReturnType<typeof create>): string[] {
 
 // Synthetic data mimicking the shape of a real (legacy + session-based)
 // backup — not the user's actual data.
-const SYNTHETIC_RECORD: HourRecord = { id: "synt-r1", year: 2026, month: 3, hours: 44, note: "" };
-const SYNTHETIC_EVENT: MinistryEvent = { id: "synt-e1", date: "2026-01-05", title: "Synthetic import event", category: "personal" };
+//
+// Dates are DERIVED from the current date, never hardcoded. The fixtures
+// used to be pinned to the month this file was written in (session
+// 2026-07-10, record 2026-03), which made the "no longer 0 ч" assertion
+// below pass only while the machine clock was inside July 2026: the Home
+// hero card's headline is hoursForMonth(records, now, sessions), so a
+// session dated in any OTHER month contributes nothing to it and the
+// headline stays "0 ч". Nothing about timezones was involved — the
+// aggregation path (parseISOYearMonth -> sessionsForMonth) parses the ISO
+// day as a string and never constructs a Date — it was purely the fixture
+// data drifting out of the window the assertion describes.
+const NOW = new Date();
+const pad = (n: number) => String(n).padStart(2, "0");
+const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// Today. The only kind of session that can move the hero card's headline
+// off "0 ч" is one inside the current month — that is exactly the condition
+// the assertion is about, so the fixture has to guarantee it rather than
+// hope for it.
+const CURRENT_MONTH_DAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+// Six months back, day 5 — always a real calendar date (JS normalizes the
+// negative month) and always strictly in the past, which is what
+// "Последние события" (events filtered to date <= today) and the legacy
+// HourRecord path (legacyEntryBlockReason refuses the current month) need.
+const PAST_DAY = new Date(NOW.getFullYear(), NOW.getMonth() - 6, 5);
+
+const SYNTHETIC_RECORD: HourRecord = {
+  id: "synt-r1",
+  year: PAST_DAY.getFullYear(),
+  month: PAST_DAY.getMonth() + 1,
+  hours: 44,
+  note: "",
+};
+const SYNTHETIC_EVENT: MinistryEvent = {
+  id: "synt-e1",
+  date: isoDay(PAST_DAY),
+  title: "Synthetic import event",
+  category: "personal",
+};
 const SYNTHETIC_SESSION: Session = {
   id: "synt-s1",
-  date: "2026-07-10",
+  date: isoDay(CURRENT_MONTH_DAY),
   durationMinutes: 90,
   note: "",
   source: "manual",
-  createdAt: "2026-07-10T10:00:00.000Z",
-  updatedAt: "2026-07-10T10:00:00.000Z",
+  createdAt: `${isoDay(CURRENT_MONTH_DAY)}T10:00:00.000Z`,
+  updatedAt: `${isoDay(CURRENT_MONTH_DAY)}T10:00:00.000Z`,
 };
+
+// Guards the derivation itself, so a future edit that re-pins a fixture to
+// a literal date fails here with a clear reason instead of failing the
+// assertion it silently invalidates.
+describe("test fixtures are anchored to the current date", () => {
+  it("puts the session in the current month, so it reaches the hero card's headline", () => {
+    expect(SYNTHETIC_SESSION.date.slice(0, 7)).toBe(`${NOW.getFullYear()}-${pad(NOW.getMonth() + 1)}`);
+  });
+
+  it("puts the event and the legacy record strictly in the past", () => {
+    expect(SYNTHETIC_EVENT.date < isoDay(NOW)).toBe(true);
+    const recordMonth = SYNTHETIC_RECORD.year * 12 + SYNTHETIC_RECORD.month;
+    expect(recordMonth).toBeLessThan(NOW.getFullYear() * 12 + NOW.getMonth() + 1);
+  });
+});
 
 describe("Dashboard (Home) — reflects imported data via replaceAllData, no reload", () => {
   it("shows the empty state before any import", async () => {
@@ -90,6 +142,9 @@ describe("Dashboard (Home) — reflects imported data via replaceAllData, no rel
     // "0 ч" (the pre-import empty-state total) must no longer be the
     // headline figure once a session contributes hours for the current month.
     expect(texts).not.toContain("0 ч");
+    // Stronger than the negative above: the headline is the imported
+    // session's own 90 minutes, not merely "something other than zero".
+    expect(texts).toContain("1 ч 30 м");
   });
 
   it("keeps showing the imported data after a simulated remount/reload", async () => {

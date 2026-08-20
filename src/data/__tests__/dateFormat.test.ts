@@ -4,6 +4,7 @@
 import {
   calendarElapsed,
   formatDateDMY,
+  formatDateHuman,
   formatElapsedRu,
   formatHistoryListDate,
   formatProfileEventElapsed,
@@ -12,6 +13,7 @@ import {
   pluralDaysRu,
   pluralMonthsRu,
   pluralYearsRu,
+  upcomingDateLabel,
 } from "@/data/dateFormat";
 
 describe("formatHistoryListDate (TASK_032 History list row)", () => {
@@ -287,5 +289,130 @@ describe("formatProfileEventElapsed (TASK_042 Profile hero card)", () => {
   it("does not produce a negative or future-looking result for a future date", () => {
     const out = elapsed("2099-01-01", new Date(2026, 6, 20));
     expect(out).toBe("менее 1 мес");
+  });
+});
+
+// TASK_048 — Home-scoped human date presentation. These replace the raw
+// DD-MM-YYYY form on Home's event cards only; formatDateDMY() above stays
+// canonical for forms, History, the timer, the timeline and Profile.
+describe("formatDateHuman (TASK_048)", () => {
+  const now = new Date(2026, 7, 20); // 20 August 2026
+
+  it("omits the year when the date falls in the current year", () => {
+    expect(formatDateHuman("2026-09-04", now)).toBe("4 сентября");
+  });
+
+  it("includes the year when it differs from the current year", () => {
+    expect(formatDateHuman("2024-03-02", now)).toBe("2 марта 2024");
+    expect(formatDateHuman("2027-01-09", now)).toBe("9 января 2027");
+  });
+
+  it("uses the genitive month form and drops the leading day zero", () => {
+    expect(formatDateHuman("2026-08-05", now)).toBe("5 августа");
+  });
+
+  it.each([
+    ["2026-01-15", "15 января"],
+    ["2026-02-15", "15 февраля"],
+    ["2026-03-15", "15 марта"],
+    ["2026-04-15", "15 апреля"],
+    ["2026-05-15", "15 мая"],
+    ["2026-06-15", "15 июня"],
+    ["2026-07-15", "15 июля"],
+    ["2026-08-15", "15 августа"],
+    ["2026-09-15", "15 сентября"],
+    ["2026-10-15", "15 октября"],
+    ["2026-11-15", "15 ноября"],
+    ["2026-12-15", "15 декабря"],
+  ])("formats %s as %s", (iso, expected) => {
+    expect(formatDateHuman(iso, now)).toBe(expected);
+  });
+
+  it("never emits the technical DD-MM-YYYY form", () => {
+    expect(formatDateHuman("2026-08-20", now)).not.toMatch(/\d{2}-\d{2}-\d{4}/);
+  });
+
+  it("returns malformed input unchanged instead of crashing", () => {
+    expect(formatDateHuman("not-a-date", now)).toBe("not-a-date");
+    expect(formatDateHuman("2026-13-01", now)).toBe("2026-13-01");
+  });
+});
+
+describe("upcomingDateLabel (TASK_048)", () => {
+  const now = new Date(2026, 7, 20); // 20 August 2026
+  const iso = (y: number, m: number, d: number) =>
+    `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+  it("says Сегодня for today, with no redundant calendar date", () => {
+    const label = upcomingDateLabel(iso(2026, 8, 20), now);
+    expect(label.primary).toBe("Сегодня");
+    expect(label.secondary).toBeNull();
+    expect(label.urgency).toBe("today");
+  });
+
+  it("says Завтра for tomorrow, with no redundant calendar date", () => {
+    const label = upcomingDateLabel(iso(2026, 8, 21), now);
+    expect(label.primary).toBe("Завтра");
+    expect(label.secondary).toBeNull();
+    expect(label.urgency).toBe("tomorrow");
+  });
+
+  it("says 'Через 15 дней' plus the calendar date for a mid-range event", () => {
+    const label = upcomingDateLabel(iso(2026, 9, 4), now);
+    expect(label.primary).toBe("Через 15 дней");
+    expect(label.secondary).toBe("4 сентября");
+    expect(label.urgency).toBe("later");
+  });
+
+  it("marks the next few days as 'soon' but still names the day count", () => {
+    const label = upcomingDateLabel(iso(2026, 8, 23), now);
+    expect(label.primary).toBe("Через 3 дня");
+    expect(label.urgency).toBe("soon");
+  });
+
+  it("switches to a plain calendar date past the 30-day relative horizon", () => {
+    const label = upcomingDateLabel(iso(2026, 10, 6), now);
+    expect(label.primary).toBe("6 октября");
+    expect(label.secondary).toBeNull();
+    expect(label.urgency).toBe("later");
+  });
+
+  it("keeps the relative phrase exactly at the 30-day boundary", () => {
+    expect(upcomingDateLabel(iso(2026, 9, 19), now).primary).toBe("Через 30 дней");
+    expect(upcomingDateLabel(iso(2026, 9, 20), now).primary).toBe("20 сентября");
+  });
+
+  it("flags a past date as overdue in words, not by color alone", () => {
+    const label = upcomingDateLabel(iso(2026, 8, 18), now);
+    expect(label.primary).toBe("Просрочено");
+    expect(label.secondary).toBe("18 августа");
+    expect(label.urgency).toBe("overdue");
+  });
+
+  it("uses correct Russian day plurals across the relative range", () => {
+    expect(upcomingDateLabel(iso(2026, 8, 22), now).primary).toBe("Через 2 дня");
+    expect(upcomingDateLabel(iso(2026, 8, 25), now).primary).toBe("Через 5 дней");
+    expect(upcomingDateLabel(iso(2026, 9, 10), now).primary).toBe("Через 21 день");
+  });
+
+  it("never emits the technical DD-MM-YYYY form in either slot", () => {
+    for (const day of [18, 20, 21, 23, 30]) {
+      const label = upcomingDateLabel(iso(2026, 8, day), now);
+      expect(label.primary).not.toMatch(/\d{2}-\d{2}-\d{4}/);
+      expect(label.secondary ?? "").not.toMatch(/\d{2}-\d{2}-\d{4}/);
+    }
+  });
+
+  it("is unaffected by the time of day (calendar-day math, not elapsed ms)", () => {
+    const lateEvening = new Date(2026, 7, 20, 23, 59, 59);
+    const earlyMorning = new Date(2026, 7, 20, 0, 0, 1);
+    expect(upcomingDateLabel(iso(2026, 8, 21), lateEvening).primary).toBe("Завтра");
+    expect(upcomingDateLabel(iso(2026, 8, 21), earlyMorning).primary).toBe("Завтра");
+  });
+
+  it("degrades gracefully on malformed input", () => {
+    const label = upcomingDateLabel("nonsense", now);
+    expect(label.primary).toBe("nonsense");
+    expect(label.urgency).toBe("later");
   });
 });

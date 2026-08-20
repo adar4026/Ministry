@@ -75,6 +75,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   title: { fontSize: 20, fontWeight: "700", letterSpacing: -0.2 },
   metaWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  meta: { fontSize: 16, color: DS.metaText, fontWeight: "600" },
+  // DS.subInk, not DS.metaText (TASK_048): the only consumer of `meta` is
+  // Home's service-year card, where the old token measured 2.96:1 on the
+  // white surface — below WCAG AA for 16px text.
+  meta: { fontSize: 16, color: DS.subInk, fontWeight: "600" },
   chev: { fontSize: 19, color: DS.chevron, fontWeight: "700" },
 });

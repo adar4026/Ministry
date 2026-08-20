@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text } from "react-native";
+import { DS } from "@/components/dashboard/tokens";
 import { COLORS, MF, type ServiceYearMonth } from "@/data/constants";
 
 // Compact month tile used on the dashboard's current-service-year grid.
@@ -45,6 +46,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pressed: { opacity: 0.7 },
-  month: { fontSize: 10, fontWeight: "600", color: COLORS.accent },
+  // DS.accentInk (TASK_048): COLORS.accent on COLORS.light measured 3.39:1,
+  // below AA for a 10px label. This component is Home-only.
+  month: { fontSize: 10, fontWeight: "600", color: DS.accentInk },
   hours: { fontSize: 16, fontWeight: "700", color: COLORS.blue },
 });

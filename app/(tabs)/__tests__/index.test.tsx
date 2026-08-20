@@ -4,12 +4,22 @@
 // and opens the existing /profile route. First test coverage for this
 // screen.
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ScrollView } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
+import { TAB_BAR_HEIGHT } from "@/components/TabBar";
 import Dashboard from "../index";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+
+// TASK_048 — the bottom-inset assertions below need a device-like inset (a
+// home indicator). Supplied through the real SafeAreaProvider's
+// `initialMetrics` rather than a module mock, so the screen goes through the
+// same context path it uses on a device.
+const MOCK_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+const INITIAL_METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: MOCK_INSETS };
 
 jest.setTimeout(30000);
 
@@ -26,10 +36,12 @@ async function renderScreen(): Promise<{ renderer: ReactTestRenderer; store: () 
   let renderer!: ReactTestRenderer;
   await act(async () => {
     renderer = create(
-      <StoreProvider>
-        <Harness onReady={(s) => (store = s)} />
-        <Dashboard />
-      </StoreProvider>,
+      <SafeAreaProvider initialMetrics={INITIAL_METRICS}>
+        <StoreProvider>
+          <Harness onReady={(s) => (store = s)} />
+          <Dashboard />
+        </StoreProvider>
+      </SafeAreaProvider>,
     );
     for (let i = 0; i < 6; i++) await Promise.resolve();
   });
@@ -118,5 +130,70 @@ describe("Home header avatar — TASK_043", () => {
     const raw = await AsyncStorage.getItem("mj_profile_v1");
     expect(JSON.parse(raw!).profilePhotoUri).toBe("file:///photo.jpg");
     expect(renderer.root.findAllByType("Image" as never)[0].props.source).toEqual({ uri: "file:///photo.jpg" });
+  });
+});
+
+// TASK_048 — the last list item must never end up hidden behind the fixed
+// bottom bar. Home's background now runs edge-to-edge (the Tabs sceneStyle
+// stops padding this route), so the clearance has to live on the scroll
+// content itself.
+describe("Home bottom inset vs. the tab bar — TASK_048", () => {
+  function flatten(style: unknown): Record<string, unknown> {
+    if (Array.isArray(style)) return Object.assign({}, ...style.map(flatten));
+    return (style ?? {}) as Record<string, unknown>;
+  }
+
+  it("reserves at least the bar height plus the bottom safe-area inset", async () => {
+    const { renderer } = await renderScreen();
+    const scroll = renderer.root.findByType(ScrollView);
+    const paddingBottom = flatten(scroll.props.contentContainerStyle).paddingBottom as number;
+    expect(typeof paddingBottom).toBe("number");
+    expect(paddingBottom).toBeGreaterThanOrEqual(TAB_BAR_HEIGHT + MOCK_INSETS.bottom);
+  });
+
+  it("leaves a visible gap on top of that clearance, not just a flush fit", async () => {
+    const { renderer } = await renderScreen();
+    const scroll = renderer.root.findByType(ScrollView);
+    const paddingBottom = flatten(scroll.props.contentContainerStyle).paddingBottom as number;
+    expect(paddingBottom).toBeGreaterThan(TAB_BAR_HEIGHT + MOCK_INSETS.bottom);
+  });
+
+  it("does not fall back to a hardcoded value that ignores the safe-area inset", async () => {
+    const { renderer } = await renderScreen();
+    const scroll = renderer.root.findByType(ScrollView);
+    const paddingBottom = flatten(scroll.props.contentContainerStyle).paddingBottom as number;
+    expect(paddingBottom).not.toBe(90);
+    expect(paddingBottom).not.toBe(16);
+  });
+});
+
+// TASK_048 §2.5 — the tab bar's center "+" and the goal card's own add
+// button are two different actions and must stay two different routes.
+describe("Global add vs. contextual add — TASK_048", () => {
+  it("the goal card's add button is labelled 'Добавить часы' and opens the hours entry route", async () => {
+    const { renderer } = await renderScreen();
+    const button = renderer.root.findByProps({ accessibilityLabel: "Добавить часы" });
+    act(() => {
+      button.props.onPress();
+    });
+    expect(mockPush).toHaveBeenCalledWith("/entry");
+    // Never the global add screen the tab bar's "+" opens.
+    expect(mockPush).not.toHaveBeenCalledWith("/add");
+  });
+
+  it("Home never renders a second, ambiguous bare 'Добавить' action of its own", async () => {
+    const { renderer } = await renderScreen();
+    const out: string[] = [];
+    const walk = (node: unknown): void => {
+      if (node == null) return;
+      if (typeof node === "string") return void out.push(node);
+      if (Array.isArray(node)) return void node.forEach(walk);
+      if (typeof node === "object" && "children" in (node as Record<string, unknown>)) {
+        walk((node as { children: unknown }).children);
+      }
+    };
+    walk(renderer.toJSON());
+    expect(out).toContain("Добавить часы");
+    expect(out).not.toContain("Добавить");
   });
 });

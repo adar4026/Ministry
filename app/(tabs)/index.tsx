@@ -6,6 +6,7 @@ import { Modal } from "@/components/Modal";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -24,6 +25,14 @@ export function formatHomeDate(now: Date): string {
 
 export default function Dashboard() {
   const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord } = useStore();
+  // TASK_048 — Home's background now runs edge-to-edge (the Tabs sceneStyle
+  // no longer pads the bottom on this route) and the content scrolls under
+  // the floating tab bar, so the last card's clearance has to come from the
+  // scroll content itself: bar height + the device's bottom safe-area inset
+  // + a safe gap. The previous arrangement reserved a hardcoded 90pt, which
+  // is less than the bar actually occupies on any device with a home
+  // indicator (65 + 34 = 99).
+  const bottomInset = useTabBarContentInset();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
   const profileInitials = profile.displayName?.trim()[0]?.toUpperCase();
 
@@ -72,7 +81,10 @@ export default function Dashboard() {
   return (
     <View style={styles.screen}>
       <HomeBackground />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
+      >
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
             <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
@@ -152,7 +164,12 @@ const styles = StyleSheet.create({
   // inside the screen View (was the tab-screen root before TASK_010); on web
   // this is a no-op. Mirrors the Hours screen's flex:1 scroll container.
   scroll: { flex: 1 },
-  content: { padding: 16, gap: 28 },
+  // paddingTop trimmed (16 -> 10, TASK_048): the top safe-area strip is now
+  // painted with the Home gradient's first stop in app/(tabs)/_layout.tsx,
+  // so the header reads as part of the same composition and no longer needs
+  // to be pushed down away from a contrasting band. paddingBottom is applied
+  // at the call site from useTabBarContentInset().
+  content: { paddingHorizontal: 16, paddingTop: 10, gap: 22 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -161,10 +178,12 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, marginRight: 12 },
   pageTitle: { fontSize: 23, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
-  pageDate: { fontSize: 14, color: DS.subText, fontWeight: "600", marginTop: 1 },
+  // DS.onTintInk, not DS.subText (TASK_048): this caption sits on the Home
+  // gradient, where DS.subText measured 3.2:1.
+  pageDate: { fontSize: 14, color: DS.onTintInk, fontWeight: "600", marginTop: 1 },
   // Title-to-content grouping: tighter than the gap between section blocks.
-  section: { gap: 10 },
+  section: { gap: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   gridItem: { width: "23%" },
-  eventList: { gap: 11 },
+  eventList: { gap: 10 },
 });
