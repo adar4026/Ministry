@@ -171,3 +171,73 @@ describe("UpcomingEventRow — TASK_051 metadata order ('дата · относ�
     expect(color(dateNode.props.style)).toBe(DS.subInk);
   });
 });
+
+// TASK_052 — the same established style (date muted, "Через"/plural word
+// navy, number orange, date-first order) now applies to EVERY future event,
+// not just the first couple of cards within the old 30-day horizon. Anchored
+// to the same fixed clock as the TASK_051 block above so the exact spec
+// examples ("22 сентября · Через 33 дня", "11 октября · Через 52 дня",
+// "28 ноября · Через 100 дней", "9 января 2027 · Через 142 дня") can be
+// asserted literally, including a date that rolls into the next calendar
+// year.
+describe("UpcomingEventRow — TASK_052 no day-count cap on the relative phrase", () => {
+  const FIXED_NOW = new Date(2026, 7, 20); // 20 August 2026
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function assertDateThenRelative(
+    root: ReactTestInstance,
+    expectedDate: string,
+    expectedLabel: string,
+    expectedNumber: string
+  ) {
+    const relative = root.findByProps({ accessibilityLabel: expectedLabel });
+
+    const statusRow = relative.parent as ReactTestInstance;
+    const children = statusRow.children as ReactTestInstance[];
+    expect(children).toHaveLength(3);
+    const [dateNode, separatorNode, relativeNode] = children;
+
+    expect(flattenText(dateNode)).toBe(expectedDate);
+    expect(color(dateNode.props.style)).toBe(DS.subInk);
+    expect(flattenText(separatorNode)).toBe("·");
+    expect(relativeNode).toBe(relative);
+
+    expect(color(relative.props.style)).toBe(DS.navy);
+    const numberNode = relative.findAllByType(Text).find((n) => n !== relative && color(n.props.style) === DS.todayInk);
+    expect(numberNode).toBeDefined();
+    expect(flattenText(numberNode)).toBe(expectedNumber);
+  }
+
+  it("renders '22 сентября · Через 33 дня' for an event 33 days out", () => {
+    const root = renderRow({ kind: "event", id: "d33", date: "2026-09-22", title: "A" });
+    assertDateThenRelative(root, "22 сентября", "Через 33 дня", "33");
+  });
+
+  it("renders '11 октября · Через 52 дня' for an event 52 days out", () => {
+    const root = renderRow({ kind: "event", id: "d52", date: "2026-10-11", title: "B" });
+    assertDateThenRelative(root, "11 октября", "Через 52 дня", "52");
+  });
+
+  it("renders '28 ноября · Через 100 дней' for an event 100 days out", () => {
+    const root = renderRow({ kind: "event", id: "d100", date: "2026-11-28", title: "C" });
+    assertDateThenRelative(root, "28 ноября", "Через 100 дней", "100");
+  });
+
+  it("renders '9 января 2027 · Через 142 дня' for an event that rolls into next year", () => {
+    const root = renderRow({ kind: "event", id: "dNextYear", date: "2027-01-09", title: "D" });
+    assertDateThenRelative(root, "9 января 2027", "Через 142 дня", "142");
+  });
+
+  it("still switches at 31 days — no cap, so it keeps the relative phrase where TASK_048 used to fall back to a bare date", () => {
+    const root = renderRow({ kind: "event", id: "d31", date: "2026-09-20", title: "E" }); // 31 days out
+    assertDateThenRelative(root, "20 сентября", "Через 31 день", "31");
+  });
+});

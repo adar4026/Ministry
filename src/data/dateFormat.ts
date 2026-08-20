@@ -239,7 +239,12 @@ export function formatDateHuman(iso: string, now: Date = new Date()): string {
 // TASK_049: "upcoming" (8-30 days) was split out of what used to be a single
 // "later" bucket covering both 8-30 days and >30 days — the owner's color
 // scale treats those two ranges differently (brand accent vs. neutral).
-// "later" keeps its original meaning (>30 days only).
+// TASK_052: the >30-day cutover that used to produce "later" for a real
+// future date is gone — every future date beyond tomorrow is now "soon" or
+// "upcoming" (see upcomingDateLabel below), however far out. "later" is
+// only reachable via the malformed-input fallback now (kept for that
+// defensive case, and so URGENCY_COLOR below stays a total function over
+// this type).
 export type UpcomingUrgency = "overdue" | "today" | "tomorrow" | "soon" | "upcoming" | "later";
 
 export type UpcomingDateLabel = {
@@ -250,19 +255,21 @@ export type UpcomingDateLabel = {
   // dates where `primary` IS the calendar date).
   secondary: string | null;
   urgency: UpcomingUrgency;
-  // TASK_050: the bare day count for a "Через N дней" primary (diff 2-30,
-  // i.e. urgency "soon" or "upcoming") — lets the renderer highlight just
-  // the number without parsing it back out of `primary`. Null for every
-  // other row shape (overdue/today/tomorrow/far-future), where `primary`
-  // is not of that form.
+  // TASK_050: the bare day count for a "Через N дней" primary (diff >= 2,
+  // i.e. urgency "soon" or "upcoming" — TASK_052 removed the old 30-day
+  // upper bound, so this now covers every future date beyond tomorrow,
+  // however far out) — lets the renderer highlight just the number without
+  // parsing it back out of `primary`. Null for every other row shape
+  // (overdue/today/tomorrow/malformed input), where `primary` is not of
+  // that form.
   days: number | null;
 };
 
-// Day count past which a relative phrase stops being useful and the plain
-// calendar date becomes the primary label ("через 47 дней" is not something
-// anyone reasons about; "6 октября" is).
-const RELATIVE_HORIZON_DAYS = 30;
-// Above this, "через N дней" is informational rather than urgent.
+// Above this, "через N дней" is informational rather than urgent. Purely a
+// coloring/urgency-tier signal now — TASK_052 removed the old 30-day cap
+// that used to switch the primary label itself to a bare calendar date past
+// this point; every future date beyond tomorrow gets "Через N дней" +
+// the absolute date, no matter how far out.
 const SOON_DAYS = 7;
 
 // Human relative status for a Home event card. Calendar-day based (both
@@ -281,13 +288,14 @@ export function upcomingDateLabel(iso: string, now: Date = new Date()): Upcoming
   if (diff < 0) return { primary: "Просрочено", secondary: absolute, urgency: "overdue", days: null };
   if (diff === 0) return { primary: "Сегодня", secondary: null, urgency: "today", days: null };
   if (diff === 1) return { primary: "Завтра", secondary: null, urgency: "tomorrow", days: null };
-  if (diff <= RELATIVE_HORIZON_DAYS) {
-    return {
-      primary: `Через ${diff} ${pluralDaysRu(diff)}`,
-      secondary: absolute,
-      urgency: diff <= SOON_DAYS ? "soon" : "upcoming",
-      days: diff,
-    };
-  }
-  return { primary: absolute, secondary: null, urgency: "later", days: null };
+  // TASK_052: no upper bound — every future date beyond tomorrow gets
+  // "Через N дней" plus the absolute date, however far out (was capped at
+  // 30 days before, past which `primary` fell back to a bare calendar
+  // date with no relative phrase at all).
+  return {
+    primary: `Через ${diff} ${pluralDaysRu(diff)}`,
+    secondary: absolute,
+    urgency: diff <= SOON_DAYS ? "soon" : "upcoming",
+    days: diff,
+  };
 }

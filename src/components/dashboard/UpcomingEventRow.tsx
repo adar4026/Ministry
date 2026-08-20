@@ -8,7 +8,7 @@ import { SummaryCard } from "./SummaryCard";
 // (see tokens.ts), and — importantly — color is never the only signal: the
 // label text itself ("Просрочено" / "Сегодня" / "Завтра" / "Через N дней")
 // states the urgency in words.
-// TASK_049 — 5-tier owner scale: overdue (red) / today (orange) /
+// TASK_049 — original 5-tier owner scale: overdue (red) / today (orange) /
 // tomorrow+soon, i.e. 1-7 days (amber) / upcoming, i.e. 8-30 days (brand
 // accent blue) / later, i.e. >30 days (neutral gray-blue).
 // TASK_050: "soon"/"upcoming" no longer read this map — a "Через N дней"
@@ -16,13 +16,18 @@ import { SummaryCard } from "./SummaryCard";
 // instead (see render below), regardless of urgency tier. The two entries
 // stay for Record<UpcomingUrgency, string> completeness (every urgency the
 // type can produce needs a fallback color) but are unreachable in practice.
+// TASK_052: `upcomingDateLabel()` no longer caps the relative phrase at 30
+// days, so `later` is now unreachable for any real future date too (every
+// future date beyond tomorrow is "soon" or "upcoming" and always goes
+// through the two-tone branch below) — it only fires for the malformed-
+// input fallback. `subInk` stays as its defensive color.
 const URGENCY_COLOR: Record<UpcomingUrgency, string> = {
   overdue: DS.danger, // red
   today: DS.todayInk, // orange
   tomorrow: DS.warnInk, // amber
   soon: DS.warnInk, // unreachable — see TASK_050 note above
   upcoming: DS.accentInk, // unreachable — see TASK_050 note above
-  later: DS.subInk, // neutral gray-blue
+  later: DS.subInk, // malformed-input fallback only — see TASK_052 note above
 };
 
 // One combined event+talk upcoming item (TASK_007's UpcomingEventsCard
@@ -87,8 +92,9 @@ const styles = StyleSheet.create({
   // look balanced.
   card: { padding: 14 },
   itemTitle: { fontSize: 16, lineHeight: 21, fontWeight: "600", color: DS.navy },
-  // flexWrap so a long "19 сентября · Через 30 дней" degrades to two lines
-  // on a narrow screen instead of clipping the date.
+  // flexWrap so a long "9 января 2027 · Через 142 дня" (TASK_052: no cap on
+  // how far out the relative phrase applies, so this can get long) degrades
+  // to two lines on a narrow screen instead of clipping the date.
   statusRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: 3, columnGap: 6 },
   relative: { fontSize: 14, lineHeight: 19, fontWeight: "600" },
   // TASK_050: main interface dark navy for the "Через"/plural-day words in

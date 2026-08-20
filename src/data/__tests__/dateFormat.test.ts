@@ -370,16 +370,21 @@ describe("upcomingDateLabel (TASK_048)", () => {
     expect(label.urgency).toBe("soon");
   });
 
-  it("switches to a plain calendar date past the 30-day relative horizon", () => {
-    const label = upcomingDateLabel(iso(2026, 10, 6), now);
-    expect(label.primary).toBe("6 октября");
-    expect(label.secondary).toBeNull();
-    expect(label.urgency).toBe("later");
+  it("TASK_052: keeps the relative phrase past the old 30-day horizon, with no cutover to a bare date", () => {
+    const label = upcomingDateLabel(iso(2026, 10, 6), now); // 47 days out
+    expect(label.primary).toBe("Через 47 дней");
+    expect(label.secondary).toBe("6 октября");
+    expect(label.urgency).toBe("upcoming");
+    expect(label.days).toBe(47);
   });
 
-  it("keeps the relative phrase exactly at the 30-day boundary", () => {
-    expect(upcomingDateLabel(iso(2026, 9, 19), now).primary).toBe("Через 30 дней");
-    expect(upcomingDateLabel(iso(2026, 9, 20), now).primary).toBe("20 сентября");
+  it("TASK_052: there is no 30-day boundary any more — 30 and 31 days both keep the relative phrase", () => {
+    expect(upcomingDateLabel(iso(2026, 9, 19), now).primary).toBe("Через 30 дней"); // diff = 30
+    const day31 = upcomingDateLabel(iso(2026, 9, 20), now); // diff = 31
+    expect(day31.primary).toBe("Через 31 день");
+    expect(day31.secondary).toBe("20 сентября");
+    expect(day31.urgency).toBe("upcoming");
+    expect(day31.days).toBe(31);
   });
 
   it("TASK_049: is 'soon' at exactly 7 days and 'upcoming' at exactly 8 days", () => {
@@ -387,18 +392,45 @@ describe("upcomingDateLabel (TASK_048)", () => {
     expect(upcomingDateLabel(iso(2026, 8, 28), now).urgency).toBe("upcoming"); // diff = 8
   });
 
-  it("TASK_049: is 'upcoming' at exactly 30 days and 'later' at exactly 31 days", () => {
+  it("TASK_052: 'upcoming' now covers every distance beyond a week — 30, 31, 52, and 100 days all alike", () => {
     expect(upcomingDateLabel(iso(2026, 9, 19), now).urgency).toBe("upcoming"); // diff = 30
-    expect(upcomingDateLabel(iso(2026, 9, 20), now).urgency).toBe("later"); // diff = 31
+    expect(upcomingDateLabel(iso(2026, 9, 20), now).urgency).toBe("upcoming"); // diff = 31
+    expect(upcomingDateLabel(iso(2026, 10, 11), now).urgency).toBe("upcoming"); // diff = 52
+    expect(upcomingDateLabel(iso(2026, 11, 28), now).urgency).toBe("upcoming"); // diff = 100
   });
 
-  it("TASK_050: exposes the bare day count only for 'Через N дней' rows", () => {
+  it("TASK_052: exact examples from the spec — 33, 52, and 100 days out, with correct Russian plural forms", () => {
+    const in33 = upcomingDateLabel(iso(2026, 9, 22), now); // 22 September, 33 days out
+    expect(in33.primary).toBe("Через 33 дня");
+    expect(in33.secondary).toBe("22 сентября");
+    expect(in33.days).toBe(33);
+
+    const in52 = upcomingDateLabel(iso(2026, 10, 11), now); // 11 October, 52 days out
+    expect(in52.primary).toBe("Через 52 дня");
+    expect(in52.secondary).toBe("11 октября");
+    expect(in52.days).toBe(52);
+
+    const in100 = upcomingDateLabel(iso(2026, 11, 28), now); // 28 November, 100 days out
+    expect(in100.primary).toBe("Через 100 дней");
+    expect(in100.secondary).toBe("28 ноября");
+    expect(in100.days).toBe(100);
+  });
+
+  it("TASK_052: an event in the next calendar year still gets both the year-qualified date and the day count", () => {
+    const label = upcomingDateLabel(iso(2027, 1, 9), now); // 9 January 2027, 142 days out
+    expect(label.primary).toBe("Через 142 дня");
+    expect(label.secondary).toBe("9 января 2027"); // year included — differs from `now`'s year
+    expect(label.urgency).toBe("upcoming");
+    expect(label.days).toBe(142);
+  });
+
+  it("TASK_050: exposes the bare day count for every 'Через N дней' row, however far out — null only for today/tomorrow/overdue", () => {
     expect(upcomingDateLabel(iso(2026, 8, 23), now).days).toBe(3); // soon
     expect(upcomingDateLabel(iso(2026, 9, 4), now).days).toBe(15); // upcoming
+    expect(upcomingDateLabel(iso(2026, 10, 6), now).days).toBe(47); // upcoming, beyond the old 30-day cap
     expect(upcomingDateLabel(iso(2026, 8, 20), now).days).toBeNull(); // today
     expect(upcomingDateLabel(iso(2026, 8, 21), now).days).toBeNull(); // tomorrow
     expect(upcomingDateLabel(iso(2026, 8, 18), now).days).toBeNull(); // overdue
-    expect(upcomingDateLabel(iso(2026, 10, 6), now).days).toBeNull(); // later (>30 days)
   });
 
   it("flags a past date as overdue in words, not by color alone", () => {

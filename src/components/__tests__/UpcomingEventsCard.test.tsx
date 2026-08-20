@@ -109,13 +109,17 @@ describe("UpcomingEventsCard — TASK_048 human relative statuses", () => {
     expect(texts().join(" ")).not.toMatch(/\d{2}-\d{2}-\d{4}/);
   });
 
-  it("falls back to a plain calendar date beyond the relative horizon", async () => {
+  it("TASK_052: keeps both the day count and the calendar date far beyond the old 30-day horizon", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
       store().saveEvent({ date: futureISO(200), title: "Далёкое", category: "other" });
     });
-    const rendered = texts().join(" ");
-    expect(rendered).not.toContain("Через 200");
+    // TASK_052: "Через 200 дней" now renders as three separate Text leaves
+    // (TASK_050's two-tone split), so collapse the collectText helper's
+    // artificial inter-leaf spacing before matching the full phrase — same
+    // reasoning as the mid-range test above.
+    const rendered = texts().join(" ").replace(/\s+/g, " ");
+    expect(rendered).toContain("Через 200 дней");
     expect(rendered).toMatch(/\d{1,2} \p{L}+ \d{4}/u);
   });
 
