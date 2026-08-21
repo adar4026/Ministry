@@ -1,8 +1,11 @@
-// TASK_018 — EventCard: badge moved bottom-right, DD-MM-YYYY date, exact
-// elapsed-time metadata. Render-level checks that the card doesn't crash and
-// surfaces the expected text for long titles/categories and several dates.
+// TASK_056 — EventCard is now a thin adapter over the shared "События"-style
+// EventListCard: DD-MM-YYYY date, "через/прошло N мес. N дн." relative time
+// (red for a past, non-today date), category dot + Badge, and an optional
+// functional edit icon.
 import { act, create } from "react-test-renderer";
+import { Text } from "react-native";
 import { EventCard } from "@/components/dashboard/EventCard";
+import { TIMELINE_COLORS } from "@/components/timeline/timelineTokens";
 import type { MinistryEvent } from "@/types";
 
 function collectText(node: unknown, out: string[]): void {
@@ -20,70 +23,88 @@ function collectText(node: unknown, out: string[]): void {
   }
 }
 
-function renderTexts(event: MinistryEvent): string[] {
+function render(event: MinistryEvent, onEdit?: (event: MinistryEvent) => void) {
   let renderer: ReturnType<typeof create>;
   act(() => {
-    renderer = create(<EventCard event={event} />);
+    renderer = create(<EventCard event={event} onEdit={onEdit} />);
   });
+  return renderer!;
+}
+
+function texts(renderer: ReturnType<typeof create>): string[] {
   const out: string[] = [];
-  collectText(renderer!.toJSON(), out);
+  collectText(renderer.toJSON(), out);
   return out;
 }
 
+function isoDaysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const p = (v: number) => String(v).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function isoDaysFromNow(n: number): string {
+  return isoDaysAgo(-n);
+}
+
+function color(style: unknown): string | undefined {
+  const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
+  return (flat as { color?: string } | undefined)?.color;
+}
+
 describe("EventCard", () => {
-  // TASK_048: Home's event cards speak the same human date language as the
-  // upcoming cards. The DD-MM-YYYY form (TASK_022) is still canonical
-  // everywhere outside Home — forms, History, the timer, the timeline,
-  // Profile — it is just no longer what these cards show.
-  it("renders the date in human form, not DD-MM-YYYY or raw ISO", () => {
-    // A past year, so the year component is part of the expected output —
-    // the current year is deliberately omitted (see the next test).
-    const year = new Date().getFullYear() - 2;
-    const texts = renderTexts({
-      id: "e1",
-      date: `${year}-05-24`,
-      title: "Назначение служебным помощником",
-      category: "appointment",
-    }).join(" ");
-    expect(texts).toContain(`24 мая ${year}`);
-    expect(texts).not.toContain(`24-05-${year}`);
-    expect(texts).not.toContain(`${year}-05-24`);
+  it("renders the date as DD-MM-YYYY, never a human/ISO form", () => {
+    const t = texts(render({ id: "e1", date: "2026-05-24", title: "Назначение", category: "appointment" })).join(" ");
+    expect(t).toContain("24-05-2026");
+    expect(t).not.toContain("2026-05-24");
+    expect(t).not.toContain("24 мая");
   });
 
-  it("omits the year for an event in the current year", () => {
-    const now = new Date();
-    const iso = `${now.getFullYear()}-03-04`;
-    const texts = renderTexts({ id: "e-cur", date: iso, title: "Событие", category: "other" }).join(" ");
-    expect(texts).toContain("4 марта");
-    expect(texts).not.toContain(`4 марта ${now.getFullYear()}`);
+  it("colors a past (non-today) event's relative time red", () => {
+    const renderer = render({ id: "e2", date: isoDaysAgo(12), title: "Старое", category: "other" });
+    const t = texts(renderer).join(" ");
+    expect(t).toContain("прошло 12 дн.");
+    const node = renderer.root.findByProps({ children: "прошло 12 дн." });
+    expect(color(node.props.style)).toBe(TIMELINE_COLORS.danger);
   });
 
-  it("renders a long title and a long category label without crashing", () => {
-    const texts = renderTexts({
-      id: "e2",
-      date: "2020-01-01",
-      title: "Очень длинное название события, которое должно аккуратно обрезаться многоточием на узком экране",
-      category: "school",
-    });
-    expect(texts.some((t) => t.includes("Очень длинное название"))).toBe(true);
-    expect(texts).toContain("Школа");
+  it("keeps a future event's relative time in the original amber, not red", () => {
+    const renderer = render({ id: "e3", date: isoDaysFromNow(12), title: "Новое", category: "other" });
+    const node = renderer.root.findByProps({ children: "через 12 дн." });
+    expect(color(node.props.style)).toBe(TIMELINE_COLORS.durationAccent);
   });
 
-  it("renders 'Сегодня' for a same-day event and omits it for a future date without crashing", () => {
+  it("renders 'Сегодня' (not red) for a same-day event", () => {
     const todayIso = new Date().toISOString().slice(0, 10);
-    const todayTexts = renderTexts({ id: "e3", date: todayIso, title: "Событие сегодня", category: "other" });
-    expect(todayTexts.join(" ")).toContain("Сегодня");
-
-    const futureIso = "2099-01-01";
-    expect(() =>
-      renderTexts({ id: "e4", date: futureIso, title: "Будущее событие", category: "move" })
-    ).not.toThrow();
+    const renderer = render({ id: "e4", date: todayIso, title: "Сегодняшнее", category: "other" });
+    const node = renderer.root.findByProps({ children: "Сегодня" });
+    expect(color(node.props.style)).toBe(TIMELINE_COLORS.durationAccent);
   });
 
-  it("renders several different event dates without crashing", () => {
-    const dates = ["2021-02-28", "2024-02-29", "2026-12-31", "2026-07-18"];
-    for (const date of dates) {
-      expect(() => renderTexts({ id: `e-${date}`, date, title: "Событие", category: "pioneer" })).not.toThrow();
-    }
+  it("shows no edit icon when onEdit is omitted, and a functional one when provided", () => {
+    const noEdit = render({ id: "e5", date: "2026-01-01", title: "A", category: "other" });
+    expect(noEdit.root.findAllByType(Text).some((n) => n.props.children === "✏")).toBe(false);
+
+    const onEdit = jest.fn();
+    const withEdit = render({ id: "e6", date: "2026-01-01", title: "B", category: "other" }, onEdit);
+    const editBtn = withEdit.root.findByProps({ accessibilityLabel: "Редактировать событие: B" });
+    act(() => {
+      editBtn.props.onPress();
+    });
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "e6" }));
+  });
+
+  it("renders a long title and category badge without crashing", () => {
+    const t = texts(
+      render({
+        id: "e7",
+        date: "2020-01-01",
+        title: "Очень длинное название события, которое должно аккуратно обрезаться многоточием на узком экране",
+        category: "school",
+      }),
+    );
+    expect(t.some((s) => s.includes("Очень длинное название"))).toBe(true);
+    expect(t).toContain("Школа");
   });
 });

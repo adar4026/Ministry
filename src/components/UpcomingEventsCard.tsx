@@ -1,10 +1,14 @@
 import { router } from "expo-router";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal } from "@/components/Modal";
+import { EventForm } from "@/components/forms/EventForm";
+import { TalkForm } from "@/components/forms/TalkForm";
 import { SummaryCard, UpcomingEventRow } from "@/components/dashboard";
-import { COLORS, upcomingItems } from "@/data/constants";
+import { COLORS, upcomingItems, type UpcomingItem } from "@/data/constants";
 import { DS } from "@/components/dashboard";
 import { useStore } from "@/store/StoreContext";
+import type { MinistryEvent, Talk } from "@/types";
 
 const HOME_LIMIT = 3;
 
@@ -13,11 +17,22 @@ const HOME_LIMIT = 3;
 // (/timeline, a separate full timeline with its own search/filter/edit
 // behavior that this task intentionally leaves untouched).
 export function UpcomingEventsCard() {
-  const { events, talks } = useStore();
+  const { events, talks, customCategories, saveEvent, saveTalk } = useStore();
   // upcomingItems() combines events + talks at the UI layer only — both
   // collections stay separate in StoreContext. Home only ever needs the
   // first 3; the dedicated screen calls the same selector with no limit.
   const items = upcomingItems(events, talks, new Date(), HOME_LIMIT);
+
+  // TASK_056 — functional edit icon (same EventForm/TalkForm as the
+  // "События" screen); no delete button here (onDelete omitted), matching
+  // the owner's scope for this task.
+  const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
+  const [editTalk, setEditTalk] = useState<Talk | null>(null);
+
+  function handleEdit(item: UpcomingItem) {
+    if (item.kind === "event") setEditEv(item.event);
+    else setEditTalk(item.talk);
+  }
 
   // Independent cards (TASK_021): each item is now its own SummaryCard (see
   // UpcomingEventRow), stacked with a small gap instead of sharing one
@@ -32,7 +47,12 @@ export function UpcomingEventsCard() {
       ) : (
         <View style={styles.list}>
           {items.map((it) => (
-            <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} />
+            <UpcomingEventRow
+              key={`${it.kind}-${it.id}`}
+              item={it}
+              customCategories={customCategories}
+              onEdit={handleEdit}
+            />
           ))}
         </View>
       )}
@@ -47,6 +67,25 @@ export function UpcomingEventsCard() {
           <Text style={styles.showAllText}>Показать все →</Text>
         </Pressable>
       )}
+
+      <Modal visible={editEv !== null} title="Редактировать событие" onClose={() => setEditEv(null)}>
+        {editEv && (
+          <EventForm
+            initial={editEv}
+            customCategories={customCategories}
+            onSave={(input) => { saveEvent(input); setEditEv(null); }}
+          />
+        )}
+      </Modal>
+
+      <Modal visible={editTalk !== null} title="Редактировать речь" onClose={() => setEditTalk(null)}>
+        {editTalk && (
+          <TalkForm
+            initial={editTalk}
+            onSave={(input) => { saveTalk(input); setEditTalk(null); }}
+          />
+        )}
+      </Modal>
     </Fragment>
   );
 }

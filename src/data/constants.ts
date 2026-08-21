@@ -448,7 +448,14 @@ export function talkTitle(t: Talk): string {
   return t.title || (t.number ? `Речь №${t.number}` : "Специальная речь");
 }
 
-export type UpcomingItem = { kind: "event" | "talk"; id: string; date: string; title: string };
+// TASK_056: each item now carries its full source record (`event`/`talk`),
+// not just the flattened id/date/title — the unified card (EventListCard)
+// needs the category (events) / location+number (talks) to render the dot,
+// badge and metadata line, and the edit icon needs the whole record to open
+// EventForm/TalkForm with `initial` set.
+export type UpcomingItem =
+  | { kind: "event"; id: string; date: string; title: string; event: MinistryEvent }
+  | { kind: "talk"; id: string; date: string; title: string; talk: Talk };
 
 // Combine events + talks into a single future-only, date-sorted list —
 // the one shared selector for "upcoming" items (TASK_007, limit extended in
@@ -468,8 +475,12 @@ export function upcomingItems(
 ): UpcomingItem[] {
   const todayISO = toISODate(now);
   const items: UpcomingItem[] = [
-    ...events.filter((e) => e.date >= todayISO).map((e) => ({ kind: "event" as const, id: e.id, date: e.date, title: e.title })),
-    ...talks.filter((t) => t.date >= todayISO).map((t) => ({ kind: "talk" as const, id: t.id, date: t.date, title: talkTitle(t) })),
+    ...events
+      .filter((e) => e.date >= todayISO)
+      .map((e) => ({ kind: "event" as const, id: e.id, date: e.date, title: e.title, event: e })),
+    ...talks
+      .filter((t) => t.date >= todayISO)
+      .map((t) => ({ kind: "talk" as const, id: t.id, date: t.date, title: talkTitle(t), talk: t })),
   ];
   const sorted = items.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   return limit === undefined ? sorted : sorted.slice(0, limit);

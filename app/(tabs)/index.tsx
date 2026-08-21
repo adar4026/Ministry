@@ -5,13 +5,14 @@ import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { RecordForm } from "@/components/forms/RecordForm";
+import { EventForm } from "@/components/forms/EventForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
 import { HOME_MINT_GRADIENT, HOME_MINT_GRADIENT_STOPS } from "@/components/dashboard/tokens";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
-import type { HourRecord } from "@/types";
+import type { HourRecord, MinistryEvent } from "@/types";
 
 // Home header date (TASK_014): "Пятница, 17 июля" — capitalized weekday
 // first, then day + genitive month.
@@ -25,7 +26,8 @@ export function formatHomeDate(now: Date): string {
 }
 
 export default function Dashboard() {
-  const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord } = useStore();
+  const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord, saveEvent } =
+    useStore();
   // TASK_048 — Home's background now runs edge-to-edge (the Tabs sceneStyle
   // no longer pads the bottom on this route) and the content scrolls under
   // the floating tab bar, so the last card's clearance has to come from the
@@ -35,6 +37,10 @@ export default function Dashboard() {
   // indicator (65 + 34 = 99).
   const bottomInset = useTabBarContentInset();
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
+  // TASK_056 — "Последние события" now has a functional edit icon, same
+  // EventForm as the "События" screen; no delete button here (onDelete
+  // omitted), matching the owner's scope for this task.
+  const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
   const profileInitials = profile.displayName?.trim()[0]?.toUpperCase();
 
   // Session-aware unified service-year aggregation (TASK_005A addendum) —
@@ -132,7 +138,7 @@ export default function Dashboard() {
           <SectionHeader title="Последние события" />
           <View style={styles.eventList}>
             {recentEvents.map((ev) => (
-              <EventCard key={ev.id} event={ev} customCategories={customCategories} />
+              <EventCard key={ev.id} event={ev} customCategories={customCategories} onEdit={setEditEv} />
             ))}
           </View>
         </View>
@@ -148,6 +154,16 @@ export default function Dashboard() {
               sessions={sessions}
               onSave={(input) => { saveRecord(input); setEditRec(null); }}
               onDelete={() => confirmDelete(editRec.id)}
+            />
+          )}
+        </Modal>
+
+        <Modal visible={editEv !== null} title="Редактировать событие" onClose={() => setEditEv(null)}>
+          {editEv && (
+            <EventForm
+              initial={editEv}
+              customCategories={customCategories}
+              onSave={(input) => { saveEvent(input); setEditEv(null); }}
             />
           )}
         </Modal>

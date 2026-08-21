@@ -72,55 +72,41 @@ beforeEach(async () => {
   mockRouter.push.mockClear();
 });
 
-describe("UpcomingEventsCard — TASK_048 human relative statuses", () => {
-  it("labels today's and tomorrow's events in words, with no redundant calendar date", async () => {
+describe("UpcomingEventsCard — TASK_056 unified 'События'-style cards", () => {
+  it("labels today's event as 'Сегодня'", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
       store().saveEvent({ date: futureISO(0), title: "Сегодняшнее", category: "other" });
-      store().saveEvent({ date: futureISO(1), title: "Завтрашнее", category: "other" });
     });
-    const rendered = texts();
-    expect(rendered).toContain("Сегодня");
-    expect(rendered).toContain("Завтра");
+    expect(texts()).toContain("Сегодня");
   });
 
-  it("labels a mid-range event with a day count plus a human calendar date", async () => {
+  it("labels a future event with the unified 'через N дн.' relative phrase", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
       store().saveEvent({ date: futureISO(15), title: "Конгресс", category: "other" });
     });
-    // TASK_050: "Через 15 дней" now renders as three separate Text leaves
-    // (navy "Через " / orange "15" / navy " дней") so the words and the
-    // number can carry different colors — collapse the collectText helper's
-    // artificial inter-leaf spacing before matching the full phrase.
-    const rendered = texts().join(" ").replace(/\s+/g, " ");
-    expect(rendered).toContain("Через 15 дней");
-    // A human month name, never a bare numeric month.
-    expect(rendered).toMatch(/\d{1,2} (января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/);
+    const rendered = texts().join(" ");
+    expect(rendered).toContain("через 15 дн.");
+    expect(rendered).not.toContain("Через 15 дней");
   });
 
-  it("never renders the technical DD-MM-YYYY date form on Home", async () => {
+  it("renders the DD-MM-YYYY date form on Home, not the old human/ISO forms", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
-      store().saveEvent({ date: futureISO(0), title: "A", category: "other" });
       store().saveEvent({ date: futureISO(3), title: "B", category: "other" });
-      store().saveEvent({ date: futureISO(200), title: "C", category: "other" });
     });
-    expect(texts().join(" ")).not.toMatch(/\d{2}-\d{2}-\d{4}/);
+    const rendered = texts().join(" ");
+    expect(rendered).toMatch(/\d{2}-\d{2}-\d{4}/);
   });
 
-  it("TASK_052: keeps both the day count and the calendar date far beyond the old 30-day horizon", async () => {
+  it("keeps the relative phrase for an event far beyond the old 30-day horizon", async () => {
     const { store, texts } = await renderCard();
     await act(async () => {
       store().saveEvent({ date: futureISO(200), title: "Далёкое", category: "other" });
     });
-    // TASK_052: "Через 200 дней" now renders as three separate Text leaves
-    // (TASK_050's two-tone split), so collapse the collectText helper's
-    // artificial inter-leaf spacing before matching the full phrase — same
-    // reasoning as the mid-range test above.
-    const rendered = texts().join(" ").replace(/\s+/g, " ");
-    expect(rendered).toContain("Через 200 дней");
-    expect(rendered).toMatch(/\d{1,2} \p{L}+ \d{4}/u);
+    const rendered = texts().join(" ");
+    expect(rendered).toMatch(/через \d+ мес\./);
   });
 
   it("renders the event title alone — never glued to a date", async () => {

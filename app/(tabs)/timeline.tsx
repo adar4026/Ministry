@@ -7,12 +7,13 @@ import { Modal } from "@/components/Modal";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
 import { SwipeableDeleteRow } from "@/components/timeline/SwipeableDeleteRow";
+import { EventListCard } from "@/components/timeline/EventListCard";
+import { TalkBadge } from "@/components/timeline/TalkBadge";
 import { TIMELINE_COLORS } from "@/components/timeline/timelineTokens";
 import { DS, HomeBackground } from "@/components/dashboard";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { PlusIcon } from "@/components/icons";
-import { CAT, CATEGORY_KEYS, TALK_CATEGORY, categoryMeta, formatDateDMY, talkTitle } from "@/data/constants";
-import { eventElapsed, formatEventElapsed } from "@/data/eventElapsed";
+import { CAT, CATEGORY_KEYS, TALK_CATEGORY, categoryMeta, talkTitle } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
 
@@ -179,24 +180,14 @@ export default function TimelineScreen() {
                 onDelete={() => deleteEvent(it.id)}
                 deleteAccessibilityLabel={`Удалить событие: ${it.ev.title}`}
               >
-                <View style={styles.card}>
-                  <View style={styles.titleRow}>
-                    <View
-                      style={[styles.dot, { backgroundColor: categoryMeta(it.ev.category, customCategories).dot }]}
-                    />
-                    <Text style={styles.title} numberOfLines={1}>{it.ev.title}</Text>
-                    <Pressable onPress={() => setEditEv(it.ev)} hitSlop={8}>
-                      <Text style={styles.edit}>✏</Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.metaRow}>
-                    <View style={styles.metaText}>
-                      <Text style={styles.date}>{formatDateDMY(it.date)}</Text>
-                      <Text style={styles.elapsed}>{formatEventElapsed(eventElapsed(it.date))}</Text>
-                    </View>
-                    <Badge category={it.ev.category} customCategories={customCategories} />
-                  </View>
-                </View>
+                <EventListCard
+                  dotColor={categoryMeta(it.ev.category, customCategories).dot}
+                  title={it.ev.title}
+                  date={it.date}
+                  badge={<Badge category={it.ev.category} customCategories={customCategories} />}
+                  onEdit={() => setEditEv(it.ev)}
+                  editAccessibilityLabel={`Редактировать событие: ${it.ev.title}`}
+                />
               </SwipeableDeleteRow>
             ) : (
               <SwipeableDeleteRow
@@ -204,28 +195,17 @@ export default function TimelineScreen() {
                 onDelete={() => deleteTalk(it.id)}
                 deleteAccessibilityLabel={`Удалить речь: ${talkTitle(it.talk)}`}
               >
-                <View style={styles.card}>
-                  <View style={styles.titleRow}>
-                    <View style={[styles.dot, { backgroundColor: TALK_CATEGORY.dot }]} />
-                    <Text style={styles.title} numberOfLines={1}>{talkTitle(it.talk)}</Text>
-                    <Pressable onPress={() => setEditTalk(it.talk)} hitSlop={8}>
-                      <Text style={styles.edit}>✏</Text>
-                    </Pressable>
-                  </View>
-                  <View style={styles.metaRow}>
-                    <View style={styles.metaText}>
-                      <Text style={styles.date}>
-                        {formatDateDMY(it.date)}
-                        {it.talk.location ? `  —  ${it.talk.location}` : ""}
-                        {it.talk.number ? `  ·  №${it.talk.number}` : ""}
-                      </Text>
-                      <Text style={styles.elapsed}>{formatEventElapsed(eventElapsed(it.date))}</Text>
-                    </View>
-                    <View style={[styles.talkBadge, { backgroundColor: TALK_CATEGORY.bg }]}>
-                      <Text style={[styles.talkBadgeText, { color: TALK_CATEGORY.tx }]}>{TALK_CATEGORY.label}</Text>
-                    </View>
-                  </View>
-                </View>
+                <EventListCard
+                  dotColor={TALK_CATEGORY.dot}
+                  title={talkTitle(it.talk)}
+                  date={it.date}
+                  metaSuffix={`${it.talk.location ? `  —  ${it.talk.location}` : ""}${
+                    it.talk.number ? `  ·  №${it.talk.number}` : ""
+                  }`}
+                  badge={<TalkBadge />}
+                  onEdit={() => setEditTalk(it.talk)}
+                  editAccessibilityLabel={`Редактировать речь: ${talkTitle(it.talk)}`}
+                />
               </SwipeableDeleteRow>
             ),
           )}
@@ -310,21 +290,6 @@ const styles = StyleSheet.create({
   filter: { marginBottom: 14 },
   list: { gap: 12 },
   empty: { textAlign: "center", color: DS.subText, fontSize: 14, marginTop: 24 },
-  card: {
-    backgroundColor: TIMELINE_COLORS.cardBackground,
-    padding: 14,
-    gap: 8,
-  },
-  titleRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  title: { flex: 1, fontSize: 16, fontWeight: "600", color: TIMELINE_COLORS.primaryText },
-  edit: { fontSize: 15, color: TIMELINE_COLORS.secondaryText, paddingLeft: 4 },
-  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  metaText: { flex: 1, flexDirection: "column", gap: 2 },
-  date: { fontSize: 14, color: TIMELINE_COLORS.secondaryText },
-  elapsed: { fontSize: 14, fontWeight: "600", color: TIMELINE_COLORS.durationAccent },
-  talkBadge: { paddingVertical: 2, paddingHorizontal: 8, borderRadius: 20, alignSelf: "flex-start" },
-  talkBadgeText: { fontSize: 11, fontWeight: "700" },
   topicError: { color: TIMELINE_COLORS.danger, fontSize: 13, marginTop: -6, marginBottom: 10 },
   topicActions: { flexDirection: "row", gap: 8, marginTop: 4 },
   topicCancelBtn: {

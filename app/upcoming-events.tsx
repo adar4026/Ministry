@@ -1,10 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
+import { Modal } from "@/components/Modal";
+import { EventForm } from "@/components/forms/EventForm";
+import { TalkForm } from "@/components/forms/TalkForm";
 import { DS, HomeBackground, SummaryCard, UpcomingEventRow } from "@/components/dashboard";
-import { upcomingItems } from "@/data/constants";
+import { upcomingItems, type UpcomingItem } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
+import type { MinistryEvent, Talk } from "@/types";
 
 // TASK_019 — dedicated screen for the complete upcoming-events list, opened
 // from Home's "Ближайшие события" → "Показать все". Lives outside the
@@ -16,10 +20,21 @@ import { useStore } from "@/store/StoreContext";
 // avoids. Being outside `Tabs` also means the bottom tab bar (rendered only
 // by the `Tabs` navigator) naturally doesn't show here — nothing to hide.
 export default function UpcomingEventsScreen() {
-  const { events, talks } = useStore();
+  const { events, talks, customCategories, saveEvent, saveTalk } = useStore();
   // Same shared selector as Home's preview card, called with no limit —
   // the complete future-dated list, no month/year window.
   const items = useMemo(() => upcomingItems(events, talks, new Date()), [events, talks]);
+
+  // TASK_056 — functional edit icon (same EventForm/TalkForm as the
+  // "События" screen); no delete button here (onDelete omitted), matching
+  // the owner's scope for this task.
+  const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
+  const [editTalk, setEditTalk] = useState<Talk | null>(null);
+
+  function handleEdit(item: UpcomingItem) {
+    if (item.kind === "event") setEditEv(item.event);
+    else setEditTalk(item.talk);
+  }
 
   return (
     <View style={styles.screen}>
@@ -40,11 +55,35 @@ export default function UpcomingEventsScreen() {
           ) : (
             <View style={styles.list}>
               {items.map((it) => (
-                <UpcomingEventRow key={`${it.kind}-${it.id}`} item={it} />
+                <UpcomingEventRow
+                  key={`${it.kind}-${it.id}`}
+                  item={it}
+                  customCategories={customCategories}
+                  onEdit={handleEdit}
+                />
               ))}
             </View>
           )}
         </ScrollView>
+
+        <Modal visible={editEv !== null} title="Редактировать событие" onClose={() => setEditEv(null)}>
+          {editEv && (
+            <EventForm
+              initial={editEv}
+              customCategories={customCategories}
+              onSave={(input) => { saveEvent(input); setEditEv(null); }}
+            />
+          )}
+        </Modal>
+
+        <Modal visible={editTalk !== null} title="Редактировать речь" onClose={() => setEditTalk(null)}>
+          {editTalk && (
+            <TalkForm
+              initial={editTalk}
+              onSave={(input) => { saveTalk(input); setEditTalk(null); }}
+            />
+          )}
+        </Modal>
       </SafeAreaView>
     </View>
   );
