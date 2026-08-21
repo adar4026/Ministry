@@ -16,8 +16,10 @@ _Последнее обновление: TASK_054 — убрана полнош
 были. `npx tsc --noEmit` и `npx jest` (964/964) — чисто. Полная
 документация — `docs/TASKS/TASK_054_FLOATING_TAB_BAR_NO_BACKDROP.md`._
 
-TASK_054 реализована и проверена (см. выше), закоммичена. Push и деплой на
-GitHub Pages (https://adar4026.github.io/Ministry/) — по решению владельца.
+TASK_054 реализована, проверена, закоммичена (`ece92ef`), запушена и
+задеплоена на GitHub Pages (https://adar4026.github.io/Ministry/) —
+bundle-hash live-версии (`entry-822c410f...`) подтверждён совпадающим с
+локальным `dist` после первичной задержки CDN-кеша.
 
 ## TASK_054 — коротко
 
