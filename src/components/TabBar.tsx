@@ -172,15 +172,17 @@ const styles = StyleSheet.create({
     paddingTop: BAR_V_PADDING,
     paddingBottom: BAR_V_PADDING,
     marginHorizontal: 20,
-    // TASK_055 — tightened from {opacity:0.12, radius:16, offset:6} so the
-    // shadow stays a soft edge around the pill itself instead of a wide,
-    // downward-smeared haze that read as a faint full-width strip near the
-    // bottom edge, right where this bar already sits.
+    // TASK_057 — offset flipped negative (upward) so the shadow separates
+    // the pill from the content above it and never smears under its bottom
+    // edge, where a scrolling card could show through a faint haze. Android
+    // has no directional elevation (it always radiates outward, including
+    // downward), so elevation is kept minimal instead — just enough for a
+    // sense of depth without contributing to a strip under the bar.
     shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 3,
   },
   tab: {
     width: 60,
