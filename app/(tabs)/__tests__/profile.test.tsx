@@ -6,6 +6,7 @@ import { Alert } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg from "react-native-svg";
+import { router } from "expo-router";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import ProfileScreen from "../profile";
 
@@ -144,5 +145,39 @@ describe("ProfileScreen — TASK_044 page redesign", () => {
   it("reuses HomeBackground (its gradient <Svg>) instead of a page-local background", async () => {
     const renderer = await renderScreen();
     expect(renderer.root.findAllByType(Svg).length).toBeGreaterThan(0);
+  });
+});
+
+// TASK_059 — the "Уведомления" row stops being a placeholder.
+describe("ProfileScreen — TASK_059 notifications entry point", () => {
+  it("navigates to /notifications instead of showing the 'Появится позже' alert", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const pushSpy = jest.spyOn(router, "push").mockImplementation(() => {});
+    const renderer = await renderScreen();
+
+    act(() => {
+      renderer.root.findAllByProps({ accessibilityLabel: "Уведомления" })[0].props.onPress();
+    });
+
+    expect(pushSpy).toHaveBeenCalledWith("/notifications");
+    expect(alertSpy).not.toHaveBeenCalled();
+    pushSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it("leaves every other settings row on the soon() handler", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const pushSpy = jest.spyOn(router, "push").mockImplementation(() => {});
+    const renderer = await renderScreen();
+
+    for (const label of ["Цели", "Календарь служения", "Статистика", "Оформление", "Язык"]) {
+      act(() => {
+        renderer.root.findAllByProps({ accessibilityLabel: label })[0].props.onPress();
+      });
+      expect(alertSpy).toHaveBeenLastCalledWith(label, "Появится позже");
+    }
+    expect(pushSpy).not.toHaveBeenCalled();
+    pushSpy.mockRestore();
+    alertSpy.mockRestore();
   });
 });

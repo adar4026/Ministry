@@ -31,6 +31,8 @@ ministry/
 │   │   ├── timeline.tsx        # События (вкл. публичные речи)
 │   │   ├── profile.tsx         # Профиль
 │   │   └── _layout.tsx         # Tab navigator (5 вкладок)
+│   ├── notifications.tsx       # Уведомления о событиях (TASK_059)
+│   ├── upcoming-events.tsx     # Ближайшие события (TASK_019)
 │   ├── service.tsx             # Легаси-маршрут: redirect к /hours
 │   └── _layout.tsx             # Root layout
 │
@@ -39,6 +41,7 @@ ministry/
 │   │   ├── seed.js / seed.ts   # Пустые массивы для первого запуска (TASK_009)
 │   │   ├── constants.ts        # Цвета, хелперы, агрегация (Session-first)
 │   │   ├── stats.ts            # Чистые функции статистики (TASK_005E)
+│   │   ├── notifications.ts    # Чистая логика напоминаний (TASK_059)
 │   │   └── timer.ts            # Чистые функции таймера (TASK_005C)
 │   │
 │   ├── store/
@@ -47,6 +50,10 @@ ministry/
 │   ├── hooks/
 │   │   ├── useStorage.ts       # AsyncStorage wrapper
 │   │   └── useTimer.ts         # Жизненный цикл mj_timer_v1
+│   │
+│   ├── utils/
+│   │   ├── localNotifications.ts / .web.ts   # Канал уведомлений (TASK_059)
+│   │   └── …
 │   │
 │   ├── components/             # Переиспользуемые компоненты
 │   │   ├── dashboard/          # Компоненты Главной (TASK_007)
@@ -99,6 +106,20 @@ type Talk = {
 }
 ```
 
+### NotificationSettings (напоминания о событиях, TASK_059)
+
+```typescript
+type NotificationSettings = {
+  enabled:   boolean;   // главный переключатель
+  dayBefore: boolean;   // напомнить накануне в 19:00
+  sameDay:   boolean;   // напомнить в день события в 09:00
+}
+```
+
+По умолчанию `{ enabled: false, dayBefore: true, sameDay: true }` — пока
+владелец сам не включит главный переключатель, системное разрешение не
+запрашивается и ничего не планируется.
+
 ### Session (запись времени, TASK_005A)
 
 Основная сущность учёта времени, начиная с TASK_005. Гранулярная запись —
@@ -124,11 +145,14 @@ type Session = {
 ## Ключи хранилища (AsyncStorage)
 
 ```
-mj_records_v1    — массив Record[]
-mj_events_v1     — массив Event[]
-mj_talks_v1      — массив Talk[]
-mj_sessions_v1   — массив Session[]  (TASK_005A)
-mj_timer_v1      — TimerState        (TASK_005C)
+mj_records_v1            — массив Record[]
+mj_events_v1             — массив Event[]
+mj_talks_v1              — массив Talk[]
+mj_sessions_v1           — массив Session[]        (TASK_005A)
+mj_timer_v1              — TimerState              (TASK_005C)
+mj_profile_v1            — UserProfile             (TASK_042)
+mj_custom_categories_v1  — CustomCategory[]        (TASK_045)
+mj_notifications_v1      — NotificationSettings    (TASK_059)
 ```
 
 > ⚠️ При изменении схемы данных — менять версию ключа (v1 → v2) и писать миграцию.
@@ -186,11 +210,45 @@ StoreContext
 ├── events:   Event[]
 ├── talks:    Talk[]
 ├── sessions: Session[]   (TASK_005A)
+├── notificationSettings: NotificationSettings   (TASK_059)
 ├── loaded:   boolean
 ├── saveRecord  / deleteRecord
 ├── saveEvent   / deleteEvent
 ├── saveTalk    / deleteTalk
-└── saveSession / deleteSession   (TASK_005A)
+├── saveSession / deleteSession   (TASK_005A)
+└── saveNotificationSettings      (TASK_059)
 ```
 
 Все экраны читают из стора через `useStore()`. Никакого локального состояния для данных.
+
+---
+
+## Локальные уведомления (TASK_059)
+
+Целевая среда исполнения на iPhone — **PWA**, собранная
+`expo export --platform web` и отданная с GitHub Pages, поэтому механизм
+уведомлений — веб-стандарт, а не `expo-notifications` (у последнего нет
+web-планировщика; на единственном реально отгружаемом таргете он был бы
+no-op).
+
+```
+src/data/notifications.ts          — чистая логика: время срабатывания,
+                                     детерминированные id, план, дифф
+src/utils/localNotifications.ts    — канал доставки, native (no-op)
+src/utils/localNotifications.web.ts— канал доставки, web/PWA
+public/ministry-notifications-sw.js— service worker: расписание в IndexedDB,
+                                     showNotification, догоняющая доставка
+```
+
+- Расписание пересобирается **только** в одном эффекте `StoreProvider`
+  (ADR-003): создание/правка/удаление события, смена настроек и
+  восстановление из бэкапа — все проходят через изменение `events` /
+  `notificationSettings`.
+- Каналу всегда передаётся **полный желаемый набор**; SW сам отменяет всё,
+  чего в наборе больше нет. Id вида `<eventId>::<kind>` детерминирован —
+  дубли структурно невозможны.
+- Service worker **намеренно без `fetch`-обработчика**: не кэширует и не
+  перехватывает навигацию, поэтому не может «залипнуть» на старом бандле.
+- Ограничения платформы (iOS не даёт веб-приложениям планировщик; push-сервер
+  не вводится по ADR-002) — подробно в
+  `docs/TASKS/TASK_059_EVENT_NOTIFICATIONS.md` §1.

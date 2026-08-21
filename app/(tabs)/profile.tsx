@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
 import { ProfileHeroCard } from "@/components/profile/ProfileHeroCard";
@@ -22,8 +23,10 @@ import { useStore } from "@/store/StoreContext";
 
 const APP_VERSION = "0.4.4";
 
-const SETTINGS = [
-  { label: "Уведомления", icon: BellIcon },
+// TASK_059 — "Уведомления" is no longer a `soon()` placeholder: it opens the
+// real settings screen at /notifications. Every other row is untouched.
+const SETTINGS: { label: string; icon: typeof BellIcon; href?: string }[] = [
+  { label: "Уведомления", icon: BellIcon, href: "/notifications" },
   { label: "Цели", icon: TargetIcon },
   { label: "Календарь служения", icon: CalendarIcon },
   { label: "Статистика", icon: ChartIcon },
@@ -73,7 +76,7 @@ export default function ProfileScreen() {
                 key={item.label}
                 icon={item.icon}
                 title={item.label}
-                onPress={() => soon(item.label)}
+                onPress={() => (item.href ? router.push(item.href as never) : soon(item.label))}
                 last={i === SETTINGS.length - 1}
               />
             ))}

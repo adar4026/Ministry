@@ -249,3 +249,37 @@ export function MessageIcon({ size = 22, color }: IconProps) {
     </Svg>
   );
 }
+
+// TASK_059 — the two reminder slots on the "Уведомления" screen: evening
+// before (19:00) and morning of (09:00). Same 24x24 stroke geometry and
+// strokeWidth={2} as every icon above, so they sit in the shared icon chip
+// without any per-icon tuning.
+export function MoonIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function SunIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={4} stroke={color} strokeWidth={2} />
+      <Line x1={12} y1={2} x2={12} y2={4.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={12} y1={19.5} x2={12} y2={22} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={2} y1={12} x2={4.5} y2={12} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={19.5} y1={12} x2={22} y2={12} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={5} y1={5} x2={6.8} y2={6.8} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={17.2} y1={17.2} x2={19} y2={19} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={19} y1={5} x2={17.2} y2={6.8} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={6.8} y1={17.2} x2={5} y2={19} stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
