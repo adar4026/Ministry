@@ -15,6 +15,7 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StoreProvider, useStore } from "@/store/StoreContext";
+import { CATEGORY_KEYS } from "@/data/constants";
 import type { MinistryEvent, Talk } from "@/types";
 import TimelineScreen from "../timeline";
 
@@ -24,6 +25,13 @@ const SAFE_AREA_METRICS = {
   frame: { x: 0, y: 0, width: 375, height: 812 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 };
+
+// TASK_058 (counter fix) — "Все темы (N)" with zero custom topics: the six
+// system categories (`CATEGORY_KEYS`) plus the synthetic "Публичные" (talk)
+// filter, minus nothing — "Все" itself isn't one of these. Derived from the
+// same source the screen uses rather than a hardcoded literal, so this stays
+// correct if a system category is ever added/removed.
+const BASE_SYSTEM_TOPICS_COUNT = CATEGORY_KEYS.length + 1;
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -371,7 +379,7 @@ describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
       pressableAncestorOfText(root(), "Сохранить")!.props.onPress();
     });
     expect(store().customCategories.map((c) => c.name)).toContain("Конгрессы");
-    expect(texts()).toContain("Все темы (1)");
+    expect(texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT + 1})`);
     expect(texts()).not.toContain("Конгрессы");
 
     await act(async () => {
@@ -439,7 +447,7 @@ describe("Events screen (TASK_058) — 'Все темы (N)' collapsed-by-defaul
   it("shows no topic chips at all by default — only the 'Все темы (N)' toggle", async () => {
     const { texts } = await renderScreen();
     const t = texts();
-    expect(t).toContain("Все темы (0)");
+    expect(t).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT})`);
     expect(t).not.toContain("Пионер");
     expect(t).not.toContain("Публичные");
     expect(t).not.toContain("Личное");
@@ -464,17 +472,83 @@ describe("Events screen (TASK_058) — 'Все темы (N)' collapsed-by-defaul
     expect(collapsed).not.toContain("Событие");
   });
 
-  it("shows a dynamic created-topics count in 'Все темы (N)', counting every user-created topic", async () => {
+  // TASK_058 (counter fix) — "Все темы (N)" previously counted only
+  // `customCategories.length` (owner-created topics), silently dropping the
+  // six system categories + "Публичные" from N — on the owner's real data
+  // (3 custom topics) that showed "Все темы (3)" while the expanded grid
+  // actually listed 10 real topics. `N` must now count every real topic the
+  // expanded grid can show, always excluding the "Все" reset filter.
+  it("shows 'Все темы (10)' for 10 real topics: 6 system + 'Публичные' + 3 custom, matching the owner's data", async () => {
+    await AsyncStorage.setItem(
+      "mj_custom_categories_v1",
+      JSON.stringify([
+        { id: "c1", name: "Конгрессы" },
+        { id: "c2", name: "Здоровье" },
+        { id: "c3", name: "Подписки" },
+      ]),
+    );
+    const { root, texts } = await renderScreen();
+    expect(texts()).toContain("Все темы (10)");
+
+    await act(async () => {
+      expandTopics(root());
+    });
+    const grid = texts();
+    for (const label of [
+      "Публичные", "Пионер", "Назначения", "Переезд", "Школы", "Личное",
+      "Конгрессы", "Событие", "Здоровье", "Подписки",
+    ]) {
+      expect(grid).toContain(label);
+    }
+  });
+
+  it("does not count 'Все' itself as a topic, even though it's shown in the expanded grid", async () => {
+    const { root, texts } = await renderScreen();
+    // Zero custom topics: N must be exactly the 6 system categories +
+    // "Публичные" — 7, not 8 — "Все" is a reset control, not a topic.
+    expect(texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT})`);
+
+    await act(async () => {
+      expandTopics(root());
+    });
+    const grid = texts();
+    expect(grid).toContain("Все");
+    expect(grid).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT})`);
+  });
+
+  it("keeps the count in sync with the source data as topics are added — not hardcoded", async () => {
     const { texts, store } = await renderScreen();
-    expect(texts()).toContain("Все темы (0)");
+    expect(texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT})`);
 
     await act(async () => {
       store().addCustomCategory("Конгрессы");
     });
+    expect(texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT + 1})`);
+
     await act(async () => {
       store().addCustomCategory("Здоровье");
     });
-    expect(texts()).toContain("Все темы (2)");
+    expect(texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT + 2})`);
+  });
+
+  it("counts fewer topics when there are fewer of them (e.g. after a custom topic is removed from storage)", async () => {
+    // There is no delete-custom-topic UI (TASK_045 §5 — deliberately out of
+    // scope), so "removal" is exercised the same way real data can shrink:
+    // a smaller `customCategories` collection on next load. This proves the
+    // count is derived live from the current topic list, not cached/added-to.
+    await AsyncStorage.setItem(
+      "mj_custom_categories_v1",
+      JSON.stringify([{ id: "c1", name: "Конгрессы" }, { id: "c2", name: "Здоровье" }]),
+    );
+    const before = await renderScreen();
+    expect(before.texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT + 2})`);
+
+    await AsyncStorage.setItem(
+      "mj_custom_categories_v1",
+      JSON.stringify([{ id: "c1", name: "Конгрессы" }]),
+    );
+    const after = await renderScreen();
+    expect(after.texts()).toContain(`Все темы (${BASE_SYSTEM_TOPICS_COUNT + 1})`);
   });
 
   it("filters correctly by a topic picked from the expanded grid", async () => {

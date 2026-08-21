@@ -100,6 +100,14 @@ export default function TimelineScreen() {
     [filterOptions],
   );
 
+  // TASK_058 (fix) — "Все темы (N)" must count every real topic chip that
+  // the expanded grid can show (`allTopics`, the same array it renders
+  // from — one source of truth, so the two can't drift apart again), minus
+  // the "Все" reset filter itself, which isn't a topic. Previously this
+  // used `customCategories.length` (only owner-created topics), undercounting
+  // by the five built-in system categories + "Публичные" every time.
+  const topicsCount = useMemo(() => allTopics.filter((opt) => opt.value !== "all").length, [allTopics]);
+
   // Combine events + talks at the UI layer only; both collections stay separate.
   const items = useMemo<TimelineItem[]>(() => {
     const q = query.trim().toLowerCase();
@@ -193,7 +201,7 @@ export default function TimelineScreen() {
             hitSlop={6}
             style={({ pressed }) => [styles.moreTopicsBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.moreTopicsText}>{`Все темы (${customCategories.length})`}</Text>
+            <Text style={styles.moreTopicsText}>{`Все темы (${topicsCount})`}</Text>
             <Text style={[styles.moreTopicsChevron, topicsExpanded && styles.moreTopicsChevronOpen]}>▾</Text>
           </Pressable>
           {topicsExpanded ? (
