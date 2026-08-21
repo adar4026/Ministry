@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Badge } from "@/components/Badge";
-import { ChipSelector, Field, PrimaryButton, TextField } from "@/components/ui";
+import { ChipSelector, Field, PrimaryButton, TextField, type Option } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
 import { SwipeableDeleteRow } from "@/components/timeline/SwipeableDeleteRow";
 import { EventListCard } from "@/components/timeline/EventListCard";
 import { TalkBadge } from "@/components/timeline/TalkBadge";
+import { AddActionSheet } from "@/components/timeline/AddActionSheet";
 import { TIMELINE_COLORS } from "@/components/timeline/timelineTokens";
 import { DS, HomeBackground } from "@/components/dashboard";
 import { useTabBarContentInset } from "@/components/TabBar";
@@ -46,6 +47,29 @@ const SYSTEM_FILTER_OPTIONS = [
   })),
 ];
 
+// TASK_058 — the always-visible "primary" chip row (owner-specified order),
+// matched against filterOptions by value for the six system entries. The
+// system "other" category ("Событие") is deliberately NOT in this list —
+// it stays behind "Все темы" along with every other custom topic. The one
+// custom topic allowed into the primary row is matched by name rather than
+// a stable value/id (a user-created CustomCategory only gets a random uid,
+// never a fixed key) — if the owner hasn't created a topic with this exact
+// name yet, it simply doesn't appear here; no error, no placeholder.
+const PRIMARY_SYSTEM_VALUES = ["all", TALK_FILTER, "pioneer", "appointment", "move", "school", "personal"];
+const PRIMARY_CUSTOM_TOPIC_NAME = "Конгрессы";
+
+function primaryRank(opt: Option<string>): number {
+  const i = PRIMARY_SYSTEM_VALUES.indexOf(opt.value);
+  if (i !== -1) return i;
+  // The name-matched custom topic always sorts last in the primary row,
+  // after all six system entries — matches the owner-specified order.
+  return PRIMARY_SYSTEM_VALUES.length;
+}
+
+function isPrimaryTopic(opt: Option<string>): boolean {
+  return PRIMARY_SYSTEM_VALUES.includes(opt.value) || opt.label === PRIMARY_CUSTOM_TOPIC_NAME;
+}
+
 type TimelineItem =
   | { kind: "event"; id: string; date: string; ev: MinistryEvent }
   | { kind: "talk"; id: string; date: string; talk: Talk };
@@ -60,9 +84,11 @@ export default function TimelineScreen() {
   const [query, setQuery] = useState("");
   const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
   const [editTalk, setEditTalk] = useState<Talk | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addingTopic, setAddingTopic] = useState(false);
   const [topicName, setTopicName] = useState("");
   const [topicError, setTopicError] = useState<string | null>(null);
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
 
   // TASK_045 — a chip per user-created topic, appended after the system
   // ones; appears immediately once addCustomCategory() saves it (same
@@ -71,6 +97,22 @@ export default function TimelineScreen() {
     () => [...SYSTEM_FILTER_OPTIONS, ...customCategories.map((c) => ({ value: c.id, label: c.name }))],
     [customCategories],
   );
+
+  // TASK_058 — split into the always-visible primary row and everything
+  // behind "Все темы (N)". Order within the primary row follows the
+  // owner-specified sequence, not filterOptions' own order.
+  const { primaryTopics, hiddenTopics } = useMemo(() => {
+    const primary = filterOptions.filter(isPrimaryTopic).sort((a, b) => primaryRank(a) - primaryRank(b));
+    const hidden = filterOptions.filter((opt) => !isPrimaryTopic(opt));
+    return { primaryTopics: primary, hiddenTopics: hidden };
+  }, [filterOptions]);
+
+  // TASK_058 — if the active filter is a hidden topic (e.g. restored from a
+  // prior session), keep "Все темы" expanded so the selection stays visible
+  // instead of appearing to vanish behind the collapsed toggle.
+  useEffect(() => {
+    if (hiddenTopics.some((opt) => opt.value === filter)) setTopicsExpanded(true);
+  }, [filter, hiddenTopics]);
 
   // Combine events + talks at the UI layer only; both collections stay separate.
   const items = useMemo<TimelineItem[]>(() => {
@@ -128,31 +170,22 @@ export default function TimelineScreen() {
     <View style={styles.screen}>
       <HomeBackground />
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>События</Text>
-          <Text style={styles.pageSubtitle}>Важные даты и мероприятия</Text>
-        </View>
-
-        <View style={styles.actionsRow}>
-          {/* TASK_045 — reuses the existing /add route + EventForm (via a
-              `focus` param) instead of a second, independent creation form. */}
+        <View style={styles.headerRow}>
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageTitle}>События</Text>
+            <Text style={styles.pageSubtitle}>Важные даты и мероприятия</Text>
+          </View>
+          {/* TASK_058 — replaces the two large "Добавить событие"/"Добавить
+              тему" tiles with a single compact entry point; both actions
+              still live behind AddActionSheet below, unchanged. */}
           <Pressable
-            onPress={() => router.push(`/add?focus=event`)}
+            onPress={() => setAddMenuOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Добавить событие"
-            style={({ pressed }) => [styles.actionBtn, styles.actionBtnPrimary, pressed && styles.pressed]}
+            accessibilityLabel="Добавить"
+            hitSlop={4}
+            style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
           >
-            <PlusIcon size={15} color={DS.onAccent} />
-            <Text style={styles.actionTextPrimary}>Добавить событие</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAddingTopic(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Добавить тему"
-            style={({ pressed }) => [styles.actionBtn, styles.actionBtnSecondary, pressed && styles.pressed]}
-          >
-            <PlusIcon size={15} color={DS.navy} />
-            <Text style={styles.actionTextSecondary}>Добавить тему</Text>
+            <PlusIcon size={22} color={DS.onAccent} />
           </Pressable>
         </View>
 
@@ -162,13 +195,32 @@ export default function TimelineScreen() {
           placeholder="Поиск..."
           style={styles.search}
         />
-        <View style={styles.filter}>
+        <View style={styles.topicsSection}>
           <ChipSelector
-            options={filterOptions}
+            options={primaryTopics}
             value={filter}
             onChange={setFilter}
             idleTextColor={TIMELINE_COLORS.topicText}
           />
+          {topicsExpanded && hiddenTopics.length > 0 ? (
+            <ChipSelector
+              options={hiddenTopics}
+              value={filter}
+              onChange={setFilter}
+              idleTextColor={TIMELINE_COLORS.topicText}
+            />
+          ) : null}
+          {hiddenTopics.length > 0 ? (
+            <Pressable
+              onPress={() => setTopicsExpanded((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={topicsExpanded ? "Свернуть остальные темы" : "Показать остальные темы"}
+              style={({ pressed }) => [styles.moreTopicsBtn, pressed && styles.pressed]}
+            >
+              <Text style={styles.moreTopicsText}>{`Все темы (${customCategories.length})`}</Text>
+              <Text style={[styles.moreTopicsChevron, topicsExpanded && styles.moreTopicsChevronOpen]}>▾</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.list}>
@@ -232,6 +284,13 @@ export default function TimelineScreen() {
           )}
         </Modal>
 
+        <AddActionSheet
+          visible={addMenuOpen}
+          onClose={() => setAddMenuOpen(false)}
+          onAddEvent={() => router.push(`/add?focus=event`)}
+          onAddTopic={() => setAddingTopic(true)}
+        />
+
         <Modal visible={addingTopic} title="Новая тема" onClose={closeTopicModal}>
           <Field label="Название">
             <TextField
@@ -263,31 +322,46 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   scroll: { flex: 1 },
   content: { padding: 16 },
-  // TASK_045 — same header treatment as Profile (TASK_044): large navy
-  // title, light-blue subtitle, same horizontal inset, inside the
-  // scrollable content above the search field.
-  pageHeader: { paddingHorizontal: 4, marginBottom: 16 },
+  // TASK_045/TASK_058 — same header treatment as Profile (TASK_044): large
+  // navy title, light-blue subtitle, same horizontal inset, inside the
+  // scrollable content above the search field. `headerRow` places the
+  // compact "+" button to the right of that same title/subtitle block
+  // (TASK_058) instead of the two large tiles that used to follow it.
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
+  pageHeader: { flex: 1, paddingHorizontal: 4 },
   pageTitle: { fontSize: 28, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
   pageSubtitle: { fontSize: 14, color: DS.subText, marginTop: 2 },
-  actionsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  actionBtn: {
-    flex: 1,
-    flexDirection: "row",
+  // TASK_058 — compact brand-blue "+" entry point for AddActionSheet.
+  // 44x44 minimum touch target; rounded-square (not a circle) to read
+  // distinctly from the TabBar's own circular floating "Добавить" FAB.
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: DS.accent,
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    borderRadius: 16,
-    minHeight: 44,
+    shadowColor: DS.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  actionBtnPrimary: { backgroundColor: DS.accent },
-  actionBtnSecondary: { backgroundColor: "#ffffff", borderWidth: 1, borderColor: DS.divider },
-  actionTextPrimary: { flexShrink: 1, color: DS.onAccent, fontWeight: "700", fontSize: 13, textAlign: "center" },
-  actionTextSecondary: { flexShrink: 1, color: DS.navy, fontWeight: "700", fontSize: 13, textAlign: "center" },
   pressed: { opacity: 0.85 },
   search: { marginBottom: 10 },
-  filter: { marginBottom: 14 },
+  // TASK_058 — primary topic chips, optional hidden-topics grid, and the
+  // "Все темы (N)" toggle all live in this one gap-spaced column.
+  topicsSection: { gap: 10, marginBottom: 14 },
+  moreTopicsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    paddingVertical: 4,
+  },
+  moreTopicsText: { fontSize: 13, fontWeight: "600", color: DS.subText },
+  moreTopicsChevron: { fontSize: 13, color: DS.subText, fontWeight: "600" },
+  moreTopicsChevronOpen: { transform: [{ rotate: "180deg" }] },
   list: { gap: 12 },
   empty: { textAlign: "center", color: DS.subText, fontSize: 14, marginTop: 24 },
   topicError: { color: TIMELINE_COLORS.danger, fontSize: 13, marginTop: -6, marginBottom: 10 },

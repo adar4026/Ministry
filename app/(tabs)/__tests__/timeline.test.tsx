@@ -12,10 +12,18 @@
 // itself.
 import { Pressable, Text } from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
 import TimelineScreen from "../timeline";
+
+// TASK_058 — AddActionSheet (rendered by this screen) reads safe-area
+// insets; same fixed metrics used by profile.test.tsx/ProfileEditSheet.test.tsx.
+const SAFE_AREA_METRICS = {
+  frame: { x: 0, y: 0, width: 375, height: 812 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
 
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -97,10 +105,12 @@ async function renderScreen(): Promise<{
   let renderer: ReactTestRenderer;
   await act(async () => {
     renderer = create(
-      <StoreProvider>
-        <Harness onReady={(s) => { latest = s; }} />
-        <TimelineScreen />
-      </StoreProvider>,
+      <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
+        <StoreProvider>
+          <Harness onReady={(s) => { latest = s; }} />
+          <TimelineScreen />
+        </StoreProvider>
+      </SafeAreaProvider>,
     );
     for (let i = 0; i < 6; i++) await Promise.resolve();
   });
@@ -285,8 +295,11 @@ describe("Events screen (TASK_045) — header and actions", () => {
     expect(t).toContain("Важные даты и мероприятия");
   });
 
-  it("'Добавить событие' navigates to /add?focus=event, reusing the existing form/route", async () => {
+  it("'+' opens the add menu, and 'Добавить событие' navigates to /add?focus=event, reusing the existing form/route", async () => {
     const { root } = await renderScreen();
+    await act(async () => {
+      pressableWithLabel(root(), "Добавить")!.props.onPress();
+    });
     const btn = pressableAncestorOfText(root(), "Добавить событие");
     expect(btn).toBeTruthy();
     await act(async () => {
@@ -308,9 +321,18 @@ describe("Events screen (TASK_045) — header and actions", () => {
   });
 });
 
-describe("Events screen (TASK_045) — custom topics", () => {
+// TASK_058 — "Добавить тему" now lives inside AddActionSheet, opened via the
+// compact "+" header button; opens the same, unchanged topic-creation Modal.
+function openAddTopicModal(root: ReactTestRenderer["root"]) {
+  pressableWithLabel(root, "Добавить")!.props.onPress();
+}
+
+describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
   it("rejects an empty topic name with a visible message and no filter chip added", async () => {
     const { root, texts } = await renderScreen();
+    await act(async () => {
+      openAddTopicModal(root());
+    });
     await act(async () => {
       pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
     });
@@ -322,6 +344,9 @@ describe("Events screen (TASK_045) — custom topics", () => {
 
   it("creates a new topic and shows it immediately as a filter chip", async () => {
     const { root, texts, store } = await renderScreen();
+    await act(async () => {
+      openAddTopicModal(root());
+    });
     await act(async () => {
       pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
     });
@@ -340,6 +365,9 @@ describe("Events screen (TASK_045) — custom topics", () => {
     const { root, texts, store } = await renderScreen();
     await act(async () => {
       store().addCustomCategory("Поездки");
+    });
+    await act(async () => {
+      openAddTopicModal(root());
     });
     await act(async () => {
       pressableAncestorOfText(root(), "Добавить тему")!.props.onPress();
@@ -379,5 +407,67 @@ describe("Events screen (TASK_045) — custom topics", () => {
     const t = texts();
     expect(t).toContain("Окружной конгресс");
     expect(t).not.toContain("Другое событие");
+  });
+});
+
+describe("Events screen (TASK_058) — collapsible 'Все темы'", () => {
+  it("hides the system 'Событие' topic behind 'Все темы' by default", async () => {
+    const { texts } = await renderScreen();
+    expect(texts()).not.toContain("Событие");
+  });
+
+  it("reveals hidden topics when 'Все темы' is expanded and hides them again on second press", async () => {
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      pressableWithLabel(root(), "Показать остальные темы")!.props.onPress();
+    });
+    expect(texts()).toContain("Событие");
+
+    await act(async () => {
+      pressableWithLabel(root(), "Свернуть остальные темы")!.props.onPress();
+    });
+    expect(texts()).not.toContain("Событие");
+  });
+
+  it("shows a dynamic created-topics count in 'Все темы (N)', counting every user-created topic", async () => {
+    const { texts, store } = await renderScreen();
+    expect(texts()).toContain("Все темы (0)");
+
+    // "Конгрессы" is the one custom topic matched into the primary row by
+    // name (TASK_058); it still counts toward N even though it isn't
+    // itself hidden.
+    await act(async () => {
+      store().addCustomCategory("Конгрессы");
+    });
+    await act(async () => {
+      store().addCustomCategory("Здоровье");
+    });
+    expect(texts()).toContain("Все темы (2)");
+  });
+
+  it("keeps a hidden topic filtering correctly once selected, without disturbing the primary row", async () => {
+    await AsyncStorage.setItem(
+      "mj_events_v1",
+      JSON.stringify([
+        evt("e1", "2026-07-01", "Пионерское собрание", "pioneer"),
+        evt("e2", "2026-07-02", "Разное", "other"),
+      ]),
+    );
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      pressableWithLabel(root(), "Показать остальные темы")!.props.onPress();
+    });
+    const hiddenChip = pressableAncestorOfText(root(), "Событие");
+    expect(hiddenChip).toBeTruthy();
+    await act(async () => {
+      hiddenChip!.props.onPress();
+    });
+
+    const t = texts();
+    expect(t).toContain("Разное");
+    expect(t).not.toContain("Пионерское собрание");
+    // the primary "Пионер" chip is still there, unaffected by the hidden
+    // section being expanded and filtered on.
+    expect(t).toContain("Пионер");
   });
 });

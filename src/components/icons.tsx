@@ -88,6 +88,22 @@ export function PencilIcon({ size = 22, color }: IconProps) {
   );
 }
 
+// TASK_058 — "Добавить тему" action in AddActionSheet (Events screen).
+export function TagIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11.5 3H5a2 2 0 0 0-2 2v6.5a2 2 0 0 0 .586 1.414l8.5 8.5a2 2 0 0 0 2.828 0l6.086-6.086a2 2 0 0 0 0-2.828l-8.5-8.5A2 2 0 0 0 11.5 3Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={7.5} cy={7.5} r={1.4} stroke={color} strokeWidth={2} />
+    </Svg>
+  );
+}
+
 export function ListIcon({ size = 22, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
