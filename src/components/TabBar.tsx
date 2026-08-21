@@ -155,6 +155,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     alignItems: "center",
+    // TASK_055 — explicit, not just absent: this full-width wrapper must
+    // never carry its own background, shadow, gradient, or blur. Only the
+    // `bar` pill below (compact, inset by marginHorizontal) is allowed a
+    // shadow of its own.
+    backgroundColor: "transparent",
   },
   bar: {
     flexDirection: "row",
@@ -167,10 +172,14 @@ const styles = StyleSheet.create({
     paddingTop: BAR_V_PADDING,
     paddingBottom: BAR_V_PADDING,
     marginHorizontal: 20,
+    // TASK_055 — tightened from {opacity:0.12, radius:16, offset:6} so the
+    // shadow stays a soft edge around the pill itself instead of a wide,
+    // downward-smeared haze that read as a faint full-width strip near the
+    // bottom edge, right where this bar already sits.
     shadowColor: "#0f172a",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 8,
   },
   tab: {

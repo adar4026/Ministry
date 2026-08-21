@@ -38,6 +38,30 @@ export default function Root({ children }: { children: React.ReactNode }) {
           }}
         />
 
+        {/*
+          TASK_055 — defensive fallback for the floating, position:fixed
+          bottom TabBar (TabBar.tsx) on real iOS Safari specifically: with
+          viewport-fit=cover above, "100%"/"100vh" (ScrollViewStyleReset's
+          own #expo-reset rule, loaded before this one) can measure a hair
+          shorter than the true visual viewport while the address bar is
+          animating, leaving an unpainted sliver at the very bottom edge —
+          the browser's own white canvas would show through it, next to the
+          bar's own shadow. background-color gives that sliver, if any, the
+          app's own neutral tone instead of stark white (same fallback tone
+          already used by SafeAreaView in app/(tabs)/_layout.tsx); the
+          height rule is a same-property override loaded after #expo-reset,
+          so it wins the cascade where supported and is otherwise dropped
+          as an invalid value, leaving the 100% fallback untouched. Not
+          reproducible in this project's Chromium-based preview tooling —
+          see docs/TASKS/TASK_055_TAB_BAR_SOFT_SHADOW_ONLY.md §2.
+        */}
+        <style
+          id="ministry-ios-safari-viewport-fallback"
+          dangerouslySetInnerHTML={{
+            __html: `html,body,#root{background-color:#f8fafc;height:100dvh}`,
+          }}
+        />
+
         {/* Add any additional <head> elements that you want globally available on web... */}
         <link rel="apple-touch-icon" href="/Ministry/apple-touch-icon.png" />
       </head>
