@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Badge } from "@/components/Badge";
@@ -47,27 +47,21 @@ const SYSTEM_FILTER_OPTIONS = [
   })),
 ];
 
-// TASK_058 — the always-visible "primary" chip row (owner-specified order),
-// matched against filterOptions by value for the six system entries. The
-// system "other" category ("Событие") is deliberately NOT in this list —
-// it stays behind "Все темы" along with every other custom topic. The one
-// custom topic allowed into the primary row is matched by name rather than
-// a stable value/id (a user-created CustomCategory only gets a random uid,
-// never a fixed key) — if the owner hasn't created a topic with this exact
-// name yet, it simply doesn't appear here; no error, no placeholder.
+// TASK_058 (revised) — the owner-specified topic order used when the full
+// grid is expanded: the six system entries first (by stable value key),
+// then the one custom topic matched by name (a user-created CustomCategory
+// only gets a random uid, never a fixed key — if the owner hasn't created a
+// topic with this exact name yet, it simply sorts wherever it would
+// otherwise land, alongside every other custom topic), then everything else
+// in filterOptions' own order (stable sort).
 const PRIMARY_SYSTEM_VALUES = ["all", TALK_FILTER, "pioneer", "appointment", "move", "school", "personal"];
 const PRIMARY_CUSTOM_TOPIC_NAME = "Конгрессы";
 
 function primaryRank(opt: Option<string>): number {
   const i = PRIMARY_SYSTEM_VALUES.indexOf(opt.value);
   if (i !== -1) return i;
-  // The name-matched custom topic always sorts last in the primary row,
-  // after all six system entries — matches the owner-specified order.
-  return PRIMARY_SYSTEM_VALUES.length;
-}
-
-function isPrimaryTopic(opt: Option<string>): boolean {
-  return PRIMARY_SYSTEM_VALUES.includes(opt.value) || opt.label === PRIMARY_CUSTOM_TOPIC_NAME;
+  if (opt.label === PRIMARY_CUSTOM_TOPIC_NAME) return PRIMARY_SYSTEM_VALUES.length;
+  return PRIMARY_SYSTEM_VALUES.length + 1;
 }
 
 type TimelineItem =
@@ -98,21 +92,13 @@ export default function TimelineScreen() {
     [customCategories],
   );
 
-  // TASK_058 — split into the always-visible primary row and everything
-  // behind "Все темы (N)". Order within the primary row follows the
-  // owner-specified sequence, not filterOptions' own order.
-  const { primaryTopics, hiddenTopics } = useMemo(() => {
-    const primary = filterOptions.filter(isPrimaryTopic).sort((a, b) => primaryRank(a) - primaryRank(b));
-    const hidden = filterOptions.filter((opt) => !isPrimaryTopic(opt));
-    return { primaryTopics: primary, hiddenTopics: hidden };
-  }, [filterOptions]);
-
-  // TASK_058 — if the active filter is a hidden topic (e.g. restored from a
-  // prior session), keep "Все темы" expanded so the selection stays visible
-  // instead of appearing to vanish behind the collapsed toggle.
-  useEffect(() => {
-    if (hiddenTopics.some((opt) => opt.value === filter)) setTopicsExpanded(true);
-  }, [filter, hiddenTopics]);
+  // TASK_058 (revised) — no chips are shown until "Все темы (N)" is
+  // expanded; once open, this is the full topic grid in the
+  // owner-specified order (stable sort — see primaryRank above).
+  const allTopics = useMemo(
+    () => [...filterOptions].sort((a, b) => primaryRank(a) - primaryRank(b)),
+    [filterOptions],
+  );
 
   // Combine events + talks at the UI layer only; both collections stay separate.
   const items = useMemo<TimelineItem[]>(() => {
@@ -196,31 +182,27 @@ export default function TimelineScreen() {
           style={styles.search}
         />
         <View style={styles.topicsSection}>
-          <ChipSelector
-            options={primaryTopics}
-            value={filter}
-            onChange={setFilter}
-            idleTextColor={TIMELINE_COLORS.topicText}
-          />
-          {topicsExpanded && hiddenTopics.length > 0 ? (
+          {/* TASK_058 (revised) — collapsed by default: only this toggle is
+              visible under the search field, no chips. Expanding it reveals
+              every topic (system + custom) in one wrapping grid; collapsing
+              again hides the whole grid, leaving just the toggle. */}
+          <Pressable
+            onPress={() => setTopicsExpanded((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={topicsExpanded ? "Свернуть темы" : "Показать все темы"}
+            hitSlop={6}
+            style={({ pressed }) => [styles.moreTopicsBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.moreTopicsText}>{`Все темы (${customCategories.length})`}</Text>
+            <Text style={[styles.moreTopicsChevron, topicsExpanded && styles.moreTopicsChevronOpen]}>▾</Text>
+          </Pressable>
+          {topicsExpanded ? (
             <ChipSelector
-              options={hiddenTopics}
+              options={allTopics}
               value={filter}
               onChange={setFilter}
               idleTextColor={TIMELINE_COLORS.topicText}
             />
-          ) : null}
-          {hiddenTopics.length > 0 ? (
-            <Pressable
-              onPress={() => setTopicsExpanded((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={topicsExpanded ? "Свернуть остальные темы" : "Показать остальные темы"}
-              hitSlop={6}
-              style={({ pressed }) => [styles.moreTopicsBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.moreTopicsText}>{`Все темы (${customCategories.length})`}</Text>
-              <Text style={[styles.moreTopicsChevron, topicsExpanded && styles.moreTopicsChevronOpen]}>▾</Text>
-            </Pressable>
           ) : null}
         </View>
 
@@ -350,14 +332,11 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   search: { marginBottom: 10 },
-  // TASK_058 (revised) — primary topic chips, optional hidden-topics grid,
-  // and the "Все темы (N)" toggle all live in this one gap-spaced column.
-  // `gap: 6` matches ChipSelector's own inter-row gap (`chipRow`'s
-  // `gap: 6`, src/components/ui.tsx) so the toggle reads as one more row
-  // in the same rhythm instead of a separately-spaced block below it — the
-  // owner flagged the previous `gap: 10` + the button's own
-  // `paddingVertical: 4` (effectively ~14px) as reading like an extra
-  // empty chip row. `marginBottom` trimmed to match (cards start higher).
+  // TASK_058 (revised again) — collapsed by default: just the "Все темы
+  // (N)" toggle under the search field. Expanding it drops the full topic
+  // grid in below, in the same `gap: 6` rhythm ChipSelector uses between
+  // its own chip rows (`chipRow.gap`, src/components/ui.tsx), so it reads
+  // as one continuous grid rather than a separately-spaced block.
   topicsSection: { gap: 6, marginBottom: 12 },
   moreTopicsBtn: {
     flexDirection: "row",

@@ -137,9 +137,19 @@ function textFieldByPlaceholder(root: ReactTestRenderer["root"], placeholder: st
   return root.findByProps({ placeholder });
 }
 
+// TASK_058 (revised) — topic chips are hidden until "Все темы (N)" is
+// expanded; every test below that needs to see/tap a chip must expand
+// first (this helper does that).
+function expandTopics(root: ReactTestRenderer["root"]) {
+  pressableWithLabel(root, "Показать все темы")!.props.onPress();
+}
+
 describe("Events screen (TASK_041) — top topic filters", () => {
-  it("renames the topic labels and does not add «Задания»", async () => {
-    const { texts } = await renderScreen();
+  it("renames the topic labels and does not add «Задания» (once 'Все темы' is expanded)", async () => {
+    const { root, texts } = await renderScreen();
+    await act(async () => {
+      expandTopics(root());
+    });
     const t = texts();
     expect(t).toContain("Публичные");
     expect(t).toContain("Назначения");
@@ -161,6 +171,9 @@ describe("Events screen (TASK_041) — top topic filters", () => {
     const { root, texts } = await renderScreen();
     expect(texts()).toEqual(expect.arrayContaining(["Собрание пионеров", "Встреча по назначению"]));
 
+    await act(async () => {
+      expandTopics(root());
+    });
     const appointmentChip = pressableAncestorOfText(root(), "Назначения");
     expect(appointmentChip).toBeTruthy();
     await act(async () => {
@@ -342,7 +355,7 @@ describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
     expect(texts()).toContain("Введите название темы.");
   });
 
-  it("creates a new topic and shows it immediately as a filter chip", async () => {
+  it("creates a new topic, bumps the 'Все темы (N)' count, and shows it once expanded", async () => {
     const { root, texts, store } = await renderScreen();
     await act(async () => {
       openAddTopicModal(root());
@@ -358,6 +371,12 @@ describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
       pressableAncestorOfText(root(), "Сохранить")!.props.onPress();
     });
     expect(store().customCategories.map((c) => c.name)).toContain("Конгрессы");
+    expect(texts()).toContain("Все темы (1)");
+    expect(texts()).not.toContain("Конгрессы");
+
+    await act(async () => {
+      expandTopics(root());
+    });
     expect(texts()).toContain("Конгрессы");
   });
 
@@ -398,6 +417,9 @@ describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
     const { root, texts } = await renderScreen();
     expect(texts()).toEqual(expect.arrayContaining(["Окружной конгресс", "Другое событие"]));
 
+    await act(async () => {
+      expandTopics(root());
+    });
     const chip = pressableAncestorOfText(root(), "Конгрессы");
     expect(chip).toBeTruthy();
     await act(async () => {
@@ -410,32 +432,42 @@ describe("Events screen (TASK_045/TASK_058) — custom topics", () => {
   });
 });
 
-describe("Events screen (TASK_058) — collapsible 'Все темы'", () => {
-  it("hides the system 'Событие' topic behind 'Все темы' by default", async () => {
+// TASK_058 (revised) — no chips are visible until "Все темы (N)" is
+// expanded; expanding shows every topic (system + custom) in one grid,
+// collapsing hides all of them again, leaving only the toggle.
+describe("Events screen (TASK_058) — 'Все темы (N)' collapsed-by-default topics", () => {
+  it("shows no topic chips at all by default — only the 'Все темы (N)' toggle", async () => {
     const { texts } = await renderScreen();
-    expect(texts()).not.toContain("Событие");
+    const t = texts();
+    expect(t).toContain("Все темы (0)");
+    expect(t).not.toContain("Пионер");
+    expect(t).not.toContain("Публичные");
+    expect(t).not.toContain("Личное");
+    expect(t).not.toContain("Событие");
   });
 
-  it("reveals hidden topics when 'Все темы' is expanded and hides them again on second press", async () => {
+  it("reveals every topic when expanded, and hides them all again on second press", async () => {
     const { root, texts } = await renderScreen();
     await act(async () => {
-      pressableWithLabel(root(), "Показать остальные темы")!.props.onPress();
+      expandTopics(root());
     });
-    expect(texts()).toContain("Событие");
+    const expanded = texts();
+    expect(expanded).toEqual(
+      expect.arrayContaining(["Все", "Публичные", "Пионер", "Назначения", "Переезд", "Школы", "Личное", "Событие"]),
+    );
 
     await act(async () => {
-      pressableWithLabel(root(), "Свернуть остальные темы")!.props.onPress();
+      pressableWithLabel(root(), "Свернуть темы")!.props.onPress();
     });
-    expect(texts()).not.toContain("Событие");
+    const collapsed = texts();
+    expect(collapsed).not.toContain("Пионер");
+    expect(collapsed).not.toContain("Событие");
   });
 
   it("shows a dynamic created-topics count in 'Все темы (N)', counting every user-created topic", async () => {
     const { texts, store } = await renderScreen();
     expect(texts()).toContain("Все темы (0)");
 
-    // "Конгрессы" is the one custom topic matched into the primary row by
-    // name (TASK_058); it still counts toward N even though it isn't
-    // itself hidden.
     await act(async () => {
       store().addCustomCategory("Конгрессы");
     });
@@ -445,7 +477,7 @@ describe("Events screen (TASK_058) — collapsible 'Все темы'", () => {
     expect(texts()).toContain("Все темы (2)");
   });
 
-  it("keeps a hidden topic filtering correctly once selected, without disturbing the primary row", async () => {
+  it("filters correctly by a topic picked from the expanded grid", async () => {
     await AsyncStorage.setItem(
       "mj_events_v1",
       JSON.stringify([
@@ -455,19 +487,19 @@ describe("Events screen (TASK_058) — collapsible 'Все темы'", () => {
     );
     const { root, texts } = await renderScreen();
     await act(async () => {
-      pressableWithLabel(root(), "Показать остальные темы")!.props.onPress();
+      expandTopics(root());
     });
-    const hiddenChip = pressableAncestorOfText(root(), "Событие");
-    expect(hiddenChip).toBeTruthy();
+    const otherChip = pressableAncestorOfText(root(), "Событие");
+    expect(otherChip).toBeTruthy();
     await act(async () => {
-      hiddenChip!.props.onPress();
+      otherChip!.props.onPress();
     });
 
     const t = texts();
     expect(t).toContain("Разное");
     expect(t).not.toContain("Пионерское собрание");
-    // the primary "Пионер" chip is still there, unaffected by the hidden
-    // section being expanded and filtered on.
+    // the grid stays open (untouched by the selection itself) and still
+    // shows every other topic alongside the now-active one.
     expect(t).toContain("Пионер");
   });
 });
