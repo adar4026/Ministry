@@ -215,6 +215,7 @@ export default function TimelineScreen() {
               onPress={() => setTopicsExpanded((v) => !v)}
               accessibilityRole="button"
               accessibilityLabel={topicsExpanded ? "Свернуть остальные темы" : "Показать остальные темы"}
+              hitSlop={6}
               style={({ pressed }) => [styles.moreTopicsBtn, pressed && styles.pressed]}
             >
               <Text style={styles.moreTopicsText}>{`Все темы (${customCategories.length})`}</Text>
@@ -349,15 +350,20 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   search: { marginBottom: 10 },
-  // TASK_058 — primary topic chips, optional hidden-topics grid, and the
-  // "Все темы (N)" toggle all live in this one gap-spaced column.
-  topicsSection: { gap: 10, marginBottom: 14 },
+  // TASK_058 (revised) — primary topic chips, optional hidden-topics grid,
+  // and the "Все темы (N)" toggle all live in this one gap-spaced column.
+  // `gap: 6` matches ChipSelector's own inter-row gap (`chipRow`'s
+  // `gap: 6`, src/components/ui.tsx) so the toggle reads as one more row
+  // in the same rhythm instead of a separately-spaced block below it — the
+  // owner flagged the previous `gap: 10` + the button's own
+  // `paddingVertical: 4` (effectively ~14px) as reading like an extra
+  // empty chip row. `marginBottom` trimmed to match (cards start higher).
+  topicsSection: { gap: 6, marginBottom: 12 },
   moreTopicsBtn: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
     gap: 4,
-    paddingVertical: 4,
   },
   moreTopicsText: { fontSize: 13, fontWeight: "600", color: DS.subText },
   moreTopicsChevron: { fontSize: 13, color: DS.subText, fontWeight: "600" },
