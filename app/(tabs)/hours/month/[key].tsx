@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { Modal } from "@/components/Modal";
 import { MonthHeader } from "@/components/MonthHeader";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
 import { HISTORY_COLORS as HC, HISTORY_FONT_FAMILY as HFONT } from "@/components/hours/historyTokens";
@@ -41,6 +42,9 @@ export default function MonthDetailsScreen() {
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
   const [showAddSession, setShowAddSession] = useState(false);
   const [addSessionDate, setAddSessionDate] = useState(toISODate(new Date(year, month - 1, 1)));
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   async function confirmDeleteRecord(id: string) {
     const confirmed = await confirmAsync("Удалить запись?", "Это действие нельзя отменить.");
@@ -90,7 +94,7 @@ export default function MonthDetailsScreen() {
           {`${MF[month - 1]} ${year}`}
         </Text>
       </View>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
       <MonthHeader
         year={year}
         month={month}

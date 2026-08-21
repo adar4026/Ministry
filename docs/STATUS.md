@@ -1,20 +1,36 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_053 — Главная получила собственный спокойный
-светлый мятно-голубой вертикальный градиент фона (180deg, #DCEFE9 0% /
-#EDF6F3 42% / #F7FAF9 100%, точно по ТЗ владельца), начинающийся сразу под
-status bar. Реализован через новые Home-only токены
-(`HOME_MINT_GRADIENT`/`HOME_MINT_GRADIENT_STOPS`/`DS.homeMintBase`) и
-необязательные пропсы `<HomeBackground colors stops>` — общий
-`HOME_GRADIENT`/`DS.homeBase`, которым по-прежнему пользуются
-Hours/Timeline/Profile/`upcoming-events` через тот же компонент, не
-тронут. Белые карточки, нижняя навигация (белая), синие действия,
-типографика, вёрстка, логика экранов — без изменений. Architecture Review
-Checklist (ADR-007) пройден без замечаний. Полная документация —
-`docs/TASKS/TASK_053_HOME_MINT_GRADIENT_BACKGROUND.md`._
+_Последнее обновление: TASK_054 — убрана полноширинная нижняя «штора»/шов
+позади плавающей `TabBar` на всех экранах с нижней навигацией (Часы,
+История, Детали месяца, Таймер, Статистика ×3, События, Профиль,
+Добавить). Причина: `app/(tabs)/_layout.tsx` резервировал под каждой
+вкладкой (кроме Главной) полосу `paddingBottom: bottomInset`, закрашенную
+цветом сцены (`COLORS.bg`) — отличным от собственного фона каждого экрана
+(`DS.homeBase`/`COLORS.groupedBg`/своих токенов) — что читалось как
+сплошная полоса другого оттенка на всю ширину позади бара. Решение:
+`sceneStyle.paddingBottom` теперь всегда `0`; клиренс под баром каждый
+экран резервирует сам — на `contentContainerStyle` своего `ScrollView`
+через уже существующий `useTabBarContentInset()` (тот же паттерн, что уже
+работал на Главной с TASK_048). Сама `TabBar.tsx` не менялась — форма,
+скругления, тени, белый фон, активное состояние, кнопка «Добавить» — как
+были. `npx tsc --noEmit` и `npx jest` (964/964) — чисто. Полная
+документация — `docs/TASKS/TASK_054_FLOATING_TAB_BAR_NO_BACKDROP.md`._
 
-Реализация завершена, задеплоена на GitHub Pages
-(https://adar4026.github.io/Ministry/).
+TASK_054 реализована и проверена (см. выше), закоммичена. Push и деплой на
+GitHub Pages (https://adar4026.github.io/Ministry/) — по решению владельца.
+
+## TASK_054 — коротко
+
+Владелец обнаружил на всех экранах с нижней навигацией широкую нижнюю
+полосу другого цвета позади `TabBar` ("штора"). Причина и решение — см.
+блок «Последнее обновление» выше и полный текст в
+`docs/TASKS/TASK_054_FLOATING_TAB_BAR_NO_BACKDROP.md`. Экраны:
+`app/(tabs)/hours/index.tsx`, `timeline.tsx`, `profile.tsx`, `add.tsx`,
+`hours/history.tsx`, `hours/month/[key].tsx`, `hours/timer.tsx` (все 6
+состояний), `hours/stats/index.tsx`, `hours/stats/month/[key].tsx`,
+`hours/stats/year/[key].tsx`. `app/(tabs)/index.tsx` (Главная) уже был
+корректен (TASK_048) — не тронут. `/entry` и `/upcoming-events` — вне
+`(tabs)`, нижняя навигация там не показывается, не в области задачи.
 
 ## TASK_053 — коротко
 

@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { BackButton } from "@/components/BackButton";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { PeriodOverviewCard } from "@/components/stats/PeriodOverviewCard";
 import { COLORS, MONTHLY_GOAL, YEARLY_GOAL, dayWord, svcYear } from "@/data/constants";
 import {
@@ -38,6 +39,9 @@ export default function StatsOverviewScreen() {
 
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
   const yearKey = syLabel.split("–")[0];
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -48,7 +52,7 @@ export default function StatsOverviewScreen() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]} showsVerticalScrollIndicator={false}>
         <PeriodOverviewCard
           title="Этот месяц"
           subtitle={monthKey}
@@ -91,5 +95,5 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: "center",
   },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 8, gap: 16 },
 });

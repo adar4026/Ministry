@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { Modal } from "@/components/Modal";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { HistoryCalendar } from "@/components/hours/HistoryCalendar";
 import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
 import { HistoryTotalCard } from "@/components/hours/HistoryTotalCard";
@@ -69,6 +70,9 @@ export default function HistoryScreen() {
   const [viewMonthIndex0, setViewMonthIndex0] = useState(now.getMonth());
   const [viewServiceYear, setViewServiceYear] = useState(() => currentServiceYearEndYear(now));
   const [dayPicker, setDayPicker] = useState<{ iso: string; sessions: Session[] } | null>(null);
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   const dailyMinutes = useMemo(
     () => dailyMinutesForMonth(sessions, viewYear, viewMonthIndex0 + 1),
@@ -142,7 +146,7 @@ export default function HistoryScreen() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]} showsVerticalScrollIndicator={false}>
         <PeriodSwitcher period={period} onChange={setPeriod} />
         <PeriodNav
           period={period}
@@ -240,7 +244,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: FONT,
   },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
+  content: { paddingHorizontal: 16, paddingTop: 8 },
   monthHeading: {
     fontSize: 22,
     fontWeight: "700",

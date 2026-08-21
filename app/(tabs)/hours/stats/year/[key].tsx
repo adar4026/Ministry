@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import { BackButton } from "@/components/BackButton";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { CumulativeChart } from "@/components/stats/CumulativeChart";
 import { COLORS, YEARLY_GOAL, dayWord, formatHM, svcYear } from "@/data/constants";
 import { periodStatusLabel, serviceYearMonthIndex, yearCumulativePoints, yearPeriodSummary } from "@/data/periodStats";
@@ -30,6 +31,9 @@ export default function YearStatsScreen() {
   const pctDisplay = Math.max(0, Math.min(100, pctRaw));
   const statusColor =
     summary.status === "ahead" || summary.status === "completed" ? COLORS.green : summary.status === "behind" ? COLORS.danger : COLORS.muted;
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -40,7 +44,7 @@ export default function YearStatsScreen() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.total}>{formatHM(summary.doneHours)}</Text>
           <Text style={styles.ofGoal}>из {formatHM(summary.goalHours)}</Text>
@@ -94,7 +98,7 @@ const styles = StyleSheet.create({
   header: { height: 48, justifyContent: "center", paddingHorizontal: 16 },
   backBtn: { position: "absolute", left: 16, zIndex: 1 },
   headerTitle: { fontSize: 20, fontWeight: "700", color: COLORS.text, textAlign: "center" },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 8, gap: 16 },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,

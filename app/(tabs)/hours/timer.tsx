@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, TextInput } from "react-
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { BackButton } from "@/components/BackButton";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { useTimer } from "@/hooks/useTimer";
 import { formatDateDMY, toISODate } from "@/data/constants";
 import { confirmAsync } from "@/utils/confirm";
@@ -12,6 +13,9 @@ export default function TimerScreen() {
     start, pause, resume, stop, save, discard, continue: continueTimer, confirmClockRollback } = useTimer();
 
   const { firstStartedAt, startedAt, status } = state;
+  // TASK_054 — clearance now lives on each ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   // Local state for Save overlay in paused mode
   const [showSave, setShowSave] = useState(false);
@@ -76,7 +80,7 @@ export default function TimerScreen() {
           <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
           <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
           <View style={styles.idleCard}>
             <Text style={styles.idleTitle}>Нет активного таймера</Text>
             <Text style={styles.idleSubtitle}>
@@ -99,7 +103,7 @@ export default function TimerScreen() {
           <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
           <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
           <View style={styles.recoveryCard}>
             <Text style={styles.recoveryTitle}>Таймер работал долго</Text>
             <Text style={styles.recoverySubtitle}>
@@ -140,7 +144,7 @@ export default function TimerScreen() {
           <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
           <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
           <View style={styles.recoveryCard}>
             <Text style={styles.recoveryTitle}>Время на устройстве изменилось</Text>
             <Text style={styles.recoverySubtitle}>
@@ -170,7 +174,7 @@ export default function TimerScreen() {
           <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
           <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
           <View style={styles.runningCard}>
             <Text style={styles.statusBadge}>Запущен</Text>
             <Text style={styles.timerDisplay}>{formatHM(elapsedSec)}</Text>
@@ -206,7 +210,7 @@ export default function TimerScreen() {
             <Text style={styles.title}>Сохранить</Text>
             <View style={{ width: 50 }} />
           </View>
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
             <View style={styles.pausedCard}>
               <Text style={styles.timerDisplay}>{formatHM(elapsedSec)}</Text>
               <View style={styles.saveField}>
@@ -256,7 +260,7 @@ export default function TimerScreen() {
           <BackButton fallbackHref="/hours" style={styles.unifiedBackBtn} />
           <Text style={styles.title} pointerEvents="none">Таймер</Text>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}>
           <View style={styles.pausedCard}>
             <Text style={styles.statusBadgePaused}>Пауза</Text>
             <Text style={styles.timerDisplay}>{formatHM(elapsedSec)}</Text>

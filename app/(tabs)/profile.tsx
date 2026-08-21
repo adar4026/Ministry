@@ -5,6 +5,7 @@ import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
 import { ProfileHeroCard } from "@/components/profile/ProfileHeroCard";
 import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS, HomeBackground, SectionHeader, SummaryCard } from "@/components/dashboard";
+import { useTabBarContentInset } from "@/components/TabBar";
 import {
   BellIcon,
   CalendarIcon,
@@ -37,11 +38,14 @@ function soon(label: string) {
 export default function ProfileScreen() {
   const { profile, saveProfile } = useStore();
   const [editOpen, setEditOpen] = useState(false);
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   return (
     <View style={styles.screen}>
       <HomeBackground />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
         <View style={styles.header}>
           <Text style={styles.title}>Профиль</Text>
           <Text style={styles.subtitle}>Личные данные и настройки</Text>

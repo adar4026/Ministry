@@ -9,6 +9,7 @@ import { TalkForm } from "@/components/forms/TalkForm";
 import { SwipeableDeleteRow } from "@/components/timeline/SwipeableDeleteRow";
 import { TIMELINE_COLORS } from "@/components/timeline/timelineTokens";
 import { DS, HomeBackground } from "@/components/dashboard";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { PlusIcon } from "@/components/icons";
 import { CAT, CATEGORY_KEYS, TALK_CATEGORY, categoryMeta, formatDateDMY, talkTitle } from "@/data/constants";
 import { eventElapsed, formatEventElapsed } from "@/data/eventElapsed";
@@ -51,6 +52,9 @@ type TimelineItem =
 export default function TimelineScreen() {
   const { events, talks, customCategories, saveEvent, deleteEvent, saveTalk, deleteTalk, addCustomCategory } =
     useStore();
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
   const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
@@ -122,7 +126,7 @@ export default function TimelineScreen() {
   return (
     <View style={styles.screen}>
       <HomeBackground />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>События</Text>
           <Text style={styles.pageSubtitle}>Важные даты и мероприятия</Text>
@@ -278,7 +282,7 @@ const styles = StyleSheet.create({
   // background color — this page no longer has one of its own.
   screen: { flex: 1, backgroundColor: DS.homeBase },
   scroll: { flex: 1 },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16 },
   // TASK_045 — same header treatment as Profile (TASK_044): large navy
   // title, light-blue subtitle, same horizontal inset, inside the
   // scrollable content above the search field.

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Card } from "@/components/ui";
 import { BackButton } from "@/components/BackButton";
+import { useTabBarContentInset } from "@/components/TabBar";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
@@ -23,9 +24,12 @@ export default function AddScreen() {
   const [recKey, setRecKey] = useState(0);
   const [evKey, setEvKey] = useState(0);
   const [talkKey, setTalkKey] = useState(0);
+  // TASK_054 — clearance now lives on this ScrollView's own content instead
+  // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
+  const bottomInset = useTabBarContentInset();
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}>
       {eventOnly && (
         <View style={styles.header}>
           {/* TASK_045A — alwaysReplace: "add" and "timeline" are sibling
