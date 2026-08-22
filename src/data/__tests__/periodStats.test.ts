@@ -2,12 +2,9 @@
 // month/year detail screens). Pure functions — no React, no StoreContext.
 import {
   monthPeriodSummary,
-  monthCumulativePoints,
   monthHasDailyBreakdown,
   yearPeriodSummary,
-  yearCumulativePoints,
   periodStatusLabel,
-  serviceYearMonthIndex,
   MONTHLY_GOAL,
   YEARLY_GOAL,
   type PeriodSummary,
@@ -122,26 +119,10 @@ describe("monthPeriodSummary", () => {
   });
 });
 
-describe("monthCumulativePoints / monthHasDailyBreakdown", () => {
-  it("has one point per day of the month, cumulative and non-decreasing", () => {
-    const sessions = [session("2026-07-05", 60), session("2026-07-05", 30), session("2026-07-20", 90)];
-    const points = monthCumulativePoints(sessions, 2026, 7, 50);
-    expect(points).toHaveLength(31);
-    expect(points[4].actualHours).toBeCloseTo(1.5, 5); // day 5: 90 min
-    expect(points[19].actualHours).toBeCloseTo(3, 5); // day 20: +90 min
-    expect(points[30].actualHours).toBe(points[19].actualHours); // no data after day 20 — flat, not fabricated
-    for (let i = 1; i < points.length; i++) {
-      expect(points[i].actualHours).toBeGreaterThanOrEqual(points[i - 1].actualHours);
-    }
-  });
-
-  it("ideal line starts at 0 and reaches exactly the goal on the last day", () => {
-    const points = monthCumulativePoints([], 2026, 7, 50);
-    expect(points[0].idealHours).toBeCloseTo(50 / 31, 5);
-    expect(points[30].idealHours).toBe(50);
-  });
-
-  it("monthHasDailyBreakdown is true only when the month has at least one Session", () => {
+describe("monthHasDailyBreakdown", () => {
+  // Дневной ряд графика переехал в src/data/periodChart.ts (TASK_061) —
+  // здесь остаётся только сам признак «есть ли по месяцу реальные даты».
+  it("is true only when the month has at least one Session", () => {
     expect(monthHasDailyBreakdown([session("2026-07-01", 60)], 2026, 7)).toBe(true);
     expect(monthHasDailyBreakdown([session("2026-06-01", 60)], 2026, 7)).toBe(false);
     expect(monthHasDailyBreakdown([], 2026, 7)).toBe(false);
@@ -198,32 +179,6 @@ describe("yearPeriodSummary", () => {
   });
 });
 
-describe("yearCumulativePoints", () => {
-  it("has 12 points in Sep..Aug order (service year, not calendar year)", () => {
-    const points = yearCumulativePoints([], [], "2025–2026", 600);
-    expect(points).toHaveLength(12);
-    expect(points[0].label).toBe("Сен");
-    expect(points[11].label).toBe("Авг");
-  });
-
-  it("actual is cumulative across months and ideal reaches the goal at month 12", () => {
-    const sessions = [session("2025-09-10", 50 * 60), session("2025-10-10", 50 * 60)];
-    const points = yearCumulativePoints([], sessions, "2025–2026", 600);
-    expect(points[0].actualHours).toBeCloseTo(50, 5);
-    expect(points[1].actualHours).toBeCloseTo(100, 5);
-    expect(points[2].actualHours).toBeCloseTo(100, 5); // no November data — flat
-    expect(points[11].idealHours).toBe(600);
-  });
-
-  it("mixes legacy HourRecord months and Session months in the same series without double counting", () => {
-    const records = [record(2025, 9, 40)]; // legacy Sept
-    const sessions = [session("2025-10-05", 60 * 60)]; // Session-authoritative Oct
-    const points = yearCumulativePoints(records, sessions, "2025–2026", 600);
-    expect(points[0].actualHours).toBeCloseTo(40, 5);
-    expect(points[1].actualHours).toBeCloseTo(100, 5);
-  });
-});
-
 describe("periodStatusLabel", () => {
   function summary(overrides: Partial<PeriodSummary>): PeriodSummary {
     return {
@@ -256,17 +211,5 @@ describe("periodStatusLabel", () => {
 
     const all = [behind, ahead, on, completed, noGoal];
     expect(new Set(all).size).toBe(all.length);
-  });
-});
-
-describe("serviceYearMonthIndex", () => {
-  it("maps September to 1 and August to 12", () => {
-    expect(serviceYearMonthIndex(9)).toBe(1);
-    expect(serviceYearMonthIndex(8)).toBe(12);
-  });
-
-  it("maps calendar-year-boundary months correctly (Dec=4, Jan=5)", () => {
-    expect(serviceYearMonthIndex(12)).toBe(4);
-    expect(serviceYearMonthIndex(1)).toBe(5);
   });
 });

@@ -1,81 +1,54 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { COLORS, dayWord, formatHM } from "@/data/constants";
-import { periodStatusLabel, type CumulativePoint, type PeriodSummary } from "@/data/periodStats";
-import { ChevronRightIcon } from "@/components/icons";
-import { CumulativeChart } from "./CumulativeChart";
+import { COLORS, formatHM } from "@/data/constants";
+import type { PeriodSummary } from "@/data/periodStats";
+import { ChartIcon, ChevronRightIcon } from "@/components/icons";
 
 interface PeriodOverviewCardProps {
-  title: string; // "Этот месяц" / "Служебный год"
-  subtitle: string; // "Июль 2026" / "2025–2026"
+  title: string; // «Этот месяц» / «Служебный год»
   summary: PeriodSummary;
-  points: CumulativePoint[];
-  todayIndex: number | null;
-  paceUnitLabel: string; // "/ день" or "/ нед."
-  paceHours: number; // requiredPerDay or requiredPerWeek, caller picks which
-  daysLeftLabel: string; // pre-formatted "12 дней" (dayWord varies by period length)
+  actionLabel: string; // «Статистика за месяц» / «Статистика за служебный год»
   onPress: () => void;
 }
 
-// Единая карточка обзора периода (TASK_037 §2.1/§2.2) — используется и для
-// «Этот месяц», и для «Служебный год»; различаются только переданные
-// значения (заголовок/подзаголовок/цель/график), не структура карточки.
-export function PeriodOverviewCard({
-  title,
-  subtitle,
-  summary,
-  points,
-  todayIndex,
-  paceUnitLabel,
-  paceHours,
-  daysLeftLabel,
-  onPress,
-}: PeriodOverviewCardProps) {
-  const pctRaw = summary.goalHours > 0 ? (summary.doneHours / summary.goalHours) * 100 : 0;
-  const pctDisplay = Math.max(0, Math.min(100, pctRaw)); // bar is visually capped; underlying numbers are not
-  const statusColor =
-    summary.status === "ahead" || summary.status === "completed"
-      ? COLORS.green
-      : summary.status === "behind"
-        ? COLORS.danger
-        : COLORS.muted;
+// Карточка обзорного экрана «Статистика» (TASK_061 §1). Только итог периода
+// и строка-действие — никаких графиков, мини-графиков и KPI «нужно в
+// день/неделю»: большие цифры и вся аналитика живут на детальных экранах,
+// куда ведёт эта карточка.
+export function PeriodOverviewCard({ title, summary, actionLabel, onPress }: PeriodOverviewCardProps) {
+  const hasGoal = summary.goalHours > 0;
+  const pct = hasGoal ? Math.max(0, Math.min(100, (summary.doneHours / summary.goalHours) * 100)) : 0;
 
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${title}: ${formatHM(summary.doneHours)} из ${formatHM(summary.goalHours)}. ${periodStatusLabel(summary)}`}
+      accessibilityLabel={
+        hasGoal
+          ? `${title}: ${formatHM(summary.doneHours)} из ${formatHM(summary.goalHours)}, осталось ${formatHM(summary.remainingHours)}. ${actionLabel}`
+          : `${title}: ${formatHM(summary.doneHours)}, цель не задана. ${actionLabel}`
+      }
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        <ChevronRightIcon size={16} color={COLORS.muted} />
+      <Text style={styles.title}>{title}</Text>
+
+      <View style={styles.totalsRow}>
+        <Text style={styles.done}>{formatHM(summary.doneHours)}</Text>
+        <Text style={styles.ofGoal}>{hasGoal ? `из ${formatHM(summary.goalHours)}` : "цель не задана"}</Text>
       </View>
-      <Text style={styles.totals}>
-        {formatHM(summary.doneHours)} <Text style={styles.totalsMuted}>· из {formatHM(summary.goalHours)}</Text>
-      </Text>
 
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${pctDisplay}%`, backgroundColor: statusColor }]} />
+        <View style={[styles.fill, { width: `${pct}%` }]} />
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>{summary.status === "no-goal" ? "—" : formatHM(summary.remainingHours)}</Text>
-          <Text style={styles.statLabel}>Осталось</Text>
-        </View>
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>{daysLeftLabel}</Text>
-          <Text style={styles.statLabel}>Осталось</Text>
-        </View>
-        <View style={styles.statCol}>
-          <Text style={styles.statValue}>{summary.status === "no-goal" || summary.daysLeft === 0 ? "—" : `${formatHM(paceHours)}`}</Text>
-          <Text style={styles.statLabel}>Нужно {paceUnitLabel}</Text>
-        </View>
+      <Text style={styles.remaining}>Осталось: {hasGoal ? formatHM(summary.remainingHours) : "—"}</Text>
+
+      <View style={styles.divider} />
+
+      <View style={styles.actionRow}>
+        <ChartIcon size={18} color={COLORS.accent} />
+        <Text style={styles.actionLabel}>{actionLabel}</Text>
+        <ChevronRightIcon size={16} color={COLORS.muted} />
       </View>
-
-      <CumulativeChart points={points} height={64} compact todayIndex={todayIndex} />
-
-      <Text style={[styles.status, { color: statusColor }]}>{periodStatusLabel(summary)}</Text>
     </Pressable>
   );
 }
@@ -84,7 +57,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    padding: 18,
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 6,
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: COLORS.shadow,
@@ -94,15 +69,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   pressed: { opacity: 0.92 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
-  title: { fontSize: 19, fontWeight: "700", color: COLORS.text },
-  totals: { fontSize: 28, fontWeight: "700", color: COLORS.navy, letterSpacing: -0.5, marginBottom: 12 },
-  totalsMuted: { fontSize: 15, fontWeight: "600", color: COLORS.muted },
-  track: { height: 6, borderRadius: 3, backgroundColor: COLORS.border, overflow: "hidden", marginBottom: 14 },
-  fill: { height: "100%", borderRadius: 3 },
-  statsRow: { flexDirection: "row", gap: 12, marginBottom: 14 },
-  statCol: { flex: 1, alignItems: "flex-start" },
-  statValue: { fontSize: 15, fontWeight: "700", color: COLORS.text },
-  statLabel: { fontSize: 11, fontWeight: "600", color: COLORS.muted, marginTop: 2 },
-  status: { fontSize: 13, fontWeight: "700", marginTop: 10 },
+  title: { fontSize: 17, fontWeight: "700", color: COLORS.text },
+  totalsRow: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  done: { fontSize: 32, fontWeight: "700", color: COLORS.navy, letterSpacing: -0.6 },
+  ofGoal: { fontSize: 15, fontWeight: "600", color: COLORS.muted },
+  track: { height: 6, borderRadius: 3, backgroundColor: COLORS.border, overflow: "hidden", marginTop: 12 },
+  fill: { height: "100%", borderRadius: 3, backgroundColor: COLORS.accent },
+  remaining: { fontSize: 13, fontWeight: "600", color: COLORS.muted, marginTop: 10 },
+  divider: { height: 1, backgroundColor: COLORS.border, marginTop: 14 },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
+  actionLabel: { flex: 1, fontSize: 15, fontWeight: "700", color: COLORS.accent },
 });

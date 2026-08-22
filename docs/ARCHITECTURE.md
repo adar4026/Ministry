@@ -25,7 +25,10 @@ ministry/
 │   │   │   ├── entry.tsx       # Manual Entry (Session)
 │   │   │   ├── history.tsx     # История сессий
 │   │   │   ├── timer.tsx       # Ministry Timer (TASK_005C)
-│   │   │   ├── stats.tsx       # Статистика (TASK_005E)
+│   │   │   ├── stats/          # Статистика: обзор + месяц + год (TASK_061)
+│   │   │   │   ├── index.tsx   # Обзор: две карточки без графиков
+│   │   │   │   ├── month/[key].tsx  # «Статистика за месяц»
+│   │   │   │   └── year/[key].tsx   # «Статистика за служебный год»
 │   │   │   └── month/[key].tsx # Детали месяца
 │   │   ├── add.tsx             # Добавить
 │   │   ├── timeline.tsx        # События (вкл. публичные речи)
@@ -41,6 +44,8 @@ ministry/
 │   │   ├── seed.js / seed.ts   # Пустые массивы для первого запуска (TASK_009)
 │   │   ├── constants.ts        # Цвета, хелперы, агрегация (Session-first)
 │   │   ├── stats.ts            # Чистые функции статистики (TASK_005E)
+│   │   ├── periodStats.ts      # Сводки периода (TASK_037)
+│   │   ├── periodChart.ts      # Дневные ряды и шкалы графиков (TASK_061)
 │   │   └── timer.ts            # Чистые функции таймера (TASK_005C)
 │   │
 │   ├── store/
@@ -53,7 +58,7 @@ ministry/
 │   ├── components/             # Переиспользуемые компоненты
 │   │   ├── dashboard/          # Компоненты Главной (TASK_007)
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
-│   │   ├── stats/              # Карточки статистики (TASK_005E)
+│   │   ├── stats/              # Карточки и график статистики (TASK_061)
 │   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
 │   │   └── TodayCard.tsx
 │   │

@@ -1,28 +1,26 @@
-// Pure period-progress model for TASK_037 Statistics overview + month/year
-// detail screens. Builds on already-existing primitives instead of
-// duplicating them: monthTotal()/monthCellsForSY()/serviceYearAggregation()
-// (src/data/constants.ts, src/data/stats.ts) resolve the actual hour totals
-// (Session-first per docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8);
-// idealCumulativeHours()/computePaceDeviation() (src/data/cumulativeProgress.ts,
-// already used by the Home card) supply the ideal-pace line and the
-// ahead/behind/on comparison — both the mini chart on the overview cards and
-// the big chart on the detail screens read the same CumulativePoint[] shape,
-// so neither duplicates the other's math.
+// Pure period-progress model for the Statistics overview + month/year detail
+// screens (TASK_037, unchanged contract; the chart series moved out in
+// TASK_061). Builds on already-existing primitives instead of duplicating
+// them: monthTotal()/serviceYearAggregation() (src/data/constants.ts,
+// src/data/stats.ts) resolve the actual hour totals (Session-first per
+// docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8); computePaceDeviation()
+// (src/data/cumulativeProgress.ts, already used by the Home card) supplies
+// the ahead/behind/on comparison. The day-level chart series lives in
+// src/data/periodChart.ts (TASK_061) and reads the same primitives, so a
+// card total and the end of its chart line can never disagree.
 import type { HourRecord, Session } from "@/types";
 import {
-  MN,
   MONTHLY_GOAL,
   YEARLY_GOAL,
   daysBetweenUTC,
   formatHM,
   isCurrentMonth,
-  monthCellsForSY,
   monthTotal,
   serviceYearAggregation,
   svcYear,
 } from "@/data/constants";
-import { dailyMinutesForMonth, sessionsForMonth } from "@/data/stats";
-import { computePaceDeviation, idealCumulativeHours } from "@/data/cumulativeProgress";
+import { sessionsForMonth } from "@/data/stats";
+import { computePaceDeviation } from "@/data/cumulativeProgress";
 import { parseServiceYearLabel, serviceYearRange } from "@/data/serviceYear";
 
 export { MONTHLY_GOAL, YEARLY_GOAL };
@@ -39,13 +37,6 @@ export type PeriodSummary = {
   requiredPerWeek: number; // requiredPerDay * 7 — the "weekly pace" the service-year card/screen ask for
   status: PeriodStatus;
   deviationHours: number; // done - ideal-so-far; 0 for "no-goal"
-};
-
-export type CumulativePoint = {
-  index: number; // 1-based day-of-month, or 1-based month-of-service-year
-  label: string; // "5" (day) or "Сен" (month)
-  actualHours: number; // cumulative actual through this index
-  idealHours: number; // cumulative ideal-pace-to-goal through this index
 };
 
 function clamp(n: number, min: number, max: number): number {
@@ -110,28 +101,6 @@ export function monthPeriodSummary(
   return buildSummary(doneHours, goalHours, daysInMonth, elapsedUnits, daysLeft);
 }
 
-// Day-by-day cumulative actual/ideal series for one calendar month — only
-// meaningful for a Session-authoritative month (a legacy HourRecord month
-// has no day-level breakdown to draw; callers must check
-// sessionsForMonth(...).length > 0 first, same guard month/[key].tsx already
-// uses to pick between its Session list and its legacy empty-state).
-export function monthCumulativePoints(sessions: Session[], year: number, month: number, goalHours: number): CumulativePoint[] {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const daily = dailyMinutesForMonth(sessions, year, month);
-  let running = 0;
-  const points: CumulativePoint[] = [];
-  for (let day = 1; day <= daysInMonth; day++) {
-    running += daily.get(day) ?? 0;
-    points.push({
-      index: day,
-      label: String(day),
-      actualHours: running / 60,
-      idealHours: idealCumulativeHours(goalHours, daysInMonth, day),
-    });
-  }
-  return points;
-}
-
 // Inclusive day count between two calendar dates (both ends counted) — the
 // UTC-safe diff itself is daysBetweenUTC() (src/data/constants.ts, already
 // used by relativeDays()); this only adds the +1 span semantics that
@@ -146,7 +115,7 @@ function daysBetweenInclusive(a: Date, b: Date): number {
 // function returns a half-open [start, endExclusive) range; `end` here is
 // the *inclusive* last day (Aug 31), computed via Date field subtraction
 // (not a literal month number) so it stays correct regardless of DST.
-function serviceYearBounds(syLabel: string): { start: Date; end: Date; totalDays: number } {
+export function serviceYearBounds(syLabel: string): { start: Date; end: Date; totalDays: number } {
   const endYear = parseServiceYearLabel(syLabel);
   const { start, endExclusive } = serviceYearRange(endYear);
   const end = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate() - 1);
@@ -172,38 +141,6 @@ export function yearPeriodSummary(
   const elapsedUnits = current ? clamp(daysBetweenInclusive(start, now), 0, totalDays) : past ? totalDays : 0;
   const daysLeft = current ? Math.max(0, daysBetweenInclusive(now, end)) : past ? 0 : totalDays;
   return buildSummary(doneHours, goalHours, totalDays, elapsedUnits, daysLeft);
-}
-
-// Month-by-month cumulative actual/ideal series for a whole service year
-// (12 points, Sep..Aug) — built directly on monthCellsForSY() (the same
-// primitive the old TrendChart/HeatMap used) rather than re-deriving the
-// Sep-first month order a second time.
-export function yearCumulativePoints(
-  records: HourRecord[],
-  sessions: Session[],
-  syLabel: string,
-  goalHours: number,
-): CumulativePoint[] {
-  const cells = monthCellsForSY(records, sessions, syLabel);
-  let running = 0;
-  return cells.map((cell, idx) => {
-    running += cell.value;
-    const month = parseInt(cell.date.split("-")[1], 10);
-    return {
-      index: idx + 1,
-      label: MN[month - 1],
-      actualHours: running,
-      idealHours: idealCumulativeHours(goalHours, cells.length, idx + 1),
-    };
-  });
-}
-
-// 1-based position of a calendar month within the Sep..Aug service-year
-// order (Sep=1 ... Aug=12) — the index into yearCumulativePoints() that
-// corresponds to a given calendar month, used to place the "today" marker
-// on the year chart from both the overview card and the year detail screen.
-export function serviceYearMonthIndex(month: number): number {
-  return ((month - 9 + 12) % 12) + 1;
 }
 
 // Short human status line shared by the overview cards and both detail

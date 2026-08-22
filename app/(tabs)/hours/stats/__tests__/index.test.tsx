@@ -1,7 +1,6 @@
-// TASK_037: the redesigned Statistics overview — two tappable period cards
-// (month/service-year) replace the old five-block stack (MonthlyStatsCard,
-// ServiceYearStatsCard, 12-month TrendChart, PaceCard, ProjectionCard,
-// service-year HeatMap).
+// TASK_061: «Статистика» — короткий экран-обзор. Две карточки итогов,
+// ведущие на детальные экраны месяца и служебного года; никаких графиков,
+// мини-графиков и KPI «нужно в день/неделю» на самом обзоре.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
@@ -66,11 +65,45 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-describe("Statistics overview — TASK_037", () => {
+describe("Statistics overview — TASK_061", () => {
   it("shows both period cards", async () => {
     const { texts } = await renderScreen();
     expect(texts()).toContain("Этот месяц");
     expect(texts()).toContain("Служебный год");
+  });
+
+  it("each card carries an explicit action row naming the screen it opens", async () => {
+    const { texts } = await renderScreen();
+    expect(texts()).toContain("Статистика за месяц");
+    expect(texts()).toContain("Статистика за служебный год");
+  });
+
+  it("shows the goal-progress lines and nothing else numeric", async () => {
+    const { texts } = await renderScreen();
+    const all = texts().join(" ");
+    expect(all).toContain("Осталось:");
+    expect(all).toContain("из ");
+    expect(all.includes("NaN") || all.includes("Infinity")).toBe(false);
+  });
+
+  it("has no chart of any kind — neither a big one nor a sparkline", async () => {
+    const { texts, root } = await renderScreen();
+    const all = texts();
+    // Легенда и заголовки графиков живут только на детальных экранах
+    expect(all).not.toContain("Факт");
+    expect(all).not.toContain("Идеальный темп");
+    expect(all.some((t) => t.includes("Динамика"))).toBe(false);
+    // PeriodChart всегда объявляет себя как accessibilityRole="image"
+    expect(root().findAll((n) => n.props.accessibilityRole === "image")).toHaveLength(0);
+  });
+
+  it("no longer shows per-day/per-week pace KPIs, days-left columns or Bible studies", async () => {
+    const { texts } = await renderScreen();
+    const all = texts();
+    expect(all.some((t) => t.includes("Нужно в день"))).toBe(false);
+    expect(all.some((t) => t.includes("Нужно в неделю"))).toBe(false);
+    expect(all.some((t) => t.includes("Осталось дней"))).toBe(false);
+    expect(all.some((t) => t.includes("Изучения Библии"))).toBe(false);
   });
 
   it("no longer shows the old overloaded blocks", async () => {
