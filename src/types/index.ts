@@ -88,18 +88,6 @@ export type Session = {
   updatedAt: string; // ISO datetime
 };
 
-// Local event-reminder settings (TASK_059). Persisted under
-// `mj_notifications_v1`. `enabled` is the master switch — while it is false
-// nothing is scheduled and the OS permission is never requested; `dayBefore`
-// and `sameDay` toggle the two fixed reminder slots (19:00 the evening
-// before / 09:00 on the day). Defaults and all scheduling logic live in
-// src/data/notifications.ts.
-export type NotificationSettings = {
-  enabled: boolean;
-  dayBefore: boolean;
-  sameDay: boolean;
-};
-
 // Timer control state (crash-recovery, not a reporting entity).
 // See docs/TASKS/TASK_005C.md §4-§8.
 export type TimerStatus = "idle" | "running" | "paused";

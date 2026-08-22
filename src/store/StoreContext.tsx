@@ -2,18 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
 import { CAT, uid } from "@/data/constants";
-import { DEFAULT_NOTIFICATION_SETTINGS, planReminders } from "@/data/notifications";
-import { isNotificationSupported, syncReminders } from "@/utils/localNotifications";
-import type {
-  CustomCategory,
-  HourRecord,
-  MinistryEvent,
-  NotificationSettings,
-  ProfileEvent,
-  Session,
-  Talk,
-  UserProfile,
-} from "@/types";
+import type { CustomCategory, HourRecord, MinistryEvent, ProfileEvent, Session, Talk, UserProfile } from "@/types";
 
 // AsyncStorage keys — see ARCHITECTURE.md. Bump the version + write a migration
 // if the shape of any of these arrays ever changes.
@@ -24,7 +13,6 @@ const KEYS = {
   sessions: "mj_sessions_v1",
   profile: "mj_profile_v1",
   customCategories: "mj_custom_categories_v1",
-  notifications: "mj_notifications_v1",
 } as const;
 
 // Re-exported for src/data/backupImport.ts (TASK_013) — single source of
@@ -41,12 +29,6 @@ const SEED_PROFILE: UserProfile = { events: [] };
 
 // TASK_045 — no user-created event topics on first run.
 const SEED_CUSTOM_CATEGORIES: CustomCategory[] = [];
-
-// TASK_059 — how often the reminder plan is recomputed and pushed to the
-// service worker while the app is open. The worker arms its own timers, but
-// the OS can unload it (and them) at any point; this re-ping is what makes a
-// reminder still fire for an app that has been sitting open past 19:00.
-const REMINDER_REFRESH_MS = 60_000;
 
 // Hard cap on profile events (TASK_042 revision — was 4, now 3) — enforced
 // here, not just in the UI, so no caller (including a future backup-restore
@@ -128,7 +110,6 @@ type StoreValue = {
   sessions: Session[];
   profile: UserProfile;
   customCategories: CustomCategory[];
-  notificationSettings: NotificationSettings;
   loaded: boolean;
   saveRecord: (input: RecordInput) => void;
   deleteRecord: (id: string) => void;
@@ -140,7 +121,6 @@ type StoreValue = {
   deleteSession: (id: string) => void;
   saveProfile: (input: ProfileInput) => void;
   addCustomCategory: (name: string) => AddCustomCategoryResult;
-  saveNotificationSettings: (settings: NotificationSettings) => void;
   replaceAllData: (data: ReplaceAllDataInput) => void;
 };
 
@@ -157,12 +137,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     SEED_CUSTOM_CATEGORIES,
   );
 
-  const [notificationSettings, setNotificationSettings, nLoaded] = usePersistentState<NotificationSettings>(
-    KEYS.notifications,
-    DEFAULT_NOTIFICATION_SETTINGS,
-  );
-
-  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded && ccLoaded && nLoaded;
+  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded && ccLoaded;
 
   // TASK_042 revision — normalizes a profile persisted by the previous
   // (uncommitted, never-shipped) 4-event limit down to the current 3-event
@@ -174,29 +149,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setProfile((p) => ({ ...p, events: p.events.slice(0, MAX_PROFILE_EVENTS) }));
     }
   }, [pLoaded, profile.events.length]);
-
-  // TASK_059 — the ONLY place event reminders are (re)scheduled. Keeping it
-  // here rather than in the screens is what makes every requirement fall out
-  // of one expression instead of five call sites: creating, editing and
-  // deleting an event all mutate `events`; flipping a switch mutates
-  // `notificationSettings`; restoring a backup goes through replaceAllData(),
-  // which mutates `events` too. Each of those re-runs this effect, which
-  // hands the channel the complete desired set — and the worker cancels
-  // whatever is no longer in it. Matches ADR-003's rule that StoreContext is
-  // the single place data work happens.
-  useEffect(() => {
-    if (!loaded) return;
-    // Native/jest have no notification channel; skip the interval entirely
-    // rather than leaving a timer running for a no-op sync.
-    if (!isNotificationSupported()) return;
-
-    const run = () => {
-      void syncReminders(planReminders(events, notificationSettings, new Date()));
-    };
-    run();
-    const timer = setInterval(run, REMINDER_REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [loaded, events, notificationSettings]);
 
   function saveRecord(input: RecordInput) {
     const rec: HourRecord = {
@@ -297,14 +249,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return { ok: true, category };
   }
 
-  function saveNotificationSettings(settings: NotificationSettings) {
-    setNotificationSettings({
-      enabled: settings.enabled,
-      dayBefore: settings.dayBefore,
-      sameDay: settings.sameDay,
-    });
-  }
-
   function replaceAllData(data: ReplaceAllDataInput) {
     setRecords(data.records);
     setEvents(data.events);
@@ -319,7 +263,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     sessions,
     profile,
     customCategories,
-    notificationSettings,
     loaded,
     saveRecord,
     deleteRecord,
@@ -331,7 +274,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteSession,
     saveProfile,
     addCustomCategory,
-    saveNotificationSettings,
     replaceAllData,
   };
 
