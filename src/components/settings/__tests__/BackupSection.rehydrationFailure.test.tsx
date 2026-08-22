@@ -1,5 +1,5 @@
 // TASK_013 production bug fix — regression coverage for the failure branch:
-// if applying imported data to the live StoreContext fails for any reason,
+// if applying restored data to the live StoreContext fails for any reason,
 // performImport treats that exactly like a storage write/verification
 // failure (see src/data/backupImport.ts) — it must roll back the AsyncStorage
 // write, never show success, and never leave storage and the live app
@@ -33,6 +33,8 @@ jest.mock("@/store/StoreContext", () => {
       events: [],
       talks: [],
       sessions: [],
+      profile: { events: [] },
+      customCategories: [],
       loaded: true,
       saveRecord: jest.fn(),
       deleteRecord: jest.fn(),
@@ -42,6 +44,8 @@ jest.mock("@/store/StoreContext", () => {
       deleteTalk: jest.fn(),
       saveSession: jest.fn(),
       deleteSession: jest.fn(),
+      saveProfile: jest.fn(),
+      addCustomCategory: jest.fn(),
       replaceAllData: mockReplaceAllData,
     }),
   };
@@ -81,7 +85,7 @@ test("rehydration failure: rolls back storage, does not show success, shows a cl
     await Promise.resolve();
   });
 
-  const importBtn = pressableFor(renderer.root, "Импортировать данные");
+  const importBtn = pressableFor(renderer.root, "Восстановить из копии");
   await act(async () => {
     importBtn!.props.onPress();
     await Promise.resolve();
@@ -97,14 +101,14 @@ test("rehydration failure: rolls back storage, does not show success, shows a cl
   // replaceAllData was actually invoked with the verified imported data.
   expect(mockReplaceAllData).toHaveBeenCalledWith({ records: [IMPORTED_RECORD], events: [], talks: [], sessions: [] });
 
-  // Storage was rolled back to the pre-import snapshot — not left holding
-  // the imported data while the live app failed to pick it up.
+  // Storage was rolled back to the pre-restore snapshot — not left holding
+  // the restored data while the live app failed to pick it up.
   expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([EXISTING_RECORD]);
 
   // Unrelated keys untouched.
   expect(await AsyncStorage.getItem("mj_timer_v1")).toBeNull();
 
   const texts = feedbackTexts(renderer);
-  expect(texts).not.toContain("Импорт завершён");
-  expect(texts).toContain("Импорт не выполнен");
+  expect(texts).not.toContain("Данные восстановлены");
+  expect(texts).toContain("Восстановление не выполнено");
 });

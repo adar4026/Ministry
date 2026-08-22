@@ -15,7 +15,7 @@
  * selection: `onCancelled` is a best-effort UI cue only, and the shared
  * input/listeners persist across attempts.
  */
-import { pickBackupFile, type PickBackupFileCallbacks } from "@/data/backupFile.web";
+import { pickBackupFile, saveBackupFile, type PickBackupFileCallbacks } from "@/data/backupFile.web";
 
 const FOCUS_IDLE_DELAY_MS = 300;
 
@@ -84,6 +84,37 @@ function getSharedInput(): HTMLInputElement {
   if (!input) throw new Error("shared input not found — call pickBackupFile() first");
   return input as HTMLInputElement;
 }
+
+describe("saveBackupFile", () => {
+  it("saves under the exact filename it is given", async () => {
+    const clicked: HTMLAnchorElement[] = [];
+    jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this);
+    });
+    // jsdom has no object-URL support.
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL = jest.fn(() => "blob:x");
+    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = jest.fn();
+
+    await saveBackupFile("ministry-backup-2026-08-22-0919.mfb", "{}", "application/octet-stream");
+
+    expect(clicked).toHaveLength(1);
+    expect(clicked[0].download).toBe("ministry-backup-2026-08-22-0919.mfb");
+    expect(clicked[0].download.endsWith(".afb")).toBe(false);
+  });
+});
+
+describe("pickBackupFile — accepted file types (TASK_062)", () => {
+  it("accepts both the new .mfb and legacy .json copies", () => {
+    const { callbacks } = callbackSpies();
+    pickBackupFile(callbacks);
+    const accept = getSharedInput().accept;
+    expect(accept).toContain(".mfb");
+    expect(accept).toContain(".json");
+    // `.mfb` has no registered UTI on iOS, so it surfaces as generic data —
+    // without this the Files picker greys the file out.
+    expect(accept).toContain("application/octet-stream");
+  });
+});
 
 describe("pickBackupFile — success", () => {
   it("delivers the file's text via onSelected on immediate selection", async () => {

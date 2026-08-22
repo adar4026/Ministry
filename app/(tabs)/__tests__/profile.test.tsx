@@ -98,23 +98,23 @@ describe("ProfileScreen — TASK_044 page redesign", () => {
     expect(findTexts(renderer)).toContain("Профиль");
   });
 
-  it("groups export/backup and the sync placeholder under one 'Данные и резервные копии' section", async () => {
+  it("groups export/backup/restore and the sync placeholder under one 'Данные и резервные копии' section", async () => {
     const renderer = await renderScreen();
     const texts = findTexts(renderer);
     expect(texts).toContain("Данные и резервные копии");
     expect(texts).toContain("Экспорт данных");
-    expect(texts).toContain("Резервная копия");
+    // TASK_062 split the single "Резервная копия" row into a create action
+    // and a separate, danger-toned restore action.
+    expect(texts).toContain("Создать резервную копию");
+    expect(texts).toContain("Восстановить из копии");
     expect(texts).toContain("Синхронизация");
   });
 
-  it("keeps the export/import handlers reachable under their original accessibilityLabel", async () => {
+  it("keeps every data action reachable by its accessibilityLabel", async () => {
     const renderer = await renderScreen();
-    expect(renderer.root.findByProps({ accessibilityLabel: "Экспортировать данные" }).props.onPress).toBeInstanceOf(
-      Function,
-    );
-    expect(renderer.root.findByProps({ accessibilityLabel: "Импортировать данные" }).props.onPress).toBeInstanceOf(
-      Function,
-    );
+    for (const label of ["Экспортировать данные", "Создать резервную копию", "Восстановить из копии"]) {
+      expect(renderer.root.findByProps({ accessibilityLabel: label }).props.onPress).toBeInstanceOf(Function);
+    }
   });
 
   it("renders every 'Настройки' row and still routes taps through the existing soon() handler", async () => {

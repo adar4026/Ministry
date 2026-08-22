@@ -20,6 +20,7 @@ export function ProfileSettingsRow({
   disabled,
   busy,
   last,
+  tone = "default",
   accessibilityLabel,
 }: {
   icon?: ComponentType<IconProps>;
@@ -36,10 +37,15 @@ export function ProfileSettingsRow({
   busy?: boolean;
   // Omits the bottom hairline divider — set on the last row of a card.
   last?: boolean;
+  // TASK_062 — "danger" paints the icon chip and title in the app's warning
+  // red, for a destructive action (restoring a backup replaces every record
+  // on this device). Purely visual; the row behaves identically.
+  tone?: "default" | "danger";
   accessibilityLabel?: string;
 }) {
+  const danger = tone === "danger";
   const trailing = busy ? (
-    <ActivityIndicator size="small" color={DS.accent} />
+    <ActivityIndicator size="small" color={danger ? DS.danger : DS.accent} />
   ) : value ? (
     <Text style={styles.value}>{value}</Text>
   ) : onPress ? (
@@ -49,12 +55,12 @@ export function ProfileSettingsRow({
   const content = (
     <View style={[styles.row, !last && styles.rowDivider, disabled && styles.disabled]}>
       {Icon ? (
-        <View style={styles.iconBg}>
-          <Icon size={19} color={DS.accent} />
+        <View style={[styles.iconBg, danger && styles.iconBgDanger]}>
+          <Icon size={19} color={danger ? DS.danger : DS.accent} />
         </View>
       ) : null}
       <View style={styles.textWrap}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, danger && styles.titleDanger]} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
@@ -103,8 +109,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  iconBgDanger: { backgroundColor: "#fee2e2" },
   textWrap: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: "600", color: DS.navy },
+  titleDanger: { color: DS.danger },
   subtitle: { fontSize: 13, color: DS.subText, marginTop: 2 },
   value: { fontSize: 14, color: DS.subText, fontWeight: "600" },
 });

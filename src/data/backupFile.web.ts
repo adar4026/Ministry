@@ -2,8 +2,15 @@
 // Metro resolves this file on web builds; src/data/backupFile.ts is the
 // fallback used on native, where this flow isn't implemented yet.
 
-export async function saveBackupFile(filename: string, json: string): Promise<void> {
-  const blob = new Blob([json], { type: "application/json" });
+export async function saveBackupFile(
+  filename: string,
+  json: string,
+  // `.mfb` (TASK_062) is saved as octet-stream so Safari/iOS keeps the given
+  // name instead of appending a `.json` it inferred from the MIME type; the
+  // readable `.json` export keeps the honest JSON type.
+  mimeType: string = "application/json",
+): Promise<void> {
+  const blob = new Blob([json], { type: mimeType });
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");
@@ -62,7 +69,10 @@ function ensureInput(): HTMLInputElement {
 
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = "application/json,.json";
+  // `.mfb` is a Ministry-specific extension with no registered UTI, so iOS
+  // exposes it as generic data — `application/octet-stream` is what keeps it
+  // selectable in the Files picker alongside legacy `.json` copies.
+  input.accept = ".mfb,.json,application/json,application/octet-stream";
   input.style.display = "none";
 
   input.addEventListener("change", () => {

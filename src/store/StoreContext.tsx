@@ -101,6 +101,11 @@ export type ReplaceAllDataInput = {
   events: MinistryEvent[];
   talks: Talk[];
   sessions: Session[];
+  // TASK_062 — carried by v2 backups only. Absent (undefined) means the
+  // restored file has no notion of them (a legacy v1 copy), and the values
+  // already on this device are deliberately left alone rather than cleared.
+  customCategories?: CustomCategory[];
+  profile?: UserProfile;
 };
 
 type StoreValue = {
@@ -254,6 +259,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEvents(data.events);
     setTalks(data.talks);
     setSessions(data.sessions);
+    if (data.customCategories) setCustomCategories(data.customCategories);
+    if (data.profile) {
+      // Same MAX_PROFILE_EVENTS cap the per-item saveProfile() enforces — a
+      // restore is not a way around it.
+      setProfile({ ...data.profile, events: (data.profile.events ?? []).slice(0, MAX_PROFILE_EVENTS) });
+    }
   }
 
   const value: StoreValue = {

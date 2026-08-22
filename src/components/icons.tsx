@@ -219,6 +219,34 @@ export function RefreshCwIcon({ size = 22, color }: IconProps) {
   );
 }
 
+// TASK_062 — "Создать резервную копию": a shield (data kept safe), distinct
+// from DownloadIcon (readable export) and RefreshCwIcon (which now belongs to
+// the restore action's rotate-back arrow).
+export function ShieldIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 3l7 3v5.5c0 4.2-2.9 7.9-7 9.5-4.1-1.6-7-5.3-7-9.5V6l7-3Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <Path d="M9 12l2 2 4-4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// TASK_062 — "Восстановить из копии": counter-clockwise arrow (roll the
+// device's data back to a saved state).
+export function RotateCcwIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 12a8 8 0 1 0 2.6-5.9" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M4 4v5h5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function CloudIcon({ size = 22, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
