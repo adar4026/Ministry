@@ -1,12 +1,13 @@
-// Ministry backup format: build + validate + migrate (TASK_013, TASK_062).
-// Pure, platform-independent — no AsyncStorage, no DOM. See
-// docs/TASKS/TASK_062_BACKUP_V2_AND_RESTORE.md for the full spec.
+// Ministry backup format: build + validate + migrate (TASK_013, TASK_062,
+// TASK_064). Pure, platform-independent — no AsyncStorage, no DOM. See
+// docs/TASKS/TASK_064_BACKUP_SINGLE_JSON_FORMAT.md for the current spec.
 //
-// Two file generations are understood here:
-//   v2 — `.mfb` (Ministry Backup File), carries a SHA-256 checksum and all
-//        six data collections. Written by this app.
-//   v1 — `.json` (TASK_013), four collections, no checksum. Read-only
-//        legacy: still restored, never written again.
+// The format is recognised by the file's CONTENTS, never by its extension:
+//   v2 — payload with a SHA-256 checksum and all six data collections. This
+//        is what the app writes, always as `.json` (TASK_064). Files written
+//        as `.mfb` by TASK_062 hold exactly this payload and still restore.
+//   v1 — TASK_013 `.json`, four collections, no checksum. Read-only legacy:
+//        still restored, never written again.
 //
 // Validation is deliberately field-level: every rejection names the entity,
 // its position/id, the field and the reason. There is no catch-all
@@ -27,10 +28,19 @@ import type {
 export const BACKUP_FORMAT = "ministry-backup" as const;
 export const BACKUP_VERSION = 2 as const;
 
-/** Ministry Backup File. Deliberately NOT `.afb` — that belongs to Alex Finance. */
-export const BACKUP_FILE_EXTENSION = ".mfb";
-/** The legacy TASK_013 extension, still accepted on restore. */
-export const LEGACY_BACKUP_FILE_EXTENSION = ".json";
+/**
+ * Backups are plain `.json` (TASK_064). The former `.mfb` gained nothing for
+ * data integrity — the checksum lives inside the payload — while iOS showed
+ * it as an unknown file with a question mark, which is what made owners
+ * distrust their own copies.
+ */
+export const BACKUP_FILE_EXTENSION = ".json";
+/**
+ * The extension TASK_062 briefly wrote. Never produced again, still offered
+ * in the file picker and still restored: those files carry a valid v2
+ * payload, and format detection reads the contents, not the name.
+ */
+export const LEGACY_MFB_FILE_EXTENSION = ".mfb";
 
 // Mirrors the literal in app/(tabs)/profile.tsx — no shared APP_VERSION
 // constant exists in the codebase yet; introducing one is out of scope here.
@@ -132,18 +142,14 @@ function timestampPart(now: Date): string {
   )}`;
 }
 
-/** Full backup file: `ministry-backup-YYYY-MM-DD-HHmm.mfb`. */
+/**
+ * The one backup file the app writes: `ministry-backup-YYYY-MM-DD-HHmm.json`.
+ * There is no second "export" file any more (TASK_064) — the old export wrote
+ * the same payload under a different name, which only made the owner guess
+ * which of two identical things to keep.
+ */
 export function formatBackupFilename(now: Date = new Date()): string {
   return `ministry-backup-${timestampPart(now)}${BACKUP_FILE_EXTENSION}`;
-}
-
-/**
- * Readable export of the same payload: `ministry-export-YYYY-MM-DD-HHmm.json`.
- * Identical contents (checksum included) — only the name and extension differ,
- * so an export can be restored exactly like a backup.
- */
-export function formatExportFilename(now: Date = new Date()): string {
-  return `ministry-export-${timestampPart(now)}.json`;
 }
 
 // ---------------------------------------------------------------------------
@@ -634,6 +640,15 @@ export const ERR_NEWER_VERSION =
   "Эта резервная копия создана более новой версией приложения. Обновите Ministry перед восстановлением.";
 export const RESTORE_ERROR_PREFIX = "Не удалось восстановить: ";
 
+/** Human label per collection, for the declared-counts check below. */
+const COUNT_LABEL: Record<"records" | "events" | "talks" | "sessions" | "customCategories", string> = {
+  records: "записи часов",
+  events: "события",
+  talks: "речи",
+  sessions: "сессии",
+  customCategories: "темы событий",
+};
+
 export type BackupChecksumState = "verified" | "absent-legacy";
 
 export type BackupValidationResult =
@@ -759,6 +774,36 @@ export function validateBackup(
     const profile = validateProfile(data.profile);
     if (!profile.ok) return failWithIssues(profile.issues);
     migratedData.profile = profile.value;
+  }
+
+  // The counts a v2 file declares must agree with what it actually carries —
+  // otherwise "260 записей часов" in the preview would be a promise the file
+  // never had to keep. The checksum already covers `counts`, so a hand edit is
+  // caught earlier; this catches a file rebuilt with a recomputed sum.
+  // A v1 file's counts were never verified (TASK_013), so a mismatch there is
+  // a note rather than a refusal to restore the owner's data.
+  const declared = isPlainObject(raw.counts) ? raw.counts : undefined;
+  if (declared) {
+    const actual = {
+      records: migratedData.records.length,
+      events: migratedData.events.length,
+      talks: migratedData.talks.length,
+      sessions: migratedData.sessions.length,
+      customCategories: migratedData.customCategories?.length,
+    };
+    for (const key of ["records", "events", "talks", "sessions", "customCategories"] as const) {
+      const value = declared[key];
+      const real = actual[key];
+      if (real === undefined || !isFiniteNumber(value) || value === real) continue;
+      if (sourceVersion >= 2) {
+        return fail(
+          `Файл повреждён: в разделе «${COUNT_LABEL[key]}» указано ${value}, а фактически содержится ${real}.`,
+        );
+      }
+      notes.push(
+        `В копии указано «${COUNT_LABEL[key]}: ${value}», фактически ${real} — восстановлено будет фактическое количество.`,
+      );
+    }
   }
 
   if (migratedData.customCategories === undefined && migratedData.profile === undefined) {

@@ -3,7 +3,7 @@ import { act, create } from "react-test-renderer";
 import { Text } from "react-native";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { StoreProvider, STORAGE_KEYS, useStore } from "@/store/StoreContext";
-import { buildBackup } from "@/data/backup";
+import { buildBackup, validateBackupJSON } from "@/data/backup";
 import { BACKUP_META_KEYS } from "@/data/backupImport";
 import { PrimaryButton, DangerButton } from "@/components/ui";
 import type { CustomCategory, HourRecord, MinistryEvent, Session, Talk } from "@/types";
@@ -136,30 +136,34 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-describe("BackupSection — three separate actions", () => {
-  it("offers export, backup and restore as distinct rows", async () => {
+describe("BackupSection — exactly two actions (TASK_064)", () => {
+  it("offers backup and restore, and no separate export row", async () => {
     const { renderer } = await renderSection();
-    expect(pressableFor(renderer.root, "Экспортировать данные")).toBeTruthy();
     expect(pressableFor(renderer.root, "Создать резервную копию")).toBeTruthy();
     expect(pressableFor(renderer.root, "Восстановить из копии")).toBeTruthy();
+    // The export row wrote the same payload under another name — removed so
+    // the owner has one file to keep, not two identical ones to choose from.
+    expect(pressableFor(renderer.root, "Экспортировать данные")).toBeUndefined();
+    expect(texts(renderer)).not.toContain("Экспорт данных");
   });
 
-  it("writes a readable .json for export", async () => {
+  it("labels the two rows by what they do to the owner's data", async () => {
     const { renderer } = await renderSection();
-    await act(async () => {
-      pressableFor(renderer.root, "Экспортировать данные")!.props.onPress();
-      await Promise.resolve();
-    });
-
-    expect(saveBackupFile).toHaveBeenCalledTimes(1);
-    const [filename, json, mime] = (saveBackupFile as jest.Mock).mock.calls[0];
-    expect(filename).toMatch(/^ministry-export-\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
-    expect(mime).toBe("application/json");
-    expect(json).toContain("\n"); // pretty-printed, meant to be read
-    expect(JSON.parse(json).format).toBe("ministry-backup");
+    const all = texts(renderer);
+    expect(all).toContain("Полная копия всех данных приложения");
+    expect(all).toContain("Заменит все текущие данные приложения");
   });
 
-  it("writes a checksummed .mfb for a backup", async () => {
+  it("marks restore as the destructive action", async () => {
+    const { renderer } = await renderSection();
+    const row = renderer.root
+      .findAll((n) => n.props.accessibilityLabel === "Восстановить из копии" && n.props.tone === "danger")
+      .at(0);
+    expect(row).toBeTruthy();
+  });
+
+  it("writes one checksummed .json file with everything in it", async () => {
+    await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify([RECORD]));
     const { renderer } = await renderSection();
     await act(async () => {
       pressableFor(renderer.root, "Создать резервную копию")!.props.onPress();
@@ -167,12 +171,35 @@ describe("BackupSection — three separate actions", () => {
       await Promise.resolve();
     });
 
-    const [filename, json] = (saveBackupFile as jest.Mock).mock.calls[0];
-    expect(filename).toMatch(/^ministry-backup-\d{4}-\d{2}-\d{2}-\d{4}\.mfb$/);
-    expect(filename).not.toContain(".afb");
+    expect(saveBackupFile).toHaveBeenCalledTimes(1);
+    const [filename, json, mime] = (saveBackupFile as jest.Mock).mock.calls[0];
+    expect(filename).toMatch(/^ministry-backup-\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
+    expect(filename).not.toContain(".mfb");
+    // An honest MIME type is what stops iOS renaming or mis-typing the file.
+    expect(mime).toBe("application/json");
+
     const parsed = JSON.parse(json);
+    expect(parsed.format).toBe("ministry-backup");
     expect(parsed.version).toBe(2);
+    expect(parsed.appVersion).toBeTruthy();
+    expect(parsed.createdAt).toBeTruthy();
     expect(parsed.checksum).toMatch(/^[0-9a-f]{64}$/);
+    expect(parsed.counts).toEqual({ records: 1, events: 0, talks: 0, sessions: 0, customCategories: 0 });
+    expect(parsed.data.records).toEqual([RECORD]);
+  });
+
+  it("writes a file the app itself accepts back", async () => {
+    const { renderer } = await renderSection();
+    await act(async () => {
+      pressableFor(renderer.root, "Создать резервную копию")!.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const json = (saveBackupFile as jest.Mock).mock.calls[0][1];
+    const result = validateBackupJSON(json);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.checksum).toBe("verified");
   });
 
   it("shows «Резервная копия ещё не создавалась» until one is made, then the date and time", async () => {
@@ -247,7 +274,8 @@ describe("BackupSection — restore preview", () => {
     await openPreview(renderer, JSON.stringify(buildBackup({ records: [], events: [], talks: [], sessions: [] })));
 
     const all = texts(renderer);
-    expect(all).toContain("Версия 2 (.mfb)");
+    expect(all).toContain("Версия 2");
+    expect(all).not.toContain("Версия 2 (.mfb)");
     expect(all).toContain("Проверена");
   });
 
@@ -362,6 +390,24 @@ describe("BackupSection — restoring", () => {
     expect(getStore().talks).toHaveLength(3);
     expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toHaveLength(7);
     expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.talks))!)).toHaveLength(3);
+  });
+
+  it("restores a copy that was created as a .mfb file (TASK_064)", async () => {
+    // The exact bytes TASK_062 wrote: compact JSON, v2, checksummed. The
+    // extension it was saved under never reaches the app — only the contents.
+    const mfbContents = JSON.stringify(
+      buildBackup({ records: [RECORD], events: [EVENT], talks: [TALK], sessions: [SESSION] }),
+    );
+
+    const { renderer, getStore } = await renderSection();
+    await openPreview(renderer, mfbContents);
+    expect(texts(renderer)).toContain("Копия готова к восстановлению");
+    expect(texts(renderer)).toContain("Проверена");
+
+    await confirmRestore(renderer);
+    expect(getStore().records).toEqual([RECORD]);
+    expect(getStore().talks).toEqual([TALK]);
+    expect(texts(renderer)).toContain("Данные восстановлены");
   });
 
   it("does not wipe the device's own topics when restoring a v1 copy", async () => {

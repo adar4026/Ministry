@@ -1,4 +1,4 @@
-// Non-web fallback for backup export/import (TASK_013).
+// Non-web fallback for creating and picking backup files (TASK_013).
 // The project currently ships web/PWA only (see docs/STATUS.md — native
 // build unverified on device); adding native file-picker/share dependencies
 // for an unshipped platform is out of scope. Metro falls back to this file

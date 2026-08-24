@@ -1,9 +1,12 @@
-// "Данные и резервные копии" (TASK_013, redesigned in TASK_062).
+// "Данные и резервные копии" (TASK_013 → TASK_062 → TASK_064).
 //
-// Three distinct actions, in increasing order of consequence:
-//   Экспорт данных        — readable .json snapshot, for keeping/inspecting
-//   Создать резервную копию — full .mfb backup file (v2, checksummed)
-//   Восстановить из копии  — destructive; danger-toned, always previewed first
+// Two actions, and deliberately only two:
+//   Создать резервную копию — one checksummed v2 `.json` with everything
+//   Восстановить из копии   — destructive; danger-toned, always previewed first
+//
+// TASK_064 removed the third row ("Экспорт данных"): it wrote the very same
+// payload under a different name, so the owner had to guess which of two
+// identical files was the real backup.
 //
 // Nothing here touches the device's data until the owner confirms in the
 // preview sheet, and the restore itself is snapshot-and-rollback protected
@@ -14,10 +17,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { CATEGORY_KEYS, COLORS, formatDateDMY, toISODate } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import {
-  BACKUP_FILE_EXTENSION,
   buildBackup,
   formatBackupFilename,
-  formatExportFilename,
   validateBackupJSON,
   type BackupValidationResult,
   type MinistryBackupCounts,
@@ -33,7 +34,7 @@ import {
 import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 import { Modal } from "@/components/Modal";
 import { DangerButton, PrimaryButton } from "@/components/ui";
-import { DownloadIcon, RotateCcwIcon, ShieldIcon } from "@/components/icons";
+import { RotateCcwIcon, ShieldIcon } from "@/components/icons";
 import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS } from "@/components/dashboard";
 
@@ -74,7 +75,6 @@ function countsOf(data: MinistryBackupData): MinistryBackupCounts {
 // after it inside the same card.
 export function BackupSection({ last = true }: { last?: boolean } = {}) {
   const { records, events, talks, sessions, profile, customCategories, replaceAllData } = useStore();
-  const [exporting, setExporting] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
   const [picking, setPicking] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -106,40 +106,32 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
     [records, events, talks, sessions, customCategories, profile],
   );
 
-  // Both file actions write the SAME v2 payload — only the name, extension
-  // and formatting differ. The checksum is computed over the canonical form
-  // of the parsed object (see sha256.ts), so pretty-printing the export
-  // cannot invalidate it.
-  async function writeFile(kind: "export" | "backup") {
-    const busyFlag = kind === "export" ? setExporting : setBackingUp;
+  // The single file the app writes: a v2 payload, pretty-printed, saved as
+  // `.json` with an honest `application/json` type so iOS/iCloud Drive shows
+  // a known document rather than an unknown one. Indentation is safe for the
+  // checksum — it is computed over the canonical form of the parsed object
+  // (see sha256.ts), not over the file's bytes.
+  async function createBackup() {
     setFeedback(null);
-    busyFlag(true);
+    setBackingUp(true);
     try {
       const now = new Date();
       const backup = buildBackup(snapshot(), now);
-      if (kind === "export") {
-        await saveBackupFile(formatExportFilename(now), JSON.stringify(backup, null, 2), "application/json");
-      } else {
-        await saveBackupFile(
-          formatBackupFilename(now),
-          JSON.stringify(backup),
-          "application/octet-stream",
-        );
-        await markBackupCreated(now);
-        if (mountedRef.current) setLastBackupAt(now.toISOString());
-      }
+      await saveBackupFile(
+        formatBackupFilename(now),
+        JSON.stringify(backup, null, 2),
+        "application/json",
+      );
+      await markBackupCreated(now);
+      if (mountedRef.current) setLastBackupAt(now.toISOString());
     } catch (e) {
       const message =
         e instanceof Error && e.message === "platform-unsupported"
           ? PLATFORM_UNSUPPORTED_MESSAGE
           : "Попробуйте ещё раз.";
-      setFeedback({
-        kind: "error",
-        title: kind === "export" ? "Не удалось экспортировать данные" : "Не удалось создать резервную копию",
-        message,
-      });
+      setFeedback({ kind: "error", title: "Не удалось создать резервную копию", message });
     } finally {
-      if (mountedRef.current) busyFlag(false);
+      if (mountedRef.current) setBackingUp(false);
     }
   }
 
@@ -212,28 +204,18 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
     }
   }
 
-  const busy = exporting || backingUp || picking || restoring;
+  const busy = backingUp || picking || restoring;
   const result = preview?.result;
   const fileCounts = result?.ok ? result.backup.counts : null;
 
   return (
     <>
       <ProfileSettingsRow
-        icon={DownloadIcon}
-        title="Экспорт данных"
-        subtitle="Читаемый файл JSON со всеми данными"
-        accessibilityLabel="Экспортировать данные"
-        onPress={() => writeFile("export")}
-        disabled={busy}
-        busy={exporting}
-        last={false}
-      />
-      <ProfileSettingsRow
         icon={ShieldIcon}
         title="Создать резервную копию"
-        subtitle={`Полный файл ${BACKUP_FILE_EXTENSION} с контрольной суммой`}
+        subtitle="Полная копия всех данных приложения"
         accessibilityLabel="Создать резервную копию"
-        onPress={() => writeFile("backup")}
+        onPress={createBackup}
         disabled={busy}
         busy={backingUp}
         last={false}
@@ -241,7 +223,7 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
       <ProfileSettingsRow
         icon={RotateCcwIcon}
         title="Восстановить из копии"
-        subtitle="Заменяет все данные на этом устройстве"
+        subtitle="Заменит все текущие данные приложения"
         accessibilityLabel="Восстановить из копии"
         tone="danger"
         onPress={handlePickRestore}
@@ -322,9 +304,7 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaLabel}>Формат</Text>
                   <Text style={styles.metaValue}>
-                    {result.sourceVersion === 1
-                      ? "Версия 1 (старая, совместимая)"
-                      : `Версия 2 (${BACKUP_FILE_EXTENSION})`}
+                    {result.sourceVersion === 1 ? "Версия 1 (старая, совместимая)" : "Версия 2"}
                   </Text>
                 </View>
                 <View style={styles.metaRow}>

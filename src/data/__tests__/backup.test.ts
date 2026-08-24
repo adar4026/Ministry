@@ -9,7 +9,7 @@ import {
   buildBackup,
   computeChecksum,
   formatBackupFilename,
-  formatExportFilename,
+  LEGACY_MFB_FILE_EXTENSION,
   validateBackup,
   validateBackupJSON,
   type MinistryBackupData,
@@ -127,19 +127,21 @@ describe("buildBackup — format v2", () => {
   });
 });
 
-describe("filenames", () => {
-  it("names a backup ministry-backup-YYYY-MM-DD-HHmm.mfb", () => {
-    expect(formatBackupFilename(new Date(2026, 6, 17, 9, 5))).toBe("ministry-backup-2026-07-17-0905.mfb");
-    expect(BACKUP_FILE_EXTENSION).toBe(".mfb");
+describe("filenames (TASK_064)", () => {
+  it("names a backup ministry-backup-YYYY-MM-DD-HHmm.json", () => {
+    expect(formatBackupFilename(new Date(2026, 6, 17, 9, 5))).toBe("ministry-backup-2026-07-17-0905.json");
+    expect(BACKUP_FILE_EXTENSION).toBe(".json");
   });
 
-  it("never uses Alex Finance's .afb extension", () => {
-    expect(formatBackupFilename(new Date(2026, 6, 17, 9, 5))).not.toContain(".afb");
+  it("no longer writes .mfb — iPhone shows that as an unknown file", () => {
+    expect(formatBackupFilename(new Date(2026, 6, 17, 9, 5))).not.toContain(".mfb");
+    expect(BACKUP_FILE_EXTENSION).not.toBe(".mfb");
+    // ...and never Alex Finance's extension either.
     expect(BACKUP_FILE_EXTENSION).not.toBe(".afb");
   });
 
-  it("names a readable export ministry-export-YYYY-MM-DD-HHmm.json", () => {
-    expect(formatExportFilename(new Date(2026, 6, 17, 9, 5))).toBe("ministry-export-2026-07-17-0905.json");
+  it("keeps .mfb only as the legacy extension the picker still offers", () => {
+    expect(LEGACY_MFB_FILE_EXTENSION).toBe(".mfb");
   });
 });
 
@@ -204,6 +206,58 @@ describe("validateBackupJSON — checksum enforcement", () => {
     const result = validateBackupJSON(JSON.stringify(tampered));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(ERR_CHECKSUM_MISMATCH);
+  });
+});
+
+describe("validateBackupJSON — declared counts must match the contents (TASK_064)", () => {
+  it("rejects a v2 file whose counts lie, even with the checksum recomputed", () => {
+    const backup = buildBackup(FULL_DATA);
+    const lying = { ...backup, counts: { ...backup.counts, talks: 5 } };
+    const resealed = { ...lying, checksum: computeChecksum((({ checksum, ...p }) => p)(lying)) };
+
+    const result = validateBackupJSON(JSON.stringify(resealed));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe(
+        "Файл повреждён: в разделе «речи» указано 5, а фактически содержится 1.",
+      );
+    }
+  });
+
+  it("accepts a v1 file with stale counts and says what will actually be restored", () => {
+    // TASK_013 never verified its own counts, so refusing an old copy over
+    // them would lose data the file plainly contains.
+    const file = v1File({ records: [RECORD] }, { counts: { records: 9, events: 0, talks: 0, sessions: 0 } });
+    const result = validateBackupJSON(JSON.stringify(file));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.backup.data.records).toEqual([RECORD]);
+    expect(result.backup.counts.records).toBe(1);
+    expect(result.notes).toContain(
+      "В копии указано «записи часов: 9», фактически 1 — восстановлено будет фактическое количество.",
+    );
+  });
+});
+
+describe("validateBackupJSON — the format is read from the contents, not the extension (TASK_064)", () => {
+  it("accepts an already-created .mfb file: same v2 payload, different name", () => {
+    // The bytes TASK_062 wrote into `ministry-backup-….mfb` — compact, no
+    // indentation. Nothing about validation ever saw the file name.
+    const mfbContents = JSON.stringify(buildBackup(FULL_DATA, new Date("2026-08-22T09:19:00.000Z")));
+    const result = validateBackupJSON(mfbContents);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sourceVersion).toBe(2);
+    expect(result.checksum).toBe("verified");
+    expect(result.backup.data.records).toEqual([RECORD]);
+    expect(result.backup.data.talks).toEqual([TALK]);
+  });
+
+  it("rejects a foreign file even when it is valid JSON with a .json name", () => {
+    const result = validateBackupJSON('{"format":"alex-finance-backup","version":2,"data":{}}');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(ERR_NOT_MINISTRY);
   });
 });
 

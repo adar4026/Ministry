@@ -95,23 +95,37 @@ describe("saveBackupFile", () => {
     (URL as unknown as { createObjectURL: unknown }).createObjectURL = jest.fn(() => "blob:x");
     (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = jest.fn();
 
-    await saveBackupFile("ministry-backup-2026-08-22-0919.mfb", "{}", "application/octet-stream");
+    await saveBackupFile("ministry-backup-2026-08-22-0919.json", "{}", "application/json");
 
     expect(clicked).toHaveLength(1);
-    expect(clicked[0].download).toBe("ministry-backup-2026-08-22-0919.mfb");
-    expect(clicked[0].download.endsWith(".afb")).toBe(false);
+    expect(clicked[0].download).toBe("ministry-backup-2026-08-22-0919.json");
+  });
+
+  it("defaults to the honest application/json type (TASK_064)", async () => {
+    const types: string[] = [];
+    jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL = jest.fn((blob: Blob) => {
+      types.push(blob.type);
+      return "blob:x";
+    });
+    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = jest.fn();
+
+    await saveBackupFile("ministry-backup-2026-08-22-0919.json", "{}");
+
+    expect(types).toEqual(["application/json"]);
   });
 });
 
-describe("pickBackupFile — accepted file types (TASK_062)", () => {
-  it("accepts both the new .mfb and legacy .json copies", () => {
+describe("pickBackupFile — accepted file types (TASK_064)", () => {
+  it("accepts the .json copies the app writes and the .mfb ones it already wrote", () => {
     const { callbacks } = callbackSpies();
     pickBackupFile(callbacks);
     const accept = getSharedInput().accept;
-    expect(accept).toContain(".mfb");
     expect(accept).toContain(".json");
-    // `.mfb` has no registered UTI on iOS, so it surfaces as generic data —
-    // without this the Files picker greys the file out.
+    // `.mfb` (TASK_062) is no longer produced, but copies of it exist on the
+    // owner's device. It has no registered UTI on iOS, so it surfaces as
+    // generic data — without octet-stream the Files picker greys it out.
+    expect(accept).toContain(".mfb");
     expect(accept).toContain("application/octet-stream");
   });
 });

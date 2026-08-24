@@ -1,13 +1,13 @@
-// Web/PWA file I/O for backup export/import (TASK_013).
+// Web/PWA file I/O for creating and picking backup files (TASK_013).
 // Metro resolves this file on web builds; src/data/backupFile.ts is the
 // fallback used on native, where this flow isn't implemented yet.
 
 export async function saveBackupFile(
   filename: string,
   json: string,
-  // `.mfb` (TASK_062) is saved as octet-stream so Safari/iOS keeps the given
-  // name instead of appending a `.json` it inferred from the MIME type; the
-  // readable `.json` export keeps the honest JSON type.
+  // Always `application/json` since TASK_064: the backup IS json, so the type
+  // Safari/iOS infers and the extension the app asks for finally agree, and
+  // the saved file opens as a known type instead of an unknown "?" document.
   mimeType: string = "application/json",
 ): Promise<void> {
   const blob = new Blob([json], { type: mimeType });
@@ -69,10 +69,11 @@ function ensureInput(): HTMLInputElement {
 
   const input = document.createElement("input");
   input.type = "file";
-  // `.mfb` is a Ministry-specific extension with no registered UTI, so iOS
-  // exposes it as generic data — `application/octet-stream` is what keeps it
-  // selectable in the Files picker alongside legacy `.json` copies.
-  input.accept = ".mfb,.json,application/json,application/octet-stream";
+  // `.json` is what the app writes (TASK_064). `.mfb` stays listed for the
+  // copies TASK_062 already wrote to the owner's device — it has no registered
+  // UTI, so iOS exposes it as generic data and `application/octet-stream` is
+  // what keeps those files selectable rather than greyed out.
+  input.accept = ".json,.mfb,application/json,application/octet-stream";
   input.style.display = "none";
 
   input.addEventListener("change", () => {
