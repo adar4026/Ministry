@@ -12,7 +12,7 @@
 // preview sheet, and the restore itself is snapshot-and-rollback protected
 // in src/data/backupImport.ts.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { CATEGORY_KEYS, COLORS, formatDateDMY, toISODate } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
@@ -35,8 +35,9 @@ import { pickBackupFile, saveBackupFile } from "@/data/backupFile";
 import { Modal } from "@/components/Modal";
 import { DangerButton, PrimaryButton } from "@/components/ui";
 import { RotateCcwIcon, ShieldIcon } from "@/components/icons";
-import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
+import { ProfileRowVariantContext, ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS } from "@/components/dashboard";
+import { MINISTRY } from "@/components/dashboard/tokens";
 
 // Date portion via the app-wide canonical formatter (TASK_022) — was a
 // locally-grown "DD.MM.YYYY" (dots); only the separator changes, the
@@ -81,6 +82,10 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  // TASK_066 — inside the Home drawer the rows already switch to their
+  // "drawer" look through this context; the one bare line this section
+  // draws itself ("Последняя копия") follows the same inks.
+  const drawer = useContext(ProfileRowVariantContext) === "drawer";
 
   // pickBackupFile's callbacks can fire well after this component would
   // otherwise have finished with a given pick attempt (delayed iOS `change`
@@ -233,8 +238,8 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
         // two never stack into a double hairline.
         last
       />
-      <View style={[styles.lastBackup, !last && styles.lastBackupDivider]}>
-        <Text style={styles.lastBackupText}>
+      <View style={[styles.lastBackup, !last && (drawer ? styles.lastBackupDividerDrawer : styles.lastBackupDivider)]}>
+        <Text style={[styles.lastBackupText, drawer && styles.lastBackupTextDrawer]}>
           {lastBackupAt
             ? `Последняя копия: ${formatBackupTimestamp(lastBackupAt)}`
             : "Резервная копия ещё не создавалась"}
@@ -373,7 +378,9 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
 const styles = StyleSheet.create({
   lastBackup: { paddingHorizontal: 18, paddingTop: 2, paddingBottom: 12 },
   lastBackupDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
+  lastBackupDividerDrawer: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(15,42,38,0.12)" },
   lastBackupText: { fontSize: 12, color: DS.subInk },
+  lastBackupTextDrawer: { color: MINISTRY.ink2, paddingLeft: 40 },
   feedback: {
     flexDirection: "row",
     alignItems: "flex-start",

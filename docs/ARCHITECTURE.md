@@ -32,7 +32,7 @@ ministry/
 │   │   │   └── month/[key].tsx # Детали месяца
 │   │   ├── add.tsx             # Добавить
 │   │   ├── timeline.tsx        # События (вкл. публичные речи)
-│   │   ├── profile.tsx         # Профиль
+│   │   ├── profile.tsx         # Профиль (содержимое продублировано в HomeDrawer, TASK_066)
 │   │   └── _layout.tsx         # Tab navigator (5 вкладок)
 │   ├── notifications.tsx       # «Уведомления» — заглушка «Скоро появится» (TASK_060)
 │   ├── upcoming-events.tsx     # Ближайшие события (TASK_019)
@@ -50,6 +50,7 @@ ministry/
 │   │   ├── backup.ts           # Формат копии v2 (.json), валидация, миграция (TASK_064)
 │   │   ├── backupImport.ts     # Восстановление: страховка, откат (TASK_062)
 │   │   ├── backupFile(.web).ts # Сохранение/выбор файла по платформам
+│   │   ├── appInfo.ts          # APP_VERSION / имя / дата обновления — один источник (TASK_066)
 │   │   └── sha256.ts           # SHA-256 + канонический JSON (TASK_062)
 │   │
 │   ├── store/
@@ -65,6 +66,12 @@ ministry/
 │   │   │   ├── HeroScene.tsx   # Фон hero: SVG-fallback + HeroCanvas (TASK_065)
 │   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкие волны» / native no-op
 │   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065)
+│   │   ├── drawer/             # Боковая шторка Главной (TASK_066)
+│   │   │   ├── HomeDrawer.tsx  # RNModal + Animated + PanResponder, контент Профиля
+│   │   │   ├── DrawerGroup.tsx # Заголовок группы + стеклянная карточка
+│   │   │   └── DrawerFooter.tsx# «A-Lex Ministry · vX.Y.Z / Обновлено: …»
+│   │   ├── profile/            # ProfileHeroCard, ProfileEditSheet, ProfileSummary,
+│   │   │                       #   ProfileSettingsRow (+ ProfileRowVariantContext), profileMenu.ts
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
 │   │   ├── stats/              # Карточки и график статистики (TASK_061)
 │   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
@@ -276,6 +283,32 @@ diffuse/specular/rim, растворение в фон внутри шейдер
 `document.hidden` / вне viewport, `prefers-reduced-motion` и слабое
 устройство → fallback, полный teardown при unmount. Подробности —
 `docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`.
+
+---
+
+## Главная: hamburger и боковая шторка (TASK_066)
+
+Верхняя строка Главной — `[☰]  Христианская жизнь` (Lexcar): `MenuIcon`
+слева (44×44, без круга), заголовок и дата правее; круглый аватар справа
+удалён. Кнопка открывает `HomeDrawer` (`src/components/drawer/`) —
+левую шторку по образцу A-Lex Finance: `RNModal transparent
+animationType="none"` (тот же примитив, что `AddActionSheet` /
+`ProfileEditSheet`) + один `Animated.Value progress` (translateX панели и
+opacity backdrop) + `PanResponder` для свайпа влево. Панель — `min(86 %,
+360)`, фон — `HeroScene animated={false}` (SVG-fallback палитры Ministry,
+без второго WebGL-контекста), поверх — стеклянные `DrawerGroup`.
+Закрытие: ×, backdrop, свайп, Escape (web); `role="dialog"`,
+`prefers-reduced-motion` → без анимации.
+
+Содержимое шторки = страница «Профиль»: `ProfileSummary` (имя, фото,
+`profile.events` — три пользовательские памятные даты, из того же
+`useStore().profile`), группы ПРОФИЛЬ / СЛУЖЕНИЕ / ПРИЛОЖЕНИЕ / ДАННЫЕ И
+РЕЗЕРВНЫЕ КОПИИ / О ПРИЛОЖЕНИИ и footer. Пункты меню — общий
+`src/components/profile/profileMenu.ts`, строки — `ProfileSettingsRow` в
+варианте `drawer` через `ProfileRowVariantContext`, `BackupSection` и
+`ProfileEditSheet` переиспользуются как есть. Версия — только
+`src/data/appInfo.ts` (`backup.ts` реэкспортирует). Вкладка «Профиль»
+сохранена до решения владельца (см. TASK_066 §6).
 
 ---
 

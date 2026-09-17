@@ -2,6 +2,7 @@
 import { Ellipse, Stop } from "react-native-svg";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { HeroScene, HERO_HEIGHT } from "@/components/dashboard/HeroScene";
+import { HeroCanvas } from "@/components/dashboard/HeroCanvas";
 import { MINISTRY } from "@/components/dashboard/tokens";
 
 function flat(style: unknown): Record<string, unknown> {
@@ -73,5 +74,23 @@ describe("HeroScene", () => {
       .map((n) => n.props.id);
     expect(ids).toHaveLength(2);
     expect(new Set(ids).size).toBe(2);
+  });
+});
+
+// TASK_066 — the Home drawer reuses the scene as a STATIC panel background.
+describe("HeroScene — animated={false} (TASK_066)", () => {
+  it("renders the SVG fallback but no HeroCanvas when animated is false", () => {
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<HeroScene height={600} animated={false} />);
+    });
+    expect(renderer.root.findAllByType(Stop).length).toBeGreaterThan(0);
+    expect(renderer.root.findAllByType(HeroCanvas)).toHaveLength(0);
+    expect(renderer.root.findAllByType(Ellipse)).toHaveLength(3);
+  });
+
+  it("still mounts HeroCanvas by default (Home is unchanged)", () => {
+    const renderer = render(300);
+    expect(renderer.root.findAllByType(HeroCanvas)).toHaveLength(1);
   });
 });

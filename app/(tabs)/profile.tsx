@@ -1,42 +1,20 @@
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ProfileEditSheet } from "@/components/profile/ProfileEditSheet";
 import { ProfileHeroCard } from "@/components/profile/ProfileHeroCard";
 import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS, HomeBackground, SectionHeader, SummaryCard } from "@/components/dashboard";
 import { useTabBarContentInset } from "@/components/TabBar";
-import {
-  BellIcon,
-  CalendarIcon,
-  ChartIcon,
-  ClockIcon,
-  CloudIcon,
-  GlobeIcon,
-  InfoIcon,
-  MessageIcon,
-  PaletteIcon,
-  TargetIcon,
-} from "@/components/icons";
+import { CloudIcon, InfoIcon } from "@/components/icons";
+import { ABOUT_ITEMS, SETTINGS_ITEMS, activateMenuItem } from "@/components/profile/profileMenu";
+import { APP_VERSION } from "@/data/appInfo";
 import { useStore } from "@/store/StoreContext";
 
-const APP_VERSION = "0.4.4";
-
-// TASK_059 — "Уведомления" is no longer a `soon()` placeholder: it opens the
-// real settings screen at /notifications. Every other row is untouched.
-const SETTINGS: { label: string; icon: typeof BellIcon; href?: string }[] = [
-  { label: "Уведомления", icon: BellIcon, href: "/notifications" },
-  { label: "Цели", icon: TargetIcon },
-  { label: "Календарь служения", icon: CalendarIcon },
-  { label: "Статистика", icon: ChartIcon },
-  { label: "Оформление", icon: PaletteIcon },
-  { label: "Язык", icon: GlobeIcon },
-];
-
-function soon(label: string) {
-  Alert.alert(label, "Появится позже");
-}
+// TASK_066 — the rows and the version now come from the shared
+// profileMenu.ts / appInfo.ts, which the Home drawer renders too: this page
+// and the drawer can no longer drift apart. Behaviour is TASK_059's:
+// "Уведомления" opens /notifications, every other row is a placeholder.
 
 export default function ProfileScreen() {
   const { profile, saveProfile } = useStore();
@@ -71,13 +49,13 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <SectionHeader title="Настройки" />
           <SummaryCard style={styles.listCard}>
-            {SETTINGS.map((item, i) => (
+            {SETTINGS_ITEMS.map((item, i) => (
               <ProfileSettingsRow
-                key={item.label}
+                key={item.key}
                 icon={item.icon}
                 title={item.label}
-                onPress={() => (item.href ? router.push(item.href as never) : soon(item.label))}
-                last={i === SETTINGS.length - 1}
+                onPress={() => activateMenuItem(item)}
+                last={i === SETTINGS_ITEMS.length - 1}
               />
             ))}
           </SummaryCard>
@@ -100,8 +78,15 @@ export default function ProfileScreen() {
           <SectionHeader title="О приложении" />
           <SummaryCard style={styles.listCard}>
             <ProfileSettingsRow icon={InfoIcon} title="Версия приложения" value={APP_VERSION} />
-            <ProfileSettingsRow icon={ClockIcon} title="История изменений" onPress={() => soon("История изменений")} />
-            <ProfileSettingsRow icon={MessageIcon} title="Обратная связь" onPress={() => soon("Обратная связь")} last />
+            {ABOUT_ITEMS.map((item, i) => (
+              <ProfileSettingsRow
+                key={item.key}
+                icon={item.icon}
+                title={item.label}
+                onPress={() => activateMenuItem(item)}
+                last={i === ABOUT_ITEMS.length - 1}
+              />
+            ))}
           </SummaryCard>
         </View>
       </ScrollView>

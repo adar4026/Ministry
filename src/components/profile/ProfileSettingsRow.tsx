@@ -6,10 +6,24 @@
 // instead of Hours' own local palette. Renders bare rows only — the caller
 // supplies the white rounded card (a SummaryCard with padding:0,
 // overflow:"hidden").
-import type { ComponentType } from "react";
+//
+// TASK_066 — a second look, "drawer", for the Home drawer's glass cards on
+// the mint hero scene: a thin MINISTRY.ink line icon with no coloured tile
+// (Finance's graphite drawer rows), ink/ink2 text, a softer chevron and a
+// divider indented past the icon. Chosen through ProfileRowVariantContext,
+// not a prop, so composite consumers such as BackupSection render the right
+// look wherever they are placed without threading anything through.
+import { createContext, useContext, type ComponentType } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRightIcon, type IconProps } from "@/components/icons";
-import { DS } from "@/components/dashboard";
+import { DS, MINISTRY } from "@/components/dashboard/tokens";
+
+export type ProfileRowVariant = "card" | "drawer";
+export const ProfileRowVariantContext = createContext<ProfileRowVariant>("card");
+
+// Chevron tint on the drawer's translucent surface — ink at 35 % reads as
+// a quiet affordance on every band of the mint gradient.
+const DRAWER_CHEVRON = "rgba(15,42,38,0.35)";
 
 export function ProfileSettingsRow({
   icon: Icon,
@@ -43,28 +57,47 @@ export function ProfileSettingsRow({
   tone?: "default" | "danger";
   accessibilityLabel?: string;
 }) {
+  const variant = useContext(ProfileRowVariantContext);
+  const drawer = variant === "drawer";
   const danger = tone === "danger";
+  const iconColor = danger ? DS.danger : drawer ? MINISTRY.ink : DS.accent;
   const trailing = busy ? (
-    <ActivityIndicator size="small" color={danger ? DS.danger : DS.accent} />
+    <ActivityIndicator size="small" color={danger ? DS.danger : drawer ? MINISTRY.primary : DS.accent} />
   ) : value ? (
-    <Text style={styles.value}>{value}</Text>
+    <Text style={[styles.value, drawer && styles.valueDrawer]}>{value}</Text>
   ) : onPress ? (
-    <ChevronRightIcon size={18} color={DS.chevron} />
+    <ChevronRightIcon size={18} color={drawer ? DRAWER_CHEVRON : DS.chevron} />
   ) : null;
 
   const content = (
-    <View style={[styles.row, !last && styles.rowDivider, disabled && styles.disabled]}>
+    <View
+      style={[
+        styles.row,
+        drawer && styles.rowDrawer,
+        !last && (drawer ? styles.rowDividerDrawer : styles.rowDivider),
+        disabled && styles.disabled,
+      ]}
+    >
       {Icon ? (
-        <View style={[styles.iconBg, danger && styles.iconBgDanger]}>
-          <Icon size={19} color={danger ? DS.danger : DS.accent} />
-        </View>
+        drawer ? (
+          <View style={styles.iconPlain}>
+            <Icon size={21} color={iconColor} />
+          </View>
+        ) : (
+          <View style={[styles.iconBg, danger && styles.iconBgDanger]}>
+            <Icon size={19} color={iconColor} />
+          </View>
+        )
       ) : null}
       <View style={styles.textWrap}>
-        <Text style={[styles.title, danger && styles.titleDanger]} numberOfLines={1}>
+        {/* Drawer rows are narrower (86 % panel): let a long title such as
+            «Создать резервную копию» wrap to a second line rather than
+            truncate — the row is allowed to grow, nothing is clipped. */}
+        <Text style={[styles.title, drawer && styles.titleDrawer, danger && styles.titleDanger]} numberOfLines={drawer ? 2 : 1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={2}>
+          <Text style={[styles.subtitle, drawer && styles.subtitleDrawer]} numberOfLines={2}>
             {subtitle}
           </Text>
         ) : null}
@@ -82,7 +115,7 @@ export function ProfileSettingsRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)}
       accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [pressed && !disabled && styles.pressed]}
+      style={({ pressed }) => [pressed && !disabled && (drawer ? styles.pressedDrawer : styles.pressed)]}
     >
       {content}
     </Pressable>
@@ -98,8 +131,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: 60,
   },
+  // Drawer rows: a touch tighter horizontally (the panel is 86 % of the
+  // screen) but never below 56 pt tall — comfortably above the 44 pt
+  // touch-target floor.
+  rowDrawer: { paddingHorizontal: 16, paddingVertical: 12, minHeight: 56, gap: 12 },
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
+  rowDividerDrawer: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(15,42,38,0.12)" },
   pressed: { backgroundColor: "#F5F7FB" },
+  pressedDrawer: { backgroundColor: "rgba(255,255,255,0.55)" },
   disabled: { opacity: 0.5 },
   iconBg: {
     width: 36,
@@ -110,9 +149,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconBgDanger: { backgroundColor: "#fee2e2" },
+  // No tile in the drawer — just a fixed-width slot so titles align.
+  iconPlain: { width: 30, height: 30, alignItems: "center", justifyContent: "center", opacity: 0.82 },
   textWrap: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: "600", color: DS.navy },
+  titleDrawer: { color: MINISTRY.ink, letterSpacing: -0.15 },
   titleDanger: { color: DS.danger },
   subtitle: { fontSize: 13, color: DS.subText, marginTop: 2 },
+  subtitleDrawer: { color: MINISTRY.ink2 },
   value: { fontSize: 14, color: DS.subText, fontWeight: "600" },
+  valueDrawer: { color: MINISTRY.ink2 },
 });

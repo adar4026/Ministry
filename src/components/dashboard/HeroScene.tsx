@@ -23,7 +23,11 @@ import { MINISTRY } from "./tokens";
 /** Height of the hero scene below the top safe-area inset. */
 export const HERO_HEIGHT = 300;
 
-export function HeroScene({ height }: { height: number }) {
+// `animated` (TASK_066): the Home drawer reuses this scene as its panel
+// background in a STATIC mode — the same SVG gradient and folds, but no
+// HeroCanvas, so opening the menu never spins up a second WebGL context
+// next to the one already running under the Home hero.
+export function HeroScene({ height, animated = true }: { height: number; animated?: boolean }) {
   const id = useId();
   const gradId = `heroGrad-${id}`;
   const blobA = `heroBlobA-${id}`;
@@ -60,7 +64,7 @@ export function HeroScene({ height }: { height: number }) {
         <Ellipse cx="88" cy="48" rx="58" ry="26" fill={`url(#${blobB})`} />
         <Ellipse cx="52" cy="34" rx="46" ry="16" fill={`url(#${blobC})`} />
       </Svg>
-      <HeroCanvas />
+      {animated ? <HeroCanvas /> : null}
     </View>
   );
 }

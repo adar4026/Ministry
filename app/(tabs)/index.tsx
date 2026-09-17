@@ -1,9 +1,9 @@
-import { router } from "expo-router";
 import { useContext, useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
-import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { HomeDrawer } from "@/components/drawer/HomeDrawer";
+import { MenuIcon } from "@/components/icons";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { EventForm } from "@/components/forms/EventForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
@@ -33,8 +33,10 @@ const HERO_CONTENT_TOP = 10;
 const HERO_TAIL = 64;
 
 export default function Dashboard() {
-  const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord, saveEvent } =
-    useStore();
+  const { records, sessions, events, customCategories, saveRecord, deleteRecord, saveEvent } = useStore();
+  // TASK_066 — the left-hand drawer replaces the header avatar as the way
+  // into the profile; it owns the profile data/editor itself (same store).
+  const [menuOpen, setMenuOpen] = useState(false);
   // TASK_048 — Home's background now runs edge-to-edge (the Tabs sceneStyle
   // no longer pads the bottom on this route) and the content scrolls under
   // the floating tab bar, so the last card's clearance has to come from the
@@ -63,7 +65,6 @@ export default function Dashboard() {
   // EventForm as the "События" screen; no delete button here (onDelete
   // omitted), matching the owner's scope for this task.
   const [editEv, setEditEv] = useState<MinistryEvent | null>(null);
-  const profileInitials = profile.displayName?.trim()[0]?.toUpperCase();
 
   // Session-aware unified service-year aggregation (TASK_005A addendum) —
   // Home no longer aggregates HourRecord directly. Months tracked only via
@@ -119,24 +120,30 @@ export default function Dashboard() {
         contentContainerStyle={[styles.content, { paddingTop: topInset + HERO_CONTENT_TOP, paddingBottom: bottomInset }]}
       >
         <View onLayout={(e) => setHeroContentHeight(Math.round(e.nativeEvent.layout.height))} style={styles.heroBlock}>
+        {/* TASK_066 — Lexcar-style top line: [☰]  title. The hamburger is a
+            bare 44×44 hit area (no circle, no card) in the hero ink; the
+            title and date start to its right. The old round avatar on the
+            right is gone entirely — nothing is reserved in its place, the
+            scene runs the full width behind the row. */}
         <View style={styles.headerRow}>
+          <Pressable
+            onPress={() => setMenuOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Открыть меню"
+            accessibilityState={{ expanded: menuOpen }}
+            aria-expanded={menuOpen}
+            hitSlop={4}
+            style={({ pressed }) => [styles.menuBtn, pressed && styles.menuBtnPressed]}
+            testID="home-menu-button"
+          >
+            <MenuIcon size={24} color={MINISTRY.ink} />
+          </Pressable>
           <View style={styles.headerText}>
             <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
               Христианская жизнь
             </Text>
             <Text style={styles.pageDate}>{formatHomeDate(new Date())}</Text>
           </View>
-          <ProfileAvatar
-            photoUri={profile.profilePhotoUri}
-            initials={profileInitials}
-            size={40}
-            hitSlop={2}
-            onPress={() => router.push("/profile")}
-            accessibilityLabel="Открыть профиль"
-            onInvalidPhoto={() =>
-              saveProfile({ displayName: profile.displayName, events: profile.events, profilePhotoUri: undefined })
-            }
-          />
         </View>
 
         {/* No card: the figures sit directly on the hero (TASK_065). */}
@@ -197,6 +204,8 @@ export default function Dashboard() {
           )}
         </Modal>
       </ScrollView>
+
+      <HomeDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
   );
 }
@@ -224,11 +233,15 @@ const styles = StyleSheet.create({
   heroBlock: { gap: 22 },
   headerRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 40,
+    gap: 10,
+    minHeight: 44,
   },
-  headerText: { flex: 1, marginRight: 12 },
+  // Pulled 6 pt left so the glyph's own optical edge lines up with the
+  // content gutter while the 44×44 hit area stays intact.
+  menuBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -6, borderRadius: 22 },
+  menuBtnPressed: { backgroundColor: "rgba(255,255,255,0.35)" },
+  headerText: { flex: 1, minWidth: 0 },
   // TASK_065: header text now sits on the animated hero — MINISTRY.ink /
   // ink2 are the two tints measured against every wave color (>= 9.5:1 and
   // 4.7:1); DS.navy (blue) would clash with the green scene.

@@ -42,9 +42,11 @@ export const BACKUP_FILE_EXTENSION = ".json";
  */
 export const LEGACY_MFB_FILE_EXTENSION = ".mfb";
 
-// Mirrors the literal in app/(tabs)/profile.tsx — no shared APP_VERSION
-// constant exists in the codebase yet; introducing one is out of scope here.
-export const APP_VERSION = "0.4.4";
+// TASK_066 — the app version now has one home, src/data/appInfo.ts (the
+// Profile page and the Home drawer read the same constant). Re-exported
+// here so every existing importer of backup.ts keeps working unchanged.
+export { APP_VERSION } from "./appInfo";
+import { APP_VERSION } from "./appInfo";
 
 export type MinistryBackupData = {
   records: HourRecord[];
