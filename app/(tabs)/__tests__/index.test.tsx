@@ -10,7 +10,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { TAB_BAR_HEIGHT } from "@/components/TabBar";
-import { DS, HOME_GRADIENT, HOME_MINT_GRADIENT } from "@/components/dashboard/tokens";
+import { DS, HOME_GRADIENT, HOME_MINT_GRADIENT, MINISTRY } from "@/components/dashboard/tokens";
+import { HERO_HEIGHT } from "@/components/dashboard/HeroScene";
 import Dashboard from "../index";
 
 const mockPush = jest.fn();
@@ -200,32 +201,67 @@ describe("Global add vs. contextual add — TASK_048", () => {
   });
 });
 
-// TASK_053 — Home's mounted background must be the owner's exact mint spec
-// (180deg, #DCEFE9 0% / #EDF6F3 42% / #F7FAF9 100%), and must NOT be the
-// HOME_GRADIENT that Hours/Timeline/Profile/upcoming-events still render via
-// the same shared <HomeBackground> component (regression guard against
-// accidentally editing HOME_GRADIENT in place instead of passing Home's own
-// override props — that would also mint the other four screens).
-describe("Home mint gradient background — TASK_053", () => {
-  it("renders HOME_MINT_GRADIENT at stops [0, 0.42, 1], not the shared HOME_GRADIENT", async () => {
+// TASK_065 — the top card is gone: the header and the month figures sit
+// directly on the hero scene, the scene is decoration only (never a tap
+// target), the flat ground below it is the same MINISTRY.bg the scene
+// dissolves into, and Home applies the top safe-area inset itself (its
+// SafeAreaView edge is off so the scene runs under the status bar).
+describe("Home hero zone — TASK_065", () => {
+  function flat(style: unknown): Record<string, unknown> {
+    if (Array.isArray(style)) return Object.assign({}, ...style.map(flat));
+    return (style ?? {}) as Record<string, unknown>;
+  }
+
+  it("renders the hero scene and hero content, and no HoursHeroCard", async () => {
     const { renderer } = await renderScreen();
-    const stops = renderer.root.findAllByType(Stop).map((s) => ({ offset: s.props.offset, color: s.props.stopColor }));
-    expect(stops).toEqual([
-      { offset: 0, color: HOME_MINT_GRADIENT[0] },
-      { offset: 0.42, color: HOME_MINT_GRADIENT[1] },
-      { offset: 1, color: HOME_MINT_GRADIENT[2] },
-    ]);
-    expect(HOME_MINT_GRADIENT).toEqual(["#DCEFE9", "#EDF6F3", "#F7FAF9"]);
-    expect(stops.map((s) => s.color)).not.toEqual([...HOME_GRADIENT]);
+    expect(renderer.root.findByProps({ testID: "hero-scene" })).toBeTruthy();
+    expect(renderer.root.findByProps({ testID: "home-hero" })).toBeTruthy();
+    // The old white card's a11y shape ("Детали месяца" + "Добавить часы")
+    // lives on inside HomeHero, but there is no card surface around it.
+    const hero = renderer.root.findByProps({ testID: "home-hero" });
+    expect(flat(hero.props.style).backgroundColor).toBeUndefined();
+    expect(renderer.root.findAllByProps({ testID: "hours-hero-card" })).toHaveLength(0);
   });
 
-  it("the screen's flat base color is DS.homeMintBase, matching the gradient's own final stop", async () => {
+  it("does not render the old SVG HomeBackground / mint gradient any more", async () => {
     const { renderer } = await renderScreen();
-    const scrollView = renderer.root.findByType(ScrollView);
-    // The `screen` View is ScrollView's parent; walk up one level.
-    const screenView = scrollView.parent!;
-    const flat = [screenView.props.style].flat(Infinity).reduce((acc: object, s: object) => ({ ...acc, ...s }), {});
-    expect((flat as { backgroundColor: string }).backgroundColor).toBe(DS.homeMintBase);
-    expect(DS.homeMintBase).toBe("#F7FAF9");
+    const stopColors = renderer.root.findAllByType(Stop).map((s) => s.props.stopColor);
+    expect(stopColors).not.toContain(HOME_MINT_GRADIENT[0]);
+    expect(stopColors).not.toContain(HOME_GRADIENT[0]);
+    // The scene's fallback gradient carries the Ministry palette instead.
+    expect(stopColors).toContain(MINISTRY.heroTop);
+    expect(stopColors).toContain(MINISTRY.bg);
+  });
+
+  it("the scene never intercepts pointer events and is clipped", async () => {
+    const { renderer } = await renderScreen();
+    const scene = renderer.root.findByProps({ testID: "hero-scene" });
+    const style = flat(scene.props.style);
+    expect(style.pointerEvents).toBe("none");
+    expect(style.overflow).toBe("hidden");
+    expect(style.position).toBe("absolute");
+  });
+
+  it("the flat ground below the hero is MINISTRY.bg — the color the scene dissolves into", async () => {
+    const { renderer } = await renderScreen();
+    const screenView = renderer.root.findByType(ScrollView).parent!;
+    expect(flat(screenView.props.style).backgroundColor).toBe(MINISTRY.bg);
+  });
+
+  it("applies the top safe-area inset to its own content (the layout no longer pads it)", async () => {
+    const { renderer } = await renderScreen();
+    const scroll = renderer.root.findByType(ScrollView);
+    const paddingTop = flat(scroll.props.contentContainerStyle).paddingTop as number;
+    expect(paddingTop).toBe(MOCK_INSETS.top + 10);
+    // …and the scene is tall enough to run under that inset as well.
+    const scene = renderer.root.findByProps({ testID: "hero-scene" });
+    expect(flat(scene.props.style).height as number).toBeGreaterThan(MOCK_INSETS.top + HERO_HEIGHT);
+  });
+
+  it("header text uses the hero inks, not the blue DS.navy", async () => {
+    const { renderer } = await renderScreen();
+    const title = renderer.root.findAll((n) => n.props.children === "Христианская жизнь")[0];
+    expect(flat(title.props.style).color).toBe(MINISTRY.ink);
+    expect(flat(title.props.style).color).not.toBe(DS.navy);
   });
 });

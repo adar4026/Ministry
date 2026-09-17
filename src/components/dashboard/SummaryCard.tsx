@@ -65,11 +65,13 @@ const styles = StyleSheet.create({
     backgroundColor: DS.cardBg,
     borderRadius: 22,
     padding: 16,
+    // TASK_065: lightened (was 0.06 / 20 / 8 / elevation 3) so the cards
+    // below the airy hero no longer read as heavy slabs.
     shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   pressed: { opacity: 0.9 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },

@@ -7,6 +7,7 @@
 // check per the spec — this only guards the static markup.
 import { act, create } from "react-test-renderer";
 import Root from "../+html";
+import { MINISTRY, ministryCssVars } from "@/components/dashboard/tokens";
 
 function findAll(root: ReturnType<typeof create>["root"], type: string) {
   return root.findAll((n) => n.type === type);
@@ -41,5 +42,20 @@ describe("+html.tsx root document", () => {
     const css = noScroll?.props.dangerouslySetInnerHTML?.__html as string;
     expect(css).toContain("overflow-x:hidden");
     expect(css).toContain("overscroll-behavior-x:none");
+  });
+
+  // TASK_065 — the Ministry palette reaches the WebGL hero through CSS
+  // custom properties generated from the single MINISTRY object.
+  it("publishes the Ministry design tokens as --ministry-* custom properties", () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<Root>{null}</Root>);
+    });
+    const style = findAll(renderer.root, "style").find((n) => n.props.id === "ministry-tokens");
+    const css = style?.props.dangerouslySetInnerHTML?.__html as string;
+    expect(css).toBe(ministryCssVars());
+    expect(css).toContain(`--ministry-hero-a:${MINISTRY.heroA}`);
+    expect(css).toContain(`--ministry-bg:${MINISTRY.bg}`);
+    expect(css).toContain("--ministry-hero-alpha:0.56 0.48 0.4");
   });
 });

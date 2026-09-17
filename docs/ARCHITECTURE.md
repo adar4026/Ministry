@@ -61,6 +61,10 @@ ministry/
 │   │
 │   ├── components/             # Переиспользуемые компоненты
 │   │   ├── dashboard/          # Компоненты Главной (TASK_007)
+│   │   │   ├── tokens.ts       # DS + MINISTRY (палитра, TASK_065) + ministryCssVars()
+│   │   │   ├── HeroScene.tsx   # Фон hero: SVG-fallback + HeroCanvas (TASK_065)
+│   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкие волны» / native no-op
+│   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065)
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
 │   │   ├── stats/              # Карточки и график статистики (TASK_061)
 │   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
@@ -247,6 +251,31 @@ StoreContext
 Ключи `mj_backup_safety_v1` и `mj_last_backup_v1` принадлежат этой
 подсистеме, а не модели данных: `StoreProvider` их не читает,
 восстановление их не перезаписывает и в файл копии они не попадают.
+
+---
+
+## Главная: hero-зона и палитра Ministry (TASK_065)
+
+Верх Главной — не карточка, а **сцена**: `HeroScene` (absolute, clipped,
+`pointerEvents:none`) с SVG-fallback (градиент mint → фон + три мягких
+складки) и web-only `HeroCanvas` — WebGL-шейдер «жидкой ткани», перенесённый
+по механике из Alex Finance / Lexcar (три height-field-волны, псевдонормаль,
+diffuse/specular/rim, растворение в фон внутри шейдера). `HomeHero` кладёт
+цифры месяца прямо на сцену. На Home `SafeAreaView` не паддит верх — сцена
+уходит под status bar, inset применяет сам экран.
+
+Палитра — `MINISTRY` в `src/components/dashboard/tokens.ts`, единственный
+источник; на web она же публикуется как `--ministry-*` из `app/+html.tsx`
+(`ministryCssVars()`), откуда шейдер читает цвета через `getComputedStyle`.
+Зелёная сторона teal (hue 150–172°) — сознательно в стороне от Finance
+(violet, ~248°) и Lexcar (cyan / ice-blue, 185–202°); тест
+`tokens.test.ts` охраняет эту полосу. `DS`, `HOME_GRADIENT`,
+`HoursHeroCard`, `HomeBackground` остаются для остальных экранов.
+
+Производительность: DPR ≤ 2, 30 fps, один draw на кадр, пауза при
+`document.hidden` / вне viewport, `prefers-reduced-motion` и слабое
+устройство → fallback, полный teardown при unmount. Подробности —
+`docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`.
 
 ---
 

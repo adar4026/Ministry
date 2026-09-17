@@ -102,3 +102,48 @@ export const HOME_MINT_GRADIENT = ["#DCEFE9", "#EDF6F3", "#F7FAF9"] as const;
 // HOME_MINT_GRADIENT to <HomeBackground> — the default offsets ([0, 0.55, 1]
 // in HomeBackground.tsx) stay the ones the other four screens get.
 export const HOME_MINT_GRADIENT_STOPS = [0, 0.42, 1] as const;
+
+// ---------------------------------------------------------------------------
+// TASK_065 — Ministry's own identity palette for the Home hero.
+//
+// Chosen AFTER measuring the sibling apps' real tokens: Alex Finance is
+// violet/lavender (--accent #6d5df6, hue ~248°), Lexcar is cyan / ice-blue
+// (--accent #0e7c86, c1 #0d949f, c2 #78c4f0 — hue 185–202°). Ministry sits
+// on the GREEN side of teal (hue 155–168°): emerald + mint with a deep pine
+// teal in the shadows instead of Lexcar's deep blue. No value below equals a
+// Finance or Lexcar token; the closest foreign one (Lexcar c1) is ~20° away
+// and visibly bluer.
+//
+// This object is the single source of truth. On web the same values are
+// published as CSS custom properties (`--ministry-*`, see ministryCssVars()
+// and app/+html.tsx) so the WebGL hero reads them via getComputedStyle —
+// the same mechanism Finance uses for its --hero-gl-* tokens. Nothing is
+// hardcoded twice.
+export const MINISTRY = {
+  primary: "#0f6f5c",       // deep teal — buttons, accent ink
+  accent: "#1fa683",        // soft emerald — progress fill, icons
+  accentSoft: "#e2f4ed",    // pill backgrounds
+  heroTop: "#c6ebde",       // top of the scene — light mint
+  heroA: "#189a79",         // dominant wave — emerald-teal
+  heroB: "#8ddcc4",         // second wave — soft aqua-mint
+  heroC: "#e8f9f2",         // highlight — pale mint (deliberately not white)
+  heroDeep: "#0a5748",      // fold shadow / valley — pine teal
+  bg: "#f4f9f7",            // page ground == bottom of the hero
+  surface: "#ffffff",
+  ink: "#0f2a26",           // hero headlines: >= 6.8:1 on every wave color
+  ink2: "#274640",          // hero secondary text: 4.65:1 even on a fully saturated wave-a crest
+  // Opacity of waves a/b/c and the specular sheen strength (shader uniforms).
+  heroAlpha: [0.56, 0.48, 0.40] as const,
+  heroLight: 0.62,
+} as const;
+
+// `:root{--ministry-*}` for app/+html.tsx. Kebab-case keys, numbers joined
+// with spaces (the shader parses "a b c" back into a vec3).
+export function ministryCssVars(): string {
+  const entries: string[] = [];
+  for (const [key, value] of Object.entries(MINISTRY)) {
+    const name = `--ministry-${key.replace(/([A-Z0-9])/g, "-$1").toLowerCase()}`;
+    entries.push(`${name}:${Array.isArray(value) ? value.join(" ") : String(value)}`);
+  }
+  return `:root{${entries.join(";")}}`;
+}

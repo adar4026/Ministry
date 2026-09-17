@@ -6,7 +6,7 @@ import { TabBar } from "@/components/TabBar";
 // barrel: the barrel also pulls in HoursHeroCard -> StoreContext, which this
 // layout is itself an ancestor of, and the resulting import cycle left
 // HOME_GRADIENT undefined on first evaluation (TypeError in TabsLayout).
-import { DS, HOME_MINT_GRADIENT } from "@/components/dashboard/tokens";
+import { MINISTRY } from "@/components/dashboard/tokens";
 import { COLORS } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 
@@ -41,10 +41,16 @@ export default function TabsLayout() {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
+  // TASK_065: on Home the top edge is NOT padded here — the hero scene runs
+  // under the status bar / Dynamic Island (like the immersive Home in Alex
+  // Finance and Lexcar), and app/(tabs)/index.tsx applies the top inset to
+  // its own header, so content still never sits behind system UI. Every
+  // other tab keeps the "top" edge exactly as before. The strip color stays
+  // the hero's top tone as a belt-and-braces ground for the loading state.
   return (
     <SafeAreaView
-      style={[styles.safe, isHome && { backgroundColor: HOME_MINT_GRADIENT[0] }]}
-      edges={["top", "left", "right"]}
+      style={[styles.safe, isHome && { backgroundColor: MINISTRY.heroTop }]}
+      edges={isHome ? ["left", "right"] : ["top", "left", "right"]}
     >
       {loaded ? (
         <Tabs
@@ -52,7 +58,7 @@ export default function TabsLayout() {
           screenOptions={{
             headerShown: false,
             sceneStyle: {
-              backgroundColor: isHome ? DS.homeMintBase : COLORS.bg,
+              backgroundColor: isHome ? MINISTRY.bg : COLORS.bg,
               // TASK_054 — every tab now owns its own bottom clearance on
               // its ScrollView content (useTabBarContentInset(), applied at
               // each screen's call site) so its background runs edge-to-edge

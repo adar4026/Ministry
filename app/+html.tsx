@@ -1,6 +1,7 @@
 // Learn more https://docs.expo.dev/router/reference/static-rendering/#root-html
 
 import { ScrollViewStyleReset } from 'expo-router/html';
+import { ministryCssVars } from '@/components/dashboard/tokens';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -61,6 +62,15 @@ export default function Root({ children }: { children: React.ReactNode }) {
             __html: `html,body,#root{background-color:#f8fafc;height:100dvh}`,
           }}
         />
+
+        {/*
+          TASK_065 — Ministry design tokens as CSS custom properties. Generated
+          from the single MINISTRY object (src/components/dashboard/tokens.ts),
+          never typed here by hand; the Home hero's WebGL layer reads them via
+          getComputedStyle (--ministry-hero-*), the same way Alex Finance reads
+          its --hero-gl-* tokens.
+        */}
+        <style id="ministry-tokens" dangerouslySetInnerHTML={{ __html: ministryCssVars() }} />
 
         {/* Add any additional <head> elements that you want globally available on web... */}
         <link rel="apple-touch-icon" href="/Ministry/apple-touch-icon.png" />

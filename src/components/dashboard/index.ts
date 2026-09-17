@@ -9,4 +9,6 @@ export { UpcomingEventRow } from "./UpcomingEventRow";
 export { HoursHeroCard } from "./HoursHeroCard";
 export { HomeBackground } from "./HomeBackground";
 export { HeroProgressRing } from "./HeroProgressRing";
-export { DS } from "./tokens";
+export { HeroScene, HERO_HEIGHT } from "./HeroScene";
+export { HomeHero } from "./HomeHero";
+export { DS, MINISTRY } from "./tokens";

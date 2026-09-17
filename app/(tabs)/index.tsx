@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MonthChip } from "@/components/MonthChip";
 import { Modal } from "@/components/Modal";
@@ -7,9 +7,10 @@ import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { RecordForm } from "@/components/forms/RecordForm";
 import { EventForm } from "@/components/forms/EventForm";
 import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useTabBarContentInset } from "@/components/TabBar";
-import { DS, EventCard, HomeBackground, HoursHeroCard, SectionHeader, SummaryCard } from "@/components/dashboard";
-import { HOME_MINT_GRADIENT, HOME_MINT_GRADIENT_STOPS } from "@/components/dashboard/tokens";
+import { DS, EventCard, HERO_HEIGHT, HeroScene, HomeHero, SectionHeader, SummaryCard } from "@/components/dashboard";
+import { MINISTRY } from "@/components/dashboard/tokens";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, MinistryEvent } from "@/types";
@@ -25,6 +26,12 @@ export function formatHomeDate(now: Date): string {
   return `${WEEKDAYS[now.getDay()]}, ${now.getDate()} ${MONTHS_GEN[now.getMonth()]}`;
 }
 
+// TASK_065 — hero geometry. Content starts HERO_CONTENT_TOP below the safe
+// area; the scene extends HERO_TAIL past the hero content so the dissolve
+// into the page ground happens under the first section title, not above it.
+const HERO_CONTENT_TOP = 10;
+const HERO_TAIL = 64;
+
 export default function Dashboard() {
   const { records, sessions, events, profile, customCategories, saveProfile, saveRecord, deleteRecord, saveEvent } =
     useStore();
@@ -36,6 +43,21 @@ export default function Dashboard() {
   // is less than the bar actually occupies on any device with a home
   // indicator (65 + 34 = 99).
   const bottomInset = useTabBarContentInset();
+  // TASK_065 — Home is the one tab whose SafeAreaView no longer pads the
+  // top (app/(tabs)/_layout.tsx): the hero scene runs under the status bar
+  // / Dynamic Island and the header applies the inset itself, so nothing
+  // ever sits behind system UI. Read from the context rather than
+  // useSafeAreaInsets(), which throws without a provider — the same
+  // degrade-to-zero rule useTabBarContentInset() follows for tests that
+  // mount this screen without the app shell.
+  const topInset = useContext(SafeAreaInsetsContext)?.top ?? 0;
+  // The scene's height follows the MEASURED hero content (header + HomeHero)
+  // plus a tail for the dissolve, instead of a fixed number — on a 320 pt
+  // iPhone the two metrics wrap and the pills would otherwise fall out of
+  // the scene. HeroScene is absolutely positioned behind the content, so a
+  // height change here never moves anything the user is reading.
+  const [heroContentHeight, setHeroContentHeight] = useState<number | null>(null);
+  const sceneHeight = topInset + HERO_CONTENT_TOP + (heroContentHeight ?? HERO_HEIGHT) + (heroContentHeight === null ? 0 : HERO_TAIL);
   const [editRec, setEditRec] = useState<HourRecord | null>(null);
   // TASK_056 — "Последние события" now has a functional edit icon, same
   // EventForm as the "События" screen; no delete button here (onDelete
@@ -87,11 +109,16 @@ export default function Dashboard() {
 
   return (
     <View style={styles.screen}>
-      <HomeBackground colors={HOME_MINT_GRADIENT} stops={HOME_MINT_GRADIENT_STOPS} />
+      {/* TASK_065 — the hero background is part of the page itself: an
+          absolutely positioned, clipped scene (SVG fallback + WebGL silk
+          waves on web) that the header and HomeHero are laid out over. It
+          scrolls with the content — it is inside the screen, not fixed. */}
+      <HeroScene height={sceneHeight} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
+        contentContainerStyle={[styles.content, { paddingTop: topInset + HERO_CONTENT_TOP, paddingBottom: bottomInset }]}
       >
+        <View onLayout={(e) => setHeroContentHeight(Math.round(e.nativeEvent.layout.height))} style={styles.heroBlock}>
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
             <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
@@ -112,7 +139,9 @@ export default function Dashboard() {
           />
         </View>
 
-        <HoursHeroCard />
+        {/* No card: the figures sit directly on the hero (TASK_065). */}
+        <HomeHero />
+        </View>
 
         <View style={styles.section}>
           <SectionHeader title="Ближайшие события" />
@@ -173,13 +202,11 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  // Home-only screen background (TASK_010; mint gradient TASK_053):
-  // near-white base under the HomeBackground gradient overlay; the shared
-  // Tabs sceneStyle bg is untouched, so Hours/Events/Add/Profile are
-  // unaffected. DS.homeMintBase (not DS.homeBase) matches this screen's own
-  // HOME_MINT_GRADIENT final stop — the other four HomeBackground call sites
-  // keep DS.homeBase/HOME_GRADIENT untouched.
-  screen: { flex: 1, backgroundColor: DS.homeMintBase },
+  // Home-only screen background. Hours/Events/Add/Profile still render the
+  // shared <HomeBackground /> with HOME_GRADIENT and are untouched.
+  // TASK_065: the flat ground below the hero is MINISTRY.bg — the same
+  // color the hero dissolves into, so the scene has no bottom edge.
+  screen: { flex: 1, backgroundColor: MINISTRY.bg },
   // Bounded height so the ScrollView scrolls on native now that it is nested
   // inside the screen View (was the tab-screen root before TASK_010); on web
   // this is a no-op. Mirrors the Hours screen's flex:1 scroll container.
@@ -189,7 +216,12 @@ const styles = StyleSheet.create({
   // so the header reads as part of the same composition and no longer needs
   // to be pushed down away from a contrasting band. paddingBottom is applied
   // at the call site from useTabBarContentInset().
-  content: { paddingHorizontal: 16, paddingTop: 10, gap: 22 },
+  // paddingTop is applied at the call site: top safe-area inset + 10
+  // (TASK_065 — Home owns its own top inset, see above).
+  content: { paddingHorizontal: 16, gap: 22 },
+  // Header + HomeHero measured as one block for the scene height; the
+  // 22 px gap between them mirrors `content.gap`.
+  heroBlock: { gap: 22 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -197,10 +229,11 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   headerText: { flex: 1, marginRight: 12 },
-  pageTitle: { fontSize: 23, fontWeight: "700", color: DS.navy, letterSpacing: -0.3 },
-  // DS.onTintInk, not DS.subText (TASK_048): this caption sits on the Home
-  // gradient, where DS.subText measured 3.2:1.
-  pageDate: { fontSize: 14, color: DS.onTintInk, fontWeight: "600", marginTop: 1 },
+  // TASK_065: header text now sits on the animated hero — MINISTRY.ink /
+  // ink2 are the two tints measured against every wave color (>= 9.5:1 and
+  // 4.7:1); DS.navy (blue) would clash with the green scene.
+  pageTitle: { fontSize: 23, fontWeight: "700", color: MINISTRY.ink, letterSpacing: -0.3 },
+  pageDate: { fontSize: 14, color: MINISTRY.ink2, fontWeight: "600", marginTop: 1 },
   // Title-to-content grouping: tighter than the gap between section blocks.
   section: { gap: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
