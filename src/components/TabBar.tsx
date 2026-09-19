@@ -12,7 +12,8 @@
 //   `data-ministry-glass` attribute set below).
 // • One shared active pill (a glass lens on MINISTRY.accent) slides between
 //   the FIVE equal slots via an Animated translateX. It can only rest on a
-//   real tab (slots 0, 1, 3, 4); the centre slot is the "Скоро" placeholder.
+//   real tab (slots 0, 1, 3, 4); the centre slot «Скоро» opens the
+//   /upcoming-events Stack screen (TASK_068) and is never the pill's target.
 // • A horizontal drag on the capsule (PanResponder — the project's existing
 //   gesture primitive, see AddActionSheet / HomeDrawer) moves the pill with
 //   the finger after an 8 px threshold, previews the nearest real tab, and on
@@ -41,6 +42,7 @@ import {
 } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import { MINISTRY, NAV } from "@/components/dashboard/tokens";
 import {
   CalendarIcon,
@@ -419,13 +421,20 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   );
 
   // --- "Скоро" -----------------------------------------------------------------
+  // TASK_068 — the centre tab opens the existing /upcoming-events screen
+  // (the same router.push the Home card's "Показать все" uses). It is a
+  // root-Stack route, not a tab: the pill never rests here, `state.index`
+  // never points here, and the screen's own BackButton pops back to
+  // whichever tab was open.
   const onSoonPress = useCallback(() => {
     haptic(() => Haptics.selectionAsync());
-    if (prefersReducedMotion()) return;
-    Animated.sequence([
-      Animated.timing(soonScale, { toValue: 0.92, duration: 90, useNativeDriver: NATIVE_DRIVER }),
-      Animated.timing(soonScale, { toValue: 1, duration: 130, useNativeDriver: NATIVE_DRIVER }),
-    ]).start();
+    if (!prefersReducedMotion()) {
+      Animated.sequence([
+        Animated.timing(soonScale, { toValue: 0.92, duration: 90, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(soonScale, { toValue: 1, duration: 130, useNativeDriver: NATIVE_DRIVER }),
+      ]).start();
+    }
+    router.push("/upcoming-events");
   }, [soonScale]);
 
   // --- render --------------------------------------------------------------------
@@ -437,9 +446,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         <Pressable
           key="soon"
           accessibilityRole="button"
-          accessibilityLabel="Скоро — появится позже"
-          accessibilityState={{ disabled: true }}
-          aria-disabled
+          accessibilityLabel="Скоро — ближайшие события"
           onPress={onSoonPress}
           style={styles.tab}
           testID="tab-soon"

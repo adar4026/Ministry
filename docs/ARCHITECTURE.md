@@ -338,8 +338,10 @@ opacity backdrop) + `PanResponder` для свайпа влево. Панель 
   (pillX, stretch, edgeDir/opacity, glint), preview ближайшей реальной
   вкладки; на отпускании `nearestRealSlot()` (центр никогда) → пружина →
   тот же `go()`, что у tap; 400 мс подавления click после drag.
-- **«Скоро»** — слот 2, `HourglassIcon`, `aria-disabled`; tap — только
-  haptic + короткое сжатие иконки, без навигации.
+- **«Скоро»** — слот 2, `HourglassIcon`; tap → haptic + короткое сжатие
+  иконки + `router.push("/upcoming-events")` (TASK_068) — экран «Ближайшие
+  события» из root-Stack, `BackButton` возвращает на прежнюю вкладку; для
+  pill/drag центр по-прежнему не цель.
 - **«＋»** — отдельный glass-`Pressable` в том же wrap (не потомок
   капсулы), 48 pt, справа на 12 pt выше капсулы, прежний `go("add")`.
 - `TAB_BAR_HEIGHT = 64`; контракт `useTabBarContentInset()` не менялся.

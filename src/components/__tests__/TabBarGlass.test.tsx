@@ -28,6 +28,9 @@ import {
   useTabBarContentInset,
 } from "@/components/TabBar";
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+
 jest.mock("expo-haptics", () => ({
   selectionAsync: () => Promise.resolve(),
   impactAsync: () => Promise.resolve(),
@@ -142,20 +145,22 @@ describe("TabBar — structure (TASK_067)", () => {
     expect(TAB_BAR_HEIGHT).toBe(64);
   });
 
-  it("the «Скоро» tab uses the calm hourglass icon, is marked disabled and never navigates or steals active", () => {
+  it("the «Скоро» tab uses the calm hourglass icon and opens /upcoming-events without touching the tab state (TASK_068)", () => {
+    mockPush.mockClear();
     const { renderer, navigate, emit } = renderBar("hours");
     const soon = renderer.root.findByProps({ testID: "tab-soon" });
     expect(soon.findAllByType(HourglassIcon)).toHaveLength(1);
-    expect(soon.props.accessibilityState).toEqual({ disabled: true });
-    expect(soon.props["aria-disabled"]).toBe(true);
+    expect(soon.props.accessibilityLabel).toBe("Скоро — ближайшие события");
     act(() => {
       soon.props.onPress();
     });
+    // A Stack push (same as the Home card's "Показать все"), never a tab switch.
+    expect(mockPush).toHaveBeenCalledWith("/upcoming-events");
     expect(navigate).not.toHaveBeenCalled();
     expect(emit).not.toHaveBeenCalled();
     // The real tab keeps `selected`; the placeholder never gets it.
     expect(renderer.root.findByProps({ testID: "tab-hours" }).props.accessibilityState).toEqual({ selected: true });
-    expect(soon.props.accessibilityState.selected).toBeUndefined();
+    expect(soon.props.accessibilityState?.selected).toBeUndefined();
   });
 
   it("a plain tap on a real tab still emits tabPress and navigates", () => {

@@ -10,6 +10,11 @@
 // that instance's Platform.OS *before* TabBar is (re-)required, so TabBar's
 // own internal `require("react-native")` resolves to the same mutated
 // instance.
+// TASK_068 — TabBar now imports expo-router (the «Скоро» tab pushes
+// /upcoming-events); the real module reads window.location on require,
+// which the Platform.OS="web" case below has no DOM for.
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+
 const SAFE_AREA_METRICS = {
   frame: { x: 0, y: 0, width: 375, height: 812 },
   insets: { top: 0, left: 0, right: 0, bottom: 12 },
