@@ -74,6 +74,7 @@ ministry/
 │   │   │                       #   ProfileSettingsRow (+ ProfileRowVariantContext), profileMenu.ts
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
 │   │   ├── stats/              # Карточки и график статистики (TASK_061)
+│   │   ├── TabBar.tsx          # Нижняя навигация: floating glass capsule, pill, drag, «＋» (TASK_067)
 │   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
 │   │   └── TodayCard.tsx
 │   │
@@ -309,6 +310,41 @@ opacity backdrop) + `PanResponder` для свайпа влево. Панель 
 `ProfileEditSheet` переиспользуются как есть. Версия — только
 `src/data/appInfo.ts` (`backup.ts` реэкспортирует). Вкладка «Профиль»
 сохранена до решения владельца (см. TASK_066 §6).
+
+---
+
+## Нижняя навигация: floating glass capsule (TASK_067)
+
+`src/components/TabBar.tsx` — кастомный `tabBar` для `<Tabs>` по тому же
+утверждённому принципу, что LexCar `BottomNav` и Finance `.nav`
+(TASK_056/057 там), на стеке Ministry:
+
+```
+[ Главная · Часы · Скоро · События · Профиль ]        (＋)
+```
+
+- **Капсула** 64 pt, radius 32, padding 7, margin 16, ≤ 480 pt — near-clear
+  стекло: `NAV.bg` + `backdrop-filter blur(10px) saturate(150%)` (web,
+  `Platform.select`), контур `NAV.border`, inset-блик, мягкая тень;
+  прозрачность только в `backgroundColor`. Native — `NAV.bgSolid`; web без
+  backdrop-filter — `@supports not` в `app/+html.tsx` по
+  `data-ministry-glass`. Токены — объект `NAV` в `tokens.ts` (rgba на базе
+  `MINISTRY`, вне hex-палитры).
+- **Active pill** — один `Animated.View` шириной в слот (из `onLayout`),
+  `translateX` → `slot × slotW`; только на реальных слотах 0/1/3/4;
+  скрыта на route `add`.
+- **Drag** — `PanResponder` на капсуле (`onMoveShouldSetPanResponderCapture`
+  после 8 px горизонтали); во время жеста меняются только Animated-значения
+  (pillX, stretch, edgeDir/opacity, glint), preview ближайшей реальной
+  вкладки; на отпускании `nearestRealSlot()` (центр никогда) → пружина →
+  тот же `go()`, что у tap; 400 мс подавления click после drag.
+- **«Скоро»** — слот 2, `HourglassIcon`, `aria-disabled`; tap — только
+  haptic + короткое сжатие иконки, без навигации.
+- **«＋»** — отдельный glass-`Pressable` в том же wrap (не потомок
+  капсулы), 48 pt, справа на 12 pt выше капсулы, прежний `go("add")`.
+- `TAB_BAR_HEIGHT = 64`; контракт `useTabBarContentInset()` не менялся.
+  Тем в проекте нет — только светлая. Детали —
+  `docs/TASKS/TASK_067_FLOATING_GLASS_TAB_BAR.md`.
 
 ---
 

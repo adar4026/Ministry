@@ -1,7 +1,7 @@
 // Learn more https://docs.expo.dev/router/reference/static-rendering/#root-html
 
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { ministryCssVars } from '@/components/dashboard/tokens';
+import { NAV, ministryCssVars } from '@/components/dashboard/tokens';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -71,6 +71,21 @@ export default function Root({ children }: { children: React.ReactNode }) {
           its --hero-gl-* tokens.
         */}
         <style id="ministry-tokens" dangerouslySetInnerHTML={{ __html: ministryCssVars() }} />
+
+        {/*
+          TASK_067 — glass fallback for the floating tab bar and its "+"
+          button. Their translucency only works together with
+          backdrop-filter (src/components/TabBar.tsx); where a browser has
+          neither prefix, the same elements (marked with a data attribute via
+          RNW's `dataSet`) get a dense light fill so icons and labels keep
+          their contrast over any content.
+        */}
+        <style
+          id="ministry-glass-fallback"
+          dangerouslySetInnerHTML={{
+            __html: `@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){[data-ministry-glass="nav"]{background-color:${NAV.bgSolid} !important}[data-ministry-glass="add"]{background-color:${NAV.addBgSolid} !important}}`,
+          }}
+        />
 
         {/* Add any additional <head> elements that you want globally available on web... */}
         <link rel="apple-touch-icon" href="/Ministry/apple-touch-icon.png" />

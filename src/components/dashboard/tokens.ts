@@ -147,3 +147,42 @@ export function ministryCssVars(): string {
   }
   return `:root{${entries.join(";")}}`;
 }
+
+// ---------------------------------------------------------------------------
+// TASK_067 — the floating glass tab bar. Kept OUTSIDE `MINISTRY` on purpose:
+// that object is the hex palette the hue/contrast tests and the shader read,
+// while these are translucent rgba surfaces derived from it (ink for the
+// outlines, accent for the pill). Same approved principle as LexCar /
+// Finance's bottom nav (near-clear capsule, glass pill, glass "+"), values
+// tuned for Ministry's light mint ground.
+//
+// The app has a single (light) theme today; a dark theme would add a second
+// set here, not a second component.
+export const NAV = {
+  // Capsule — transparency lives in the background only, never as opacity
+  // on the whole bar (icons/labels stay fully opaque).
+  bg: "rgba(255,255,255,0.12)",
+  bgSolid: "rgba(255,255,255,0.94)", // no backdrop-filter (native / old browsers)
+  border: "rgba(15,42,38,0.30)", // MINISTRY.ink @ 30 % — the outline holds the capsule
+  highlight: "rgba(255,255,255,0.45)", // inset top sheen
+  blur: "10px",
+  saturate: "150%",
+  shadow: "rgba(10,87,72,0.12)", // MINISTRY.heroDeep
+  muted: MINISTRY.ink2,
+  active: MINISTRY.primary,
+  // Active pill — a light lens on the accent, not a solid colour block.
+  pillBg: "rgba(31,166,131,0.16)", // MINISTRY.accent
+  pillBorder: "rgba(255,255,255,0.40)",
+  pillHighlight: "rgba(255,255,255,0.35)",
+  pillGlow: "rgba(31,166,131,0.18)",
+  // Live-glass decorations while held / dragged.
+  glint: "rgba(255,255,255,0.45)",
+  edgeLight: "rgba(255,255,255,0.32)",
+  edgeDark: "rgba(15,42,38,0.06)",
+  // Separate floating "+" button — neutral glass, never a primary blue.
+  addBg: "rgba(255,255,255,0.14)",
+  addBgSolid: "rgba(255,255,255,0.96)",
+  addBorder: "rgba(15,42,38,0.30)",
+  addHighlight: "rgba(255,255,255,0.45)",
+  addShadow: "rgba(10,87,72,0.14)",
+} as const;

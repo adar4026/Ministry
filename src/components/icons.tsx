@@ -314,3 +314,19 @@ export function StarIcon({ size = 22, color }: IconProps) {
     </Svg>
   );
 }
+
+// TASK_067 — the "Скоро" placeholder tab: a calm outline hourglass, same
+// 24x24 stroke style as the other tab icons, nothing bright or symbolic.
+export function HourglassIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 3h10M7 21h10M8 3v3.5a4 4 0 0 0 1.6 3.2L12 12l2.4-2.3A4 4 0 0 0 16 6.5V3M8 21v-3.5a4 4 0 0 1 1.6-3.2L12 12l2.4 2.3a4 4 0 0 1 1.6 3.2V21"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
