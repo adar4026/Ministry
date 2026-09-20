@@ -225,3 +225,23 @@ export const FIGURE_GLASS = {
   rim: "rgba(255,255,255,0.75)",
   rimWidth: 1,
 } as const;
+
+// ---------------------------------------------------------------------------
+// TASK_076 — the Profile milestones block ("Крещение"/"Пионер"/…), redesigned
+// after a reference screenshot of a sibling app (LexMoney): a light,
+// blue-tinted glass surface with plain label/value rows, no per-row cards.
+// Deliberately a ONE-OFF, scoped to ProfileHeroCard only — NOT a palette
+// change. Ministry's own hue stays teal/mint everywhere else (see MINISTRY
+// above, and TASK_065's note that Ministry is deliberately not the ice-blue
+// Lexcar/LexMoney family) — the owner asked for this specific block to match
+// LexMoney's own look, not for Ministry to adopt it globally.
+export const PROFILE_ICE = {
+  bg: "rgba(234,243,255,0.88)", // #EAF3FF, mostly opaque so it reads consistently with/without blur support
+  ink: "#15171C",
+  // Owner's reference was #697386 (4.26:1 on the flattened PROFILE_ICE.bg —
+  // just under WCAG AA's 4.5:1 for normal text). Darkened to the nearest
+  // value that clears AA (4.81:1) while staying the same cool grey-blue hue
+  // — same precedent as DS.subInk (TASK_048).
+  ink2: "#5f6b80",
+  divider: "rgba(120,135,155,0.12)",
+} as const;

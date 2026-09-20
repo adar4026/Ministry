@@ -1,8 +1,10 @@
-// TASK_042 revision — Profile hero card. Key requirements under test: the
-// card must never invent preset "Крещение"/"Пионер" entries (every event
-// comes directly from the profile prop), the empty state renders with zero
-// events (not three blank placeholder columns), and up to 3 events render
-// side-by-side in equal-width columns rather than stacked vertically.
+// TASK_076 — Profile hero card, redesigned after the owner's LexMoney
+// reference screenshot: avatar + name header, followed by plain
+// label-left/value-right ROWS on one ice-blue surface (no columns, no
+// uppercase labels, no per-row cards). Key requirements under test: the card
+// must never invent preset "Крещение"/"Пионер" entries (every event comes
+// directly from the profile prop), the empty state renders with zero events,
+// and at most 3 events render as stacked rows in array order.
 import { act, create } from "react-test-renderer";
 import { ProfileHeroCard } from "../ProfileHeroCard";
 import type { UserProfile } from "@/types";
@@ -70,6 +72,13 @@ describe("ProfileHeroCard — filled header", () => {
     expect(findTexts(renderer)).toContain("Мой профиль");
   });
 
+  it("shows the 'Личный профиль' subtitle and a trailing chevron next to the name", () => {
+    const renderer = renderCard(profile({ displayName: "Александр" }));
+    const texts = findTexts(renderer);
+    expect(texts).toContain("Личный профиль");
+    expect(texts).toContain("›");
+  });
+
   it("renders an Image when a photo is set", () => {
     const renderer = renderCard(profile({ displayName: "А", profilePhotoUri: "file:///photo.jpg" }));
     const images = renderer.root.findAllByType("Image" as never);
@@ -101,10 +110,10 @@ describe("ProfileHeroCard — filled header", () => {
   });
 });
 
-describe("ProfileHeroCard — horizontal events layout", () => {
+describe("ProfileHeroCard — milestone rows", () => {
   const e = (id: string, title: string, date: string) => ({ id, title, date });
 
-  it("shows exactly one column when only one event is added", () => {
+  it("shows exactly one row when only one event is added", () => {
     const renderer = renderCard(profile({ events: [e("1", "Крещение", "2016-08-15")] }));
     const texts = findTexts(renderer);
     expect(texts).toContain("Крещение");
@@ -112,18 +121,17 @@ describe("ProfileHeroCard — horizontal events layout", () => {
     expect(texts).toContain("+ Добавить событие");
   });
 
-  it("shows two columns and leaves the third visually blank (no placeholder text)", () => {
+  it("shows every added row and nothing for unfilled slots (no placeholder text)", () => {
     const renderer = renderCard(
       profile({ events: [e("1", "Крещение", "2016-08-15"), e("2", "Пионер", "2022-09-01")] }),
     );
     const texts = findTexts(renderer);
     expect(texts).toContain("Крещение");
     expect(texts).toContain("Пионер");
-    // No dash/placeholder text anywhere for the unfilled third slot.
     expect(texts).not.toEqual(expect.arrayContaining(["—", "-", "..."]));
   });
 
-  it("shows exactly three columns left-to-right in array order and hides the add action at the limit", () => {
+  it("shows exactly three rows top-to-bottom in array order and hides the add action at the limit", () => {
     const renderer = renderCard(
       profile({
         events: [e("1", "Крещение", "2016-08-15"), e("2", "Пионер", "2022-09-01"), e("3", "Переезд", "2024-03-12")],
@@ -139,7 +147,7 @@ describe("ProfileHeroCard — horizontal events layout", () => {
     expect(texts).not.toContain("+ Добавить событие");
   });
 
-  it("never renders a fourth event even if the profile somehow carries one", () => {
+  it("never renders a fourth row even if the profile somehow carries one", () => {
     const renderer = renderCard(
       profile({
         events: [
@@ -160,18 +168,27 @@ describe("ProfileHeroCard — horizontal events layout", () => {
     expect(texts.some((t) => /^\d+ г( \d+ мес)?$|^\d+ мес$|^менее 1 мес$/.test(t))).toBe(true);
   });
 
-  it("renders the event title with visual uppercase styling without mutating the stored string", () => {
+  it("renders the event title exactly as stored — no uppercase transform, no invented casing", () => {
     const renderer = renderCard(profile({ events: [e("1", "крещение", "2016-08-15")] }));
     const titleNode = renderer.root.findAll((n) => n.props.children === "крещение")[0];
-    expect(titleNode).toBeTruthy(); // stored value is untouched (still lowercase)
+    expect(titleNode).toBeTruthy();
     const flatStyle = [titleNode.props.style].flat();
-    expect(flatStyle.some((s) => s && s.textTransform === "uppercase")).toBe(true);
+    expect(flatStyle.every((s) => !s || s.textTransform !== "uppercase")).toBe(true);
   });
 
-  it("caps a long event title at 2 lines so it cannot push a neighboring column's date/duration down", () => {
+  it("caps a long event title at 2 lines so it cannot push the row's value out of alignment", () => {
     const longTitle = "Очень длинное название события ".repeat(3).trim();
     const renderer = renderCard(profile({ events: [e("1", longTitle, "2016-08-15")] }));
     const titleNode = renderer.root.findAll((n) => n.props.children === longTitle)[0];
     expect(titleNode.props.numberOfLines).toBe(2);
+  });
+
+  it("gives every row its own accessible label instead of a separate card element", () => {
+    const renderer = renderCard(
+      profile({ events: [e("1", "Крещение", "2016-08-15"), e("2", "Пионер", "2022-09-01")] }),
+    );
+    const labels = renderer.root
+      .findAll((n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Крещение"));
+    expect(labels.length).toBeGreaterThan(0);
   });
 });
