@@ -92,8 +92,14 @@ export default function UpcomingEventsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
+  // TASK_075 — 14 px of visual breathing room on top of the safe-area inset
+  // (SafeAreaView already applies that via `edges: ["top", ...]`): the back
+  // button and title were sitting right against the status bar. `marginTop`
+  // pushes the whole row down as one block without touching its internal
+  // centring, so the button stays vertically aligned with the title.
   header: {
     height: 48,
+    marginTop: 14,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
