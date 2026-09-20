@@ -11,4 +11,4 @@ export { HomeBackground } from "./HomeBackground";
 export { HeroProgressRing } from "./HeroProgressRing";
 export { HeroScene, HERO_HEIGHT } from "./HeroScene";
 export { HomeHero } from "./HomeHero";
-export { DS, MINISTRY, PROFILE_ICE } from "./tokens";
+export { DS, MINISTRY } from "./tokens";
