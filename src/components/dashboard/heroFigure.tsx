@@ -182,9 +182,9 @@ export const PILL_GLASS = Platform.select<object>({
 export const HERO = StyleSheet.create({
   // Full-width wrapper that centres the figure on the screen. ONLY the
   // figure is centred; the caption and everything below stay left-aligned.
-  // A little extra space above (on top of the screen's heroBlock gap) keeps
-  // it clear of the date line without floating away from the header.
-  figureWrap: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 8 },
+  // No extra space above beyond the screen's heroBlock gap (TASK_074): the
+  // figure sits close under the date line, not floated away from it.
+  figureWrap: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 0 },
   // TASK_071 — the glass stack: sized by the in-flow body row; the overlay
   // layers are absolute copies of that row (same content, same width, same
   // centring), so they land glyph-on-glyph without touching the layout.
