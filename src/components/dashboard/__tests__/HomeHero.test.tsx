@@ -92,7 +92,7 @@ describe("HomeHero — structure", () => {
 
   it("uses the hero inks (not DS.navy / DS.subInk) for the figure and captions", async () => {
     const renderer = await render();
-    const figure = renderer.root.findAll((n) => n.type === Text && flat(n.props.style).fontSize === 56)[0];
+    const figure = renderer.root.findAll((n) => n.type === Text && flat(n.props.style).fontSize === 60)[0];
     expect(flat(figure.props.style).color).toBe(MINISTRY.ink);
     const colors = renderer.root.findAllByType(Text).map((n) => flat(n.props.style).color);
     expect(colors).not.toContain(DS.navy);
@@ -127,7 +127,7 @@ describe("HomeHero — headline typography", () => {
     expect(splitDuration("—")).toEqual([["—", ""]]);
   });
 
-  it("the number is 56 pt / weight 700 in the headline ink; the unit is 24 pt / weight 600 in the secondary ink", async () => {
+  it("the digits are 60 pt / weight 600 (medium, not bold) in the headline ink; the unit is 24 pt / weight 500 in the secondary ink", async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify([sessionToday(37 * 60)]));
     const renderer = await render();
     const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
@@ -136,16 +136,31 @@ describe("HomeHero — headline typography", () => {
     const u = flat(unit.props.style);
     expect(num.props.children).toBe("37");
     expect(unit.props.children).toBe("ч");
-    expect(n.fontSize).toBe(56);
-    expect(n.lineHeight).toBe(60);
-    expect(n.fontWeight).toBe("700");           // lighter than TASK_065's 800
+    expect(n.fontSize).toBeGreaterThanOrEqual(58);
+    expect(n.fontSize).toBeLessThanOrEqual(64);
+    expect(n.lineHeight).toBe(64);
+    expect(n.fontWeight).toBe("600");           // a KPI, not a bold heading (TASK_065 was 800)
+    expect(n.letterSpacing).toBeLessThan(0);
     expect(n.color).toBe(MINISTRY.ink);
     expect(n.fontVariant).toEqual(["tabular-nums"]);
-    expect(u.fontSize).toBeLessThan((n.fontSize as number) / 2);
-    expect(u.fontWeight).toBe("600");
+    expect(u.fontSize).toBeGreaterThanOrEqual(22);
+    expect(u.fontSize).toBeLessThanOrEqual(26);
+    expect(u.fontWeight).toBe("500");
     expect(u.color).toBe(MINISTRY.ink2);
-    expect(n.fontFamily).toBeUndefined();       // system font, nothing decorative
-    expect(u.fontFamily).toBeUndefined();
+    // The unit is tucked against the digits: "37 ч" is one unit, not "37" + a stray "ч".
+    expect(u.marginLeft as number).toBeLessThanOrEqual(3);
+  });
+
+  it("uses only the platform's system face — a rounded system alias on web, the default on native, no font dependency", async () => {
+    const renderer = await render();
+    const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
+    for (const t of figure.findAllByType(Text)) {
+      const ff = flat(t.props.style).fontFamily as string | undefined;
+      if (ff !== undefined) {
+        expect(ff.startsWith("ui-rounded")).toBe(true);
+        expect(ff).toMatch(/system-ui|-apple-system/);
+      }
+    }
   });
 
   it("number and unit share one baseline-aligned row exactly one line tall", async () => {
@@ -161,6 +176,26 @@ describe("HomeHero — headline typography", () => {
       expect(ps.marginTop).toBeUndefined();
       expect(ps.paddingTop).toBeUndefined();
     }
+  });
+
+  // The figure is the hero's ONE centred element — the dashboard's focal
+  // point. The caption and everything below stay on the left grid.
+  it("centres the figure in a full-width wrapper while the caption and the rest stay left-aligned", async () => {
+    const renderer = await render();
+    const wrap = renderer.root.findByProps({ testID: "home-hero-figure-wrap" });
+    const ws = flat(wrap.props.style);
+    expect(ws.width).toBe("100%");
+    expect(ws.alignItems).toBe("center");
+    expect(ws.justifyContent).toBe("center");
+    expect(wrap.findByProps({ testID: "home-hero-figure" })).toBeTruthy();
+    // Nothing else in the hero is centred (host nodes only — RN's composite
+    // View and its host "View" carry the same props).
+    const centred = renderer.root
+      .findByProps({ testID: "home-hero" })
+      .findAll((n) => typeof n.type === "string" && n.props.testID !== "home-hero-figure-wrap"
+        && flat(n.props.style).alignItems === "center" && flat(n.props.style).width === "100%");
+    expect(centred).toHaveLength(0);
+    for (const t of renderer.root.findAllByType(Text)) expect(flat(t.props.style).textAlign).toBeUndefined();
   });
 });
 

@@ -16,12 +16,15 @@ import { DS, MINISTRY } from "./tokens";
 // of truth.
 //
 // TASK_070 — the "СЕНТЯБРЬ 2026" eyebrow is gone (the header's date line
-// already says the month) and the figure moved up into its place: no top
-// padding of its own, the header→hero gap is the screen's (index.tsx). The
-// figure is set as number + unit on one baseline — the number large and a
-// weight lighter than before, the unit ("ч"/"м") smaller, lighter and in
-// the secondary ink — so "37 ч" reads like an iOS dashboard headline, not
-// a bold label. formatHMRounded() is still the single source of the string;
+// already says the month) and the figure took its place as the hero's one
+// CENTRED element: a full-width wrapper centres "37 ч" on the screen while
+// everything else (caption, progress, pace, metrics, pills) keeps the left
+// grid — a dashboard KPI, not another line of text. The figure is number +
+// unit on one baseline: the number large but a medium weight (600, not a
+// heavy 700/800) in the system rounded face where the platform has one
+// (SF Rounded on iOS via `ui-rounded`; no font dependency), the unit
+// ("ч"/"м") small, weight 500, secondary ink, tucked right against the
+// digits. formatHMRounded() is still the single source of the string;
 // splitDuration() only breaks it into (number, unit) pairs for layout.
 //
 // Text sits on an animated background, so the headline ink is
@@ -47,6 +50,16 @@ const FIGURE_SHADOW = Platform.select<object>({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 0,
   },
+});
+
+// The headline digits in the platform's rounded system face: on iOS/macOS
+// Safari `ui-rounded` resolves to SF Rounded, elsewhere the chain falls back
+// to the regular system UI font. Native RN has no cross-platform alias for
+// SF Rounded without shipping a font, so it keeps the system default — no
+// new font dependency either way.
+const FIGURE_FONT = Platform.select<object>({
+  web: { fontFamily: 'ui-rounded, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' },
+  default: {},
 });
 
 // Very light glass for the two pills: translucent white, a touch of blur on
@@ -106,17 +119,19 @@ export function HomeHero() {
   return (
     <View style={styles.wrap} testID="home-hero">
       <View accessible accessibilityLabel={a11yLabel}>
-        {/* A baseline-aligned row rather than nested Text: mixed font sizes
-            inside one Text stretch the line box (each size gets its own
-            half-leading), while a row gives an exact 60 pt height and puts
-            the small unit on the number's baseline on native and web. */}
-        <View style={styles.figure} importantForAccessibility="no" testID="home-hero-figure">
-          {splitDuration(formatHMRounded(p.hoursDone)).map(([num, unit], i) => (
-            <View key={i} style={[styles.figurePair, i > 0 && styles.figurePairNext]}>
-              <Text style={[styles.figureNumber, FIGURE_SHADOW]} numberOfLines={1}>{num}</Text>
-              {unit ? <Text style={[styles.figureUnit, FIGURE_SHADOW]} numberOfLines={1}>{unit}</Text> : null}
-            </View>
-          ))}
+        {/* The one centred element of the hero: a full-width wrapper centres
+            the figure on the screen; the figure itself is a baseline-aligned
+            row (not nested Text — mixed sizes in one line box stretch it),
+            so the small unit sits on the digits' baseline on native and web. */}
+        <View style={styles.figureWrap} importantForAccessibility="no" testID="home-hero-figure-wrap">
+          <View style={styles.figure} testID="home-hero-figure">
+            {splitDuration(formatHMRounded(p.hoursDone)).map(([num, unit], i) => (
+              <View key={i} style={[styles.figurePair, i > 0 && styles.figurePairNext]}>
+                <Text style={[styles.figureNumber, FIGURE_FONT, FIGURE_SHADOW]} numberOfLines={1}>{num}</Text>
+                {unit ? <Text style={[styles.figureUnit, FIGURE_FONT, FIGURE_SHADOW]} numberOfLines={1}>{unit}</Text> : null}
+              </View>
+            ))}
+          </View>
         </View>
         <Text style={styles.caption} importantForAccessibility="no">{caption}</Text>
 
@@ -180,29 +195,35 @@ const styles = StyleSheet.create({
   // No top padding: the header→hero distance is the screen's heroBlock gap
   // (index.tsx), so the figure sits right under the date line (TASK_070).
   wrap: { paddingTop: 0, gap: 0 },
+  // Full-width wrapper that centres the figure on the screen. ONLY the
+  // figure is centred; the caption and everything below stay left-aligned.
+  // A little extra space above (on top of the screen's heroBlock gap) keeps
+  // it clear of the date line without floating away from the header.
+  figureWrap: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 8 },
   // The whole "37 ч" / "1 ч 30 м" run: pairs of (number, unit) on one
-  // baseline, exactly one 60 pt line tall.
-  figure: { flexDirection: "row", alignItems: "baseline", flexWrap: "nowrap" },
+  // baseline, exactly one 64 pt line tall.
+  figure: { flexDirection: "row", alignItems: "baseline", flexWrap: "nowrap", justifyContent: "center" },
   figurePair: { flexDirection: "row", alignItems: "baseline" },
-  figurePairNext: { marginLeft: 10 },
-  // The number: bigger than before (46 → 56) and one weight lighter
-  // (800 → 700) — large, clean, not heavy. Tight tracking keeps two digits
-  // from reading as wide; tabular digits keep the width steady as it grows.
+  figurePairNext: { marginLeft: 12 },
+  // The digits: large (60) but a MEDIUM weight (600) — a dashboard KPI, not
+  // a bold heading. Slightly negative tracking keeps two digits compact;
+  // tabular digits keep the width steady as the number grows.
   figureNumber: {
-    fontSize: 56,
-    lineHeight: 60,
-    fontWeight: "700",
-    letterSpacing: -1.6,
+    fontSize: 60,
+    lineHeight: 64,
+    fontWeight: "600",
+    letterSpacing: -1.5,
     color: MINISTRY.ink,
     fontVariant: ["tabular-nums"],
   },
-  // The unit ("ч", "м"): clearly secondary — less than half the size, a
-  // weight lighter, the secondary ink — sitting on the number's baseline.
+  // The unit ("ч", "м"): secondary — 24 pt, weight 500, the secondary ink —
+  // on the digits' baseline and tucked right against them (2 pt), so
+  // "37 ч" reads as one typographic unit rather than "37" + a stray "ч".
   figureUnit: {
-    marginLeft: 5,
+    marginLeft: 2,
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: "600",
+    fontWeight: "500",
     letterSpacing: -0.2,
     color: MINISTRY.ink2,
   },
