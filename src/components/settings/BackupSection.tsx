@@ -37,7 +37,7 @@ import { DangerButton, PrimaryButton } from "@/components/ui";
 import { RotateCcwIcon, ShieldIcon } from "@/components/icons";
 import { ProfileRowVariantContext, ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS } from "@/components/dashboard";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { DRAWER_ICE } from "@/components/dashboard/tokens";
 
 // Date portion via the app-wide canonical formatter (TASK_022) — was a
 // locally-grown "DD.MM.YYYY" (dots); only the separator changes, the
@@ -378,9 +378,9 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
 const styles = StyleSheet.create({
   lastBackup: { paddingHorizontal: 18, paddingTop: 2, paddingBottom: 12 },
   lastBackupDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
-  lastBackupDividerDrawer: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(15,42,38,0.12)" },
+  lastBackupDividerDrawer: { borderBottomWidth: 1, borderBottomColor: DRAWER_ICE.sep },
   lastBackupText: { fontSize: 12, color: DS.subInk },
-  lastBackupTextDrawer: { color: MINISTRY.ink2, paddingLeft: 40 },
+  lastBackupTextDrawer: { color: DRAWER_ICE.ink2, paddingLeft: 40 },
   feedback: {
     flexDirection: "row",
     alignItems: "flex-start",

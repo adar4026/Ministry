@@ -7,23 +7,27 @@
 // supplies the white rounded card (a SummaryCard with padding:0,
 // overflow:"hidden").
 //
-// TASK_066 — a second look, "drawer", for the Home drawer's glass cards on
-// the mint hero scene: a thin MINISTRY.ink line icon with no coloured tile
-// (Finance's graphite drawer rows), ink/ink2 text, a softer chevron and a
-// divider indented past the icon. Chosen through ProfileRowVariantContext,
-// not a prop, so composite consumers such as BackupSection render the right
-// look wherever they are placed without threading anything through.
+// TASK_066 — a second look, "drawer", for the Home drawer's translucent
+// groups: a thin line icon with no coloured tile (Finance's graphite drawer
+// rows), a softer chevron and a hairline divider. Chosen through
+// ProfileRowVariantContext, not a prop, so composite consumers such as
+// BackupSection render the right look wherever they are placed without
+// threading anything through.
+//
+// TASK_077 — the drawer look is Finance's `.drawer-row` / `.dr-ic` /
+// `.dr-chev` / `.drawer-sep`: 56 pt row, 8/16 padding, 14 gap, 16.5/600
+// title, a 30 pt icon slot with a 22 pt line icon at .78, a muted chevron,
+// and a 1 px separator inset 60 pt (past the icon) drawn as its own strip
+// rather than a border, so the inset is possible. The "card" look (Profile
+// page) is untouched.
 import { createContext, useContext, type ComponentType } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRightIcon, type IconProps } from "@/components/icons";
-import { DS, MINISTRY } from "@/components/dashboard/tokens";
+import { DRAWER_ICE, DS, MINISTRY } from "@/components/dashboard/tokens";
 
 export type ProfileRowVariant = "card" | "drawer";
 export const ProfileRowVariantContext = createContext<ProfileRowVariant>("card");
 
-// Chevron tint on the drawer's translucent surface — ink at 35 % reads as
-// a quiet affordance on every band of the mint gradient.
-const DRAWER_CHEVRON = "rgba(15,42,38,0.35)";
 
 export function ProfileSettingsRow({
   icon: Icon,
@@ -60,13 +64,13 @@ export function ProfileSettingsRow({
   const variant = useContext(ProfileRowVariantContext);
   const drawer = variant === "drawer";
   const danger = tone === "danger";
-  const iconColor = danger ? DS.danger : drawer ? MINISTRY.ink : DS.accent;
+  const iconColor = danger ? DS.danger : drawer ? DRAWER_ICE.ink : DS.accent;
   const trailing = busy ? (
     <ActivityIndicator size="small" color={danger ? DS.danger : drawer ? MINISTRY.primary : DS.accent} />
   ) : value ? (
     <Text style={[styles.value, drawer && styles.valueDrawer]}>{value}</Text>
   ) : onPress ? (
-    <ChevronRightIcon size={18} color={drawer ? DRAWER_CHEVRON : DS.chevron} />
+    <ChevronRightIcon size={drawer ? 16 : 18} color={drawer ? DRAWER_ICE.chevron : DS.chevron} />
   ) : null;
 
   const content = (
@@ -74,14 +78,14 @@ export function ProfileSettingsRow({
       style={[
         styles.row,
         drawer && styles.rowDrawer,
-        !last && (drawer ? styles.rowDividerDrawer : styles.rowDivider),
+        !last && !drawer && styles.rowDivider,
         disabled && styles.disabled,
       ]}
     >
       {Icon ? (
         drawer ? (
           <View style={styles.iconPlain}>
-            <Icon size={21} color={iconColor} />
+            <Icon size={22} color={iconColor} />
           </View>
         ) : (
           <View style={[styles.iconBg, danger && styles.iconBgDanger]}>
@@ -103,6 +107,7 @@ export function ProfileSettingsRow({
         ) : null}
       </View>
       {trailing}
+      {!last && drawer ? <View style={styles.sepDrawer} importantForAccessibility="no" testID="drawer-row-sep" /> : null}
     </View>
   );
 
@@ -134,11 +139,13 @@ const styles = StyleSheet.create({
   // Drawer rows: a touch tighter horizontally (the panel is 86 % of the
   // screen) but never below 56 pt tall — comfortably above the 44 pt
   // touch-target floor.
-  rowDrawer: { paddingHorizontal: 16, paddingVertical: 12, minHeight: 56, gap: 12 },
+  rowDrawer: { paddingHorizontal: 16, paddingVertical: 8, minHeight: 56, gap: 14 },
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
-  rowDividerDrawer: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(15,42,38,0.12)" },
+  // Finance `.drawer-sep`: 1 px, margin-left 60 — the row is `position:
+  // relative` by default in RN, so the strip pins to its bottom edge.
+  sepDrawer: { position: "absolute", left: 60, right: 0, bottom: 0, height: 1, backgroundColor: DRAWER_ICE.sep },
   pressed: { backgroundColor: "#F5F7FB" },
-  pressedDrawer: { backgroundColor: "rgba(255,255,255,0.55)" },
+  pressedDrawer: { backgroundColor: DRAWER_ICE.glass },
   disabled: { opacity: 0.5 },
   iconBg: {
     width: 36,
@@ -150,13 +157,13 @@ const styles = StyleSheet.create({
   },
   iconBgDanger: { backgroundColor: "#fee2e2" },
   // No tile in the drawer — just a fixed-width slot so titles align.
-  iconPlain: { width: 30, height: 30, alignItems: "center", justifyContent: "center", opacity: 0.82 },
+  iconPlain: { width: 30, height: 30, alignItems: "center", justifyContent: "center", opacity: 0.78 },
   textWrap: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: "600", color: DS.navy },
-  titleDrawer: { color: MINISTRY.ink, letterSpacing: -0.15 },
+  titleDrawer: { color: DRAWER_ICE.ink, fontSize: 16.5, letterSpacing: -0.15 },
   titleDanger: { color: DS.danger },
   subtitle: { fontSize: 13, color: DS.subText, marginTop: 2 },
-  subtitleDrawer: { color: MINISTRY.ink2 },
+  subtitleDrawer: { color: DRAWER_ICE.ink2 },
   value: { fontSize: 14, color: DS.subText, fontWeight: "600" },
-  valueDrawer: { color: MINISTRY.ink2 },
+  valueDrawer: { color: DRAWER_ICE.ink2 },
 });

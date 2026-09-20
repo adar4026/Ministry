@@ -78,7 +78,8 @@ ministry/
 │   │   ├── participation/      # ParticipationSheet (bottom sheet), ParticipationJournal, ParticipationRow (TASK_073)
 │   │   ├── drawer/             # Боковая шторка Главной (TASK_066)
 │   │   │   ├── HomeDrawer.tsx  # RNModal + Animated + PanResponder, контент Профиля
-│   │   │   ├── DrawerGroup.tsx # Заголовок группы + стеклянная карточка
+│   │   │   ├── DrawerScene.tsx # Свет шторки Finance: SVG-слои + 2 дрейфующих blob'а (TASK_077)
+│   │   │   ├── DrawerGroup.tsx # Заголовок группы + полупрозрачная поверхность
 │   │   │   └── DrawerFooter.tsx# «A-Lex Ministry · vX.Y.Z / Обновлено: …»
 │   │   ├── profile/            # ProfileHeroCard, ProfileEditSheet, ProfileSummary,
 │   │   │                       #   ProfileSettingsRow (+ ProfileRowVariantContext), profileMenu.ts
@@ -387,16 +388,27 @@ hero (`HeroScene` / WebGL), палитра, Events, Timeline, Profile, routes �
 animationType="none"` (тот же примитив, что `AddActionSheet` /
 `ProfileEditSheet`) + один `Animated.Value progress` (translateX панели и
 opacity backdrop) + `PanResponder` для свайпа влево. Панель — `min(86 %,
-360)`, фон — `HeroScene animated={false}` (SVG-fallback палитры Ministry,
-без второго WebGL-контекста), поверх — стеклянные `DrawerGroup`.
+360)`, фон — с TASK_077 собственная `DrawerScene`: точный перенос
+«света» шторки Lex Finance (light): SVG-градиент `#dbeafe → #eef2f8`,
+белое свечение сверху, cyan/бирюзовые пятна, два дрейфующих `Animated`
+blob'а (22 с / 27 с, reduced-motion → статика), без второго
+WebGL-контекста — вместо зелёного `HeroScene`; поверх — стеклянные
+`DrawerGroup` (`.drawer-card`: white `.55`, кромка `.75`, radius 22,
+blur 14). Все цвета шторки — кластер `DRAWER_ICE` (`tokens.ts`, вне
+`MINISTRY`, по прецеденту `NAV`/`FIGURE_GLASS`; значения = `--hero-*`
+Finance light; `ink #16181f`, `ink2 #4f5c70`); его берут только
+`src/components/drawer/*` и вариант `drawer` у `ProfileSettingsRow`.
 Закрытие: ×, backdrop, свайп, Escape (web); `role="dialog"`,
 `prefers-reduced-motion` → без анимации.
 
 Содержимое шторки = страница «Профиль»: `ProfileSummary` (имя, фото,
 `profile.events` — три пользовательские памятные даты, из того же
-`useStore().profile`; с TASK_072 они — стеклянный список milestones на всю
-ширину под именем: teal-маркер, название как введено, дата ink + срок
-teal; × шторки наложен на строку имени через `headTrailingSpace`), группы
+`useStore().profile`; с TASK_072 они — список milestones на всю ширину
+под именем; с TASK_077 шапка — по LexMoney (аватар 56, имя 21/600,
+«Личный профиль» ink2, без карточки), а вехи — **не карточка**: строки без
+фона/рамки/радиуса прямо на сцене, hairline только между строками,
+teal-маркер, название как введено, дата 700 + срок вторичным ink2; ×
+шторки наложен на строку имени через `headTrailingSpace`), группы
 ПРОФИЛЬ (одна строка «Личные данные» — «Памятные даты» убраны в TASK_072,
 даты редактируются тапом по summary или через «Личные данные») / СЛУЖЕНИЕ /
 ПРИЛОЖЕНИЕ / ДАННЫЕ И РЕЗЕРВНЫЕ КОПИИ / О ПРИЛОЖЕНИИ и footer. Пункты меню — общий

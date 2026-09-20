@@ -44,8 +44,7 @@ import {
   pickMenuItems,
   type ProfileMenuItem,
 } from "@/components/profile/profileMenu";
-import { HeroScene } from "@/components/dashboard/HeroScene";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { DRAWER_ICE } from "@/components/dashboard/tokens";
 import { CloudIcon, InfoIcon, PersonIcon, XIcon } from "@/components/icons";
 import { APP_VERSION } from "@/data/appInfo";
 import { MODE_LABEL } from "@/data/ministryMode";
@@ -53,6 +52,7 @@ import { prefersReducedMotion } from "@/utils/motion";
 import { useStore } from "@/store/StoreContext";
 import { DrawerFooter } from "./DrawerFooter";
 import { DrawerGroup } from "./DrawerGroup";
+import { DrawerScene } from "./DrawerScene";
 
 // Panel geometry: most of the screen, but never all of it — the strip of
 // Home left visible on the right is what makes it read as a drawer.
@@ -67,8 +67,8 @@ const SWIPE_CLOSE_DX = 60;
 const SWIPE_CLOSE_VX = 0.5;
 const OPEN_MS = 320;
 const CLOSE_MS = 220;
-// Width the × button (44) plus its gap takes out of the summary's name row.
-const CLOSE_BTN_SPACE = 50;
+// Width the × button (44) plus a 2 px gap takes out of the summary's name row.
+const CLOSE_BTN_SPACE = 46;
 
 // The three gesture decisions, kept pure (and exported) so the swipe logic
 // is unit-testable without synthesising responder touch histories.
@@ -228,9 +228,11 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
           style={[styles.panel, { width: panelWidth, transform: [{ translateX }] }]}
           testID="drawer-panel"
         >
-          {/* Ministry's own scene as the panel ground — static: no second
-              WebGL context while the Home hero's is still alive below. */}
-          <HeroScene height={panelHeight} animated={false} />
+          {/* TASK_077 — the drawer's own light, copied from Lex Finance's
+              drawer (SVG + two drifting blobs; no second WebGL context while
+              the Home hero's is still alive below). Replaces the Home hero's
+              green HeroScene. */}
+          <DrawerScene width={panelWidth} height={panelHeight} />
 
           <ScrollView
             style={styles.scroll}
@@ -257,7 +259,7 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
                 testID="drawer-close"
               >
-                <XIcon size={20} color={MINISTRY.ink} />
+                <XIcon size={20} color={DRAWER_ICE.ink} />
               </Pressable>
             </View>
 
@@ -341,46 +343,52 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
+// Finance `.overlay.drawer-ov`: blur(16px) saturate(140%).
 const BACKDROP_BLUR = Platform.select<object>({
-  web: { backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" },
+  web: { backdropFilter: "blur(16px) saturate(140%)", WebkitBackdropFilter: "blur(16px) saturate(140%)" },
   default: {},
 });
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // Pine-teal dim, not neutral black: the strip of Home that stays visible
-  // keeps reading as part of the same green scene.
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,36,30,0.34)", ...BACKDROP_BLUR },
+  // TASK_077 — Finance's drawer overlay: a cool graphite dim plus blur.
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: DRAWER_ICE.backdrop, ...BACKDROP_BLUR },
+  // TASK_077 — the ground past the scene is the scene's own bottom stop,
+  // so a long drawer never shows a seam; shadow = Finance `--nav-shadow`.
   panel: {
     position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: MINISTRY.bg,
+    backgroundColor: DRAWER_ICE.bottom,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
     overflow: "hidden",
-    shadowColor: MINISTRY.heroDeep,
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 6, height: 0 },
+    shadowColor: DRAWER_ICE.panelShadow,
+    shadowOpacity: DRAWER_ICE.panelShadowOpacity,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 14, gap: 16 },
-  topRow: { position: "relative", paddingHorizontal: 2 },
-  // 44×44 touch target, light glass circle, no border — pinned to the top
-  // right corner of the summary's name row.
+  // Finance rhythm: `.drawer-group{margin:12px 16px 0}`.
+  content: { paddingHorizontal: 16, gap: 12 },
+  topRow: { position: "relative", paddingTop: 6 },
+  // 44×44 touch target, Finance's round glass button (`.dh-theme` look:
+  // glass fill + glass rim) — pinned to the top right corner of the
+  // summary's name row.
   closeBtn: {
     position: "absolute",
-    top: 6,
-    right: 2,
+    top: 10,
+    right: 0,
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: DRAWER_ICE.glass,
+    borderWidth: 1,
+    borderColor: DRAWER_ICE.glassBorder,
   },
-  closeBtnPressed: { backgroundColor: "rgba(255,255,255,0.85)" },
+  closeBtnPressed: { backgroundColor: DRAWER_ICE.glassPressed },
 });

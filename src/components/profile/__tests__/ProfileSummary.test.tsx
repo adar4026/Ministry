@@ -2,7 +2,8 @@
 // ProfileHeroCard gets.
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { ProfileSummary } from "@/components/profile/ProfileSummary";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { DRAWER_ICE, MINISTRY } from "@/components/dashboard/tokens";
+import { ChevronRightIcon } from "@/components/icons";
 import type { UserProfile } from "@/types";
 
 function texts(renderer: ReactTestRenderer): string[] {
@@ -63,17 +64,30 @@ describe("ProfileSummary", () => {
     expect(rows).toHaveLength(3);
   });
 
-  it("falls back to 'Мой профиль' when only events exist, and uses the hero inks", () => {
+  it("falls back to 'Мой профиль' when only events exist, and uses the drawer's cool inks (TASK_077)", () => {
     const { renderer } = render({ events: [{ id: "a", title: "Крещение", date: "2012-05-13" }] });
     expect(texts(renderer)).toContain("Мой профиль");
     const name = renderer.root.findAll((n) => n.props.children === "Мой профиль")[0];
-    expect(flat(name.props.style).color).toBe(MINISTRY.ink);
+    const ns = flat(name.props.style);
+    expect(ns.color).toBe(DRAWER_ICE.ink);
+    // Finance `.dh-name` 17/700 and `.dh-sub` 13/500 muted.
+    expect(ns.fontWeight).toBe("700");
+    expect(ns.fontSize).toBe(17);
+    const sub = renderer.root.findAll((n) => n.props.children === "Личный профиль")[0];
+    expect(flat(sub.props.style).color).toBe(DRAWER_ICE.ink2);
+    expect(flat(sub.props.style).fontSize).toBe(13);
+    // Finance's drawer-head: the row ends in a chevron (the block is a button).
+    const chevron = renderer.root.findByProps({ testID: "profile-summary-chevron" });
+    expect(chevron.props.importantForAccessibility).toBe("no");
+    expect(chevron.findAllByType(ChevronRightIcon)).toHaveLength(1);
+    expect(chevron.findAllByType(ChevronRightIcon)[0].props.color).toBe(DRAWER_ICE.chevron);
   });
 
-  // TASK_072 — the dates read as milestones: one soft surface, hairline-
-  // separated rows, title as typed (no uppercase), date the main fact, the
-  // elapsed span quieter in the brand teal.
-  it("renders the events as a grouped milestones list: glass surface, dividers between rows only, teal marker per row", () => {
+  // TASK_072 — the dates read as milestones: hairline-separated rows, title
+  // as typed (no uppercase), date the main fact, the elapsed span quieter.
+  // TASK_077 — and NOT a card: no fill, no border, no radius, no shadow —
+  // the rows sit straight on the drawer's ice-blue ground.
+  it("renders the events as plain milestone rows on the drawer ground: no card, hairlines between rows only, teal marker per row", () => {
     const { renderer } = render({
       displayName: "Alex",
       events: [
@@ -84,14 +98,24 @@ describe("ProfileSummary", () => {
     });
     const block = renderer.root.findByProps({ testID: "profile-summary-events" });
     const bs = flat(block.props.style);
-    expect(String(bs.backgroundColor)).toMatch(/^rgba\(255,255,255,0\.\d+\)$/);
-    expect(bs.borderRadius).toBeGreaterThanOrEqual(16);
-    expect(bs.overflow).toBe("hidden");
+    expect(bs.backgroundColor).toBeUndefined();
+    expect(bs.borderWidth).toBeUndefined();
+    expect(bs.borderColor).toBeUndefined();
+    expect(bs.borderRadius).toBeUndefined();
     expect(bs.shadowOpacity).toBeUndefined();
+    expect(bs.elevation).toBeUndefined();
     const rows = renderer.root.findAll((n) => (n.type as unknown) === "View" && typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith("Событие:"));
     expect(rows).toHaveLength(3);
-    const withDivider = rows.map((r) => flat(r.props.style).borderBottomWidth !== undefined);
-    expect(withDivider).toEqual([true, true, false]);
+    // Hairlines only BETWEEN rows (above the 2nd and 3rd), never a perimeter.
+    const withDivider = rows.map((r) => flat(r.props.style).borderTopWidth !== undefined);
+    expect(withDivider).toEqual([false, true, true]);
+    for (const r of rows) {
+      const rs = flat(r.props.style);
+      expect(rs.borderWidth).toBeUndefined();
+      expect(rs.borderBottomWidth).toBeUndefined();
+      expect(rs.backgroundColor).toBeUndefined();
+      expect(rs.paddingVertical as number).toBeGreaterThanOrEqual(12);
+    }
     for (const r of rows) {
       const marker = r.findAll((n) => (n.type as unknown) === "View" && flat(n.props.style).backgroundColor === MINISTRY.accent);
       expect(marker).toHaveLength(1);
@@ -99,22 +123,24 @@ describe("ProfileSummary", () => {
     }
   });
 
-  it("titles are shown as typed (no uppercase), the date is the main fact in ink and the elapsed span is the quieter teal line", () => {
+  it("titles are shown as typed (no uppercase), the date is the main fact in ink and the elapsed span is the quieter grey-blue line", () => {
     const { renderer } = render({ events: [{ id: "a", title: "Крещение", date: "1992-04-12" }] });
     const title = renderer.root.findAll((n) => n.props.children === "Крещение")[0];
     const ts = flat(title.props.style);
     expect(ts.textTransform).toBeUndefined();
-    expect(ts.color).toBe(MINISTRY.ink);
+    expect(ts.color).toBe(DRAWER_ICE.ink);
     expect(ts.fontSize).toBeGreaterThanOrEqual(14);
     expect(["500", "600"]).toContain(ts.fontWeight);
     const date = renderer.root.findAll((n) => n.props.children === "12-04-1992")[0];
     const ds = flat(date.props.style);
-    expect(ds.color).toBe(MINISTRY.ink);
+    expect(ds.color).toBe(DRAWER_ICE.ink);
     expect(ds.fontWeight).toBe("700");
     expect(ds.fontSize).toBeGreaterThanOrEqual(ts.fontSize as number);
     const elapsed = renderer.root.findAll((n) => typeof n.props.children === "string" && /^\d+ г( \d+ мес)?$/.test(n.props.children))[0];
     const es = flat(elapsed.props.style);
-    expect(es.color).toBe(MINISTRY.primary);
+    // TASK_077 — secondary text, not the brand teal (the marker dot is the
+    // only teal left in the block).
+    expect(es.color).toBe(DRAWER_ICE.ink2);
     expect(es.fontSize).toBeLessThan(ds.fontSize as number);
   });
 

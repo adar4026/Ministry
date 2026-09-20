@@ -2,7 +2,7 @@
 // measurably apart from Alex Finance (violet) and Lexcar (cyan / ice-blue),
 // and readable as text on the hero. These guards keep a future "just tweak
 // the hex" from quietly drifting into either sibling's brand band.
-import { DS, MINISTRY, ministryCssVars } from "../tokens";
+import { DRAWER_ICE, DS, MINISTRY, ministryCssVars } from "../tokens";
 
 function hex(s: string): [number, number, number] {
   const h = s.replace("#", "");
@@ -114,5 +114,61 @@ describe("ministryCssVars()", () => {
   it("has exactly as many variables as MINISTRY has keys — nothing typed by hand", () => {
     const count = (ministryCssVars().match(/--ministry-/g) ?? []).length;
     expect(count).toBe(Object.keys(MINISTRY).length);
+  });
+});
+
+// TASK_077 — the Home drawer's light, copied from Lex Finance's drawer at
+// the owner's request. Deliberately NOT in the MINISTRY band, so the guards
+// here are about readability and about it staying Finance's light — never
+// about hue parity with Ministry.
+describe("DRAWER_ICE — Finance's drawer light, readable", () => {
+  // Effective colours under text: the ground itself, the glass cards over
+  // any pool at full strength, and the cyan/turquoise pools bare.
+  const b = (base: string, over: { color: string; alpha: number }) => blend(base, over.color, over.alpha);
+  const sky = b(DRAWER_ICE.top, DRAWER_ICE.blobSky);
+  const blue = b(DRAWER_ICE.top, DRAWER_ICE.blobBlue);
+  const cyan = b(DRAWER_ICE.bottom, DRAWER_ICE.poolCyan);
+  const turq = b(DRAWER_ICE.bottom, DRAWER_ICE.poolTurquoise);
+  const glassOver = (c: string) => blend(c, "#ffffff", 0.55);
+
+  it("is Finance's light-theme scene verbatim (hero-top / hero-bottom / b1–b4 / glow)", () => {
+    expect(DRAWER_ICE.top).toBe("#dbeafe");
+    expect(DRAWER_ICE.bottom).toBe("#eef2f8");
+    expect(DRAWER_ICE.blobSky).toEqual({ color: "#60a5fa", alpha: 0.72 });
+    expect(DRAWER_ICE.blobBlue).toEqual({ color: "#4f7df0", alpha: 0.52 });
+    expect(DRAWER_ICE.poolCyan).toEqual({ color: "#22d3ee", alpha: 0.55 });
+    expect(DRAWER_ICE.poolTurquoise).toEqual({ color: "#2dd4bf", alpha: 0.5 });
+    expect(DRAWER_ICE.glow).toEqual({ color: "#ffffff", alpha: 0.55 });
+    expect(DRAWER_ICE.glass).toBe("rgba(255,255,255,0.55)");
+    expect(DRAWER_ICE.glassBorder).toBe("rgba(255,255,255,0.75)");
+  });
+
+  it("title ink is >= 8:1 everywhere, even on the sky blob's centre", () => {
+    for (const c of [DRAWER_ICE.top, DRAWER_ICE.bottom, sky, blue, cyan, turq]) {
+      expect(contrast(DRAWER_ICE.ink, c)).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  it("secondary ink passes AA (4.5:1) on the ground, on glass over every pool, and on the cyan/turquoise pools bare", () => {
+    for (const c of [DRAWER_ICE.top, DRAWER_ICE.bottom, cyan, turq, glassOver(sky), glassOver(blue), glassOver(cyan), glassOver(turq)]) {
+      expect(contrast(DRAWER_ICE.ink2, c)).toBeGreaterThanOrEqual(4.5);
+    }
+    // The one Finance-parity exception (documented): bare sky/blue blob
+    // centres. Still clearly better than Finance's own --muted (2.4:1).
+    expect(contrast(DRAWER_ICE.ink2, sky)).toBeGreaterThanOrEqual(3);
+    expect(contrast(DRAWER_ICE.ink2, blue)).toBeGreaterThanOrEqual(3);
+    expect(contrast("#6b7180", sky)).toBeLessThan(contrast(DRAWER_ICE.ink2, sky));
+  });
+
+  it("stays on the cyan → blue side, measurably colder than the hero's mint", () => {
+    for (const c of [DRAWER_ICE.top, DRAWER_ICE.blobSky.color, DRAWER_ICE.blobBlue.color, DRAWER_ICE.poolCyan.color, DRAWER_ICE.poolTurquoise.color]) {
+      expect(hue(c)).toBeGreaterThanOrEqual(170);
+    }
+    expect(hue(DRAWER_ICE.top)).toBeGreaterThan(hue(MINISTRY.heroTop) + 30);
+  });
+
+  it("cssVars do not pick it up — it is not part of the shader palette", () => {
+    expect(ministryCssVars()).not.toContain("drawer");
+    expect(ministryCssVars()).not.toContain(DRAWER_ICE.top);
   });
 });

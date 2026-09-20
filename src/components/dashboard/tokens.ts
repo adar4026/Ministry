@@ -225,3 +225,57 @@ export const FIGURE_GLASS = {
   rim: "rgba(255,255,255,0.75)",
   rimWidth: 1,
 } as const;
+
+// ---------------------------------------------------------------------------
+// TASK_077 — the Home drawer's own light, copied from Lex Finance's drawer
+// (index.html: `.drawer` background layers, `.drawer::before/::after` drift
+// blobs, `--hero-*` light tokens, `.drawer-card` glass) at the owner's
+// request to reproduce that light "exactly". Kept OUTSIDE `MINISTRY` like
+// `NAV` / `FIGURE_GLASS`: that object is the teal/mint identity the
+// hue/contrast tests and the hero shader read; the drawer is deliberately
+// NOT painted in it (TASK_066's mint HeroScene read as "too green"). The
+// `MINISTRY`-band guards in tokens.test.ts are about MINISTRY only — this
+// cluster is *meant* to match Finance. Scoped to src/components/drawer/*
+// and the "drawer" variant of ProfileSettingsRow — nothing else adopts it.
+export const DRAWER_ICE = {
+  // Vertical ground: Finance `--hero-top` → `--hero-bottom` at 58 %, then
+  // flat; `bottom` is also the panel ground past the scene (no seam).
+  top: "#dbeafe",
+  bottom: "#eef2f8",
+  // Static light layers, top → bottom of the CSS `background` list:
+  //   white glow   radial 120%×50% at 50% 10%   (--hero-glow)
+  //   cyan pool    radial  90%×40% at 100% 62%  (--hero-b2)
+  //   turquoise    radial  80%×36% at 0% 92%    (--hero-b3)
+  // each fading to transparent at 60 % of its ellipse.
+  glow: { color: "#ffffff", alpha: 0.55 },
+  poolCyan: { color: "#22d3ee", alpha: 0.55 },
+  poolTurquoise: { color: "#2dd4bf", alpha: 0.5 },
+  // The two drifting blobs (::before sky blue / ::after medium blue), each a
+  // circle fading to transparent at 64 %; geometry lives in DrawerScene.
+  blobSky: { color: "#60a5fa", alpha: 0.72 },
+  blobBlue: { color: "#4f7df0", alpha: 0.52 },
+  // Type: Finance `--text`; secondary is the darkest step of Finance's
+  // `--muted` (#6b7180) family that clears WCAG AA (4.5:1) on the ground,
+  // on glass over any pool and on the cyan/turquoise pools at full
+  // strength. Over the sky blob's very centre (under the avatar) it is
+  // 3.3:1 — Finance's own muted measures 2.4:1 there; accepted as the one
+  // Finance-parity exception, documented in TASK_077.
+  ink: "#16181f",
+  ink2: "#4f5c70",
+  chevron: "rgba(154,160,176,0.7)", // --muted2 at the reference's .7 opacity
+  // Glass (`--hero-glass` / `--hero-glass-border`) for cards, the head's
+  // pressed state, the avatar ring and the × button.
+  glass: "rgba(255,255,255,0.55)",
+  glassBorder: "rgba(255,255,255,0.75)",
+  glassPressed: "rgba(255,255,255,0.78)",
+  // `.drawer-sep`: --hero-sep rgba(22,24,31,.12) drawn at opacity .45.
+  sep: "rgba(22,24,31,0.054)",
+  // `--tx-card-shadow` 0 2px 10px rgba(30,41,80,.05) and `--nav-shadow`
+  // 0 10px 30px rgba(40,50,120,.10) as RN shadow props.
+  cardShadow: "#1e2950",
+  cardShadowOpacity: 0.05,
+  panelShadow: "#283278",
+  panelShadowOpacity: 0.1,
+  // `.overlay.drawer-ov`: rgba(20,22,34,.30) + blur(16px) saturate(140%).
+  backdrop: "rgba(20,22,34,0.30)",
+} as const;

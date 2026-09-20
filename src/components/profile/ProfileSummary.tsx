@@ -10,19 +10,30 @@
 // are invented here; an empty profile shows the same "Настроить профиль"
 // invitation as the page.
 //
-// Not a big card: a light, borderless hero zone on the drawer's mint scene.
+// Not a big card: a light, borderless hero zone on the drawer's scene.
 // Tapping anywhere on it opens the existing editor (the caller decides).
 //
 // TASK_072 — the dates are the owner's personal MILESTONES, and read like
-// one: a single soft glass surface under the name holds one row per event,
-// hairline-separated — a small teal marker and the title as the owner typed
-// it (no uppercase) on the left; on the right the date as the main fact
-// (ink, semibold, tabular digits) with the elapsed span beneath it in the
-// brand teal, quieter. A calm iOS grouped list, not a table and not a stack
-// of cards; the DrawerGroup settings cards below keep their own denser glass.
+// one: one row per event, hairline-separated — a small teal marker and the
+// title as the owner typed it (no uppercase) on the left; on the right the
+// date as the main fact (ink, bold, tabular digits) with the elapsed span
+// beneath it, quieter.
+//
+// TASK_077 — restyled after the owner's LexMoney drawer reference. The head
+// is LexMoney's own top row (avatar left, the name larger and semibold,
+// «Личный профиль» in the cool grey-blue secondary, lots of air, no card
+// around it), and the milestones are NOT a card any more: no fill, no
+// border, no radius — just rows on the drawer's own ice-blue ground, kept
+// apart by translucent hairlines and generous vertical padding, so they read
+// as a natural part of the top surface. Colours are DRAWER_ICE (cool ink /
+// grey-blue), not the hero's teal inks; the small brand-teal marker stays as
+// the one Ministry accent. Like Finance's `.drawer-head`, the head row ends
+// in a quiet chevron: the whole block is a button into the profile editor,
+// and the chevron says so.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { ChevronRightIcon } from "@/components/icons";
+import { DRAWER_ICE, MINISTRY } from "@/components/dashboard/tokens";
 import { calendarElapsed, formatDateDMY, formatProfileEventElapsed } from "@/data/dateFormat";
 import type { UserProfile } from "@/types";
 
@@ -56,12 +67,16 @@ export function ProfileSummary({
       testID="profile-summary"
     >
       <View style={[styles.head, headTrailingSpace > 0 && { paddingRight: headTrailingSpace }]}>
-        <ProfileAvatar
-          photoUri={profile.profilePhotoUri}
-          initials={initials}
-          size={52}
-          onInvalidPhoto={onInvalidPhoto}
-        />
+        {/* Finance `.drawer-head .avatar`: 50 px inside a 2 px glass ring
+            with the card shadow. */}
+        <View style={styles.avatarRing}>
+          <ProfileAvatar
+            photoUri={profile.profilePhotoUri}
+            initials={initials}
+            size={50}
+            onInvalidPhoto={onInvalidPhoto}
+          />
+        </View>
         <View style={styles.headText}>
           <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
             {isEmpty ? "Настроить профиль" : hasName ? trimmedName : "Мой профиль"}
@@ -70,17 +85,19 @@ export function ProfileSummary({
             {isEmpty ? "Добавьте имя, фотографию и важные даты" : "Личный профиль"}
           </Text>
         </View>
+        <View style={styles.headChevron} importantForAccessibility="no" testID="profile-summary-chevron">
+          <ChevronRightIcon size={16} color={DRAWER_ICE.chevron} />
+        </View>
       </View>
 
       {profile.events.length > 0 ? (
         <View style={styles.events} testID="profile-summary-events">
           {profile.events.map((ev, i) => {
             const elapsed = formatProfileEventElapsed(calendarElapsed(ev.date));
-            const last = i === profile.events.length - 1;
             return (
               <View
                 key={ev.id}
-                style={[styles.eventRow, !last && styles.eventRowDivider]}
+                style={[styles.eventRow, i > 0 && styles.eventRowDivider]}
                 accessibilityLabel={`Событие: ${ev.title}, ${formatDateDMY(ev.date)}, ${elapsed}`}
               >
                 <View style={styles.eventMarker} importantForAccessibility="no" />
@@ -105,33 +122,45 @@ export function ProfileSummary({
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 18, gap: 14 },
-  pressed: { backgroundColor: "rgba(255,255,255,0.35)" },
-  head: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headText: { flex: 1, minWidth: 0 },
-  name: { fontSize: 19, fontWeight: "700", color: MINISTRY.ink, letterSpacing: -0.2, lineHeight: 23 },
-  sub: { fontSize: 13, fontWeight: "500", color: MINISTRY.ink2, marginTop: 2 },
-  // One soft glass surface for the milestones — lighter than the
-  // DrawerGroup cards (this is part of the hero zone, not a settings
-  // section): translucent white, hairline white edge, no shadow.
-  events: {
-    backgroundColor: "rgba(255,255,255,0.42)",
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.65)",
-    overflow: "hidden",
+  // Finance `.drawer-top{margin:… 12px 2px}` + `.drawer-balance{margin:4px
+  // 16px 8px}`: the head is inset 2 px less than the groups; 8 px of air
+  // before the first group.
+  wrap: { paddingHorizontal: 0, paddingTop: 2, paddingBottom: 8, borderRadius: 18, gap: 10 },
+  pressed: { backgroundColor: DRAWER_ICE.glass },
+  // `.drawer-head{gap:12px;padding:6px 8px 6px 6px;border-radius:18px}`
+  head: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6, paddingLeft: 2, paddingRight: 4, borderRadius: 18 },
+  avatarRing: {
+    borderRadius: 27,
+    borderWidth: 2,
+    borderColor: DRAWER_ICE.glassBorder,
+    shadowColor: DRAWER_ICE.cardShadow,
+    shadowOpacity: DRAWER_ICE.cardShadowOpacity,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
+  headText: { flex: 1, minWidth: 0 },
+  // `.dh-name` 17/700, −.2 tracking, line-height 1.2; `.dh-sub` 13/500 muted.
+  name: { fontSize: 17, fontWeight: "700", color: DRAWER_ICE.ink, letterSpacing: -0.2, lineHeight: 20 },
+  sub: { fontSize: 13, fontWeight: "500", color: DRAWER_ICE.ink2, marginTop: 2 },
+  // Finance's `.dh-chev`: a small muted chevron at the end of the head row,
+  // before the space the caller keeps for its × button.
+  headChevron: { flexShrink: 0, marginLeft: -2 },
+  // No surface of its own: the rows sit straight on the drawer ground, in
+  // the zone Finance gives its balance block (`margin: 4px 16px 8px`).
+  events: { paddingHorizontal: 4 },
   // Marker + label left, value column right: long Russian titles wrap inside
   // their own flex slot instead of squeezing three narrow columns.
   eventRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minHeight: 48,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    minHeight: 52,
   },
-  eventRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(15,42,38,0.10)" },
+  // Finance `.drawer-sep` tone, between rows only.
+  eventRowDivider: { borderTopWidth: 1, borderTopColor: DRAWER_ICE.sep },
   // A small brand-teal dot: enough to say "milestone", not an icon set.
   eventMarker: { width: 6, height: 6, borderRadius: 3, backgroundColor: MINISTRY.accent, marginRight: 2 },
   // The title as the owner typed it — no uppercase, a status label rather
@@ -139,14 +168,14 @@ const styles = StyleSheet.create({
   eventTitle: {
     flex: 1,
     minWidth: 0,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: "600",
-    color: MINISTRY.ink,
+    fontSize: 15.5,
+    lineHeight: 20,
+    fontWeight: "500",
+    color: DRAWER_ICE.ink,
     letterSpacing: -0.1,
   },
   eventValue: { alignItems: "flex-end", flexShrink: 0 },
-  // Date = the main fact; elapsed span = the quieter second line in teal.
-  eventDate: { fontSize: 15, lineHeight: 19, fontWeight: "700", color: MINISTRY.ink, fontVariant: ["tabular-nums"] },
-  eventElapsed: { fontSize: 12, lineHeight: 15, fontWeight: "600", color: MINISTRY.primary, marginTop: 1 },
+  // Date = the main fact (bold); elapsed span = the quieter second line.
+  eventDate: { fontSize: 15.5, lineHeight: 20, fontWeight: "700", color: DRAWER_ICE.ink, fontVariant: ["tabular-nums"] },
+  eventElapsed: { fontSize: 12.5, lineHeight: 16, fontWeight: "500", color: DRAWER_ICE.ink2, marginTop: 2 },
 });

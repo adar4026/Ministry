@@ -1,14 +1,15 @@
 // TASK_066 — one titled section of the Home drawer: an uppercase group
-// label and a translucent glass card holding ProfileSettingsRow children
+// label and a translucent card holding ProfileSettingsRow children
 // (rendered in their "drawer" variant by the drawer's context provider).
 //
-// Modelled on A-Lex Finance's `.drawer-group` / `.drawer-card` — big radius,
-// light glass surface, hairline border, almost no shadow — but painted with
-// Ministry's own tokens: white glass over the mint hero scene, ink/ink2
-// text. Never a heavy white slab.
+// TASK_077 — Finance's `.drawer-card` / `.drawer-group-title`, reproduced:
+// `--hero-glass` fill, a 1 px `--hero-glass-border` rim, radius 22,
+// blur(14px) and the near-invisible `--tx-card-shadow`; the title is
+// 12/600 muted uppercase, 0.03 em tracking, 14 px inset, 6 px under it.
+// Colours are DRAWER_ICE, not the hero's teal inks.
 import type { ReactNode } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { DRAWER_ICE } from "@/components/dashboard/tokens";
 
 const GLASS = Platform.select<object>({
   web: { backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" },
@@ -31,21 +32,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontWeight: "600",
-    color: MINISTRY.ink2,
+    color: DRAWER_ICE.ink2,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.36,
     paddingHorizontal: 14,
   },
   card: {
-    backgroundColor: "rgba(255,255,255,0.62)",
-    borderRadius: 22,
+    backgroundColor: DRAWER_ICE.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.72)",
+    borderColor: DRAWER_ICE.glassBorder,
+    borderRadius: 22,
     overflow: "hidden",
-    shadowColor: MINISTRY.heroDeep,
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: DRAWER_ICE.cardShadow,
+    shadowOpacity: DRAWER_ICE.cardShadowOpacity,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
 });

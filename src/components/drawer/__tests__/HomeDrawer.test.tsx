@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { HeroCanvas } from "@/components/dashboard/HeroCanvas";
+import { DRAWER_ICE } from "@/components/dashboard/tokens";
 import { APP_VERSION, formatUpdatedLabel } from "@/data/appInfo";
 import { ABOUT_ITEMS, SETTINGS_ITEMS } from "@/components/profile/profileMenu";
 import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
@@ -297,11 +298,15 @@ describe("HomeDrawer — geometry and safe area (no horizontal overflow)", () =>
     expect(flat(footer.props.style).paddingBottom as number).toBeGreaterThanOrEqual(INSETS.bottom + 22);
   });
 
-  it("uses the Ministry scene as a STATIC background — no second WebGL canvas", async () => {
+  // TASK_077 — the drawer has its own ice-blue scene now; the Home hero's
+  // green HeroScene is gone from the panel, and there is still no canvas.
+  it("uses the drawer's own STATIC ice-blue scene as background — no HeroScene, no second WebGL canvas", async () => {
     const { renderer } = await renderDrawer(true);
     const panel = renderer.root.findByProps({ testID: "drawer-panel" });
-    expect(panel.findAllByProps({ testID: "hero-scene" }).length).toBeGreaterThan(0);
+    expect(panel.findAllByProps({ testID: "drawer-scene" }).length).toBeGreaterThan(0);
+    expect(panel.findAllByProps({ testID: "hero-scene" })).toHaveLength(0);
     expect(panel.findAllByType(HeroCanvas)).toHaveLength(0);
+    expect(flat(panel.props.style).backgroundColor).toBe(DRAWER_ICE.bottom);
   });
 
   it("has its own vertical ScrollView inside the panel", async () => {
