@@ -1,13 +1,20 @@
-// TASK_065 — WebGL background of the Home hero: "liquid silk" waves.
+// TASK_065 — WebGL background of the Home hero: "liquid silk".
+// TASK_069 — the fragment shader is now LexCar's FINAL one, byte for byte.
 //
 // Web-only (Metro resolves this file on web; HeroCanvas.tsx is the native
-// no-op, which leaves HeroScene's SVG fallback visible). The mechanics are
-// the ones already proven in Alex Finance (js/ui/hero_canvas.js) and Lexcar
-// (src/components/HeroCanvas.js): one <canvas>, one fullscreen triangle, a
-// fragment shader that builds three height-field folds (simplex noise +
-// curved crest lines), derives a pseudo-normal by finite differences and
-// lights it (diffuse → volume, specular → the bright edge of a fold, the far
-// side sinks into a deep shade). Time is continuous — no visible loop seam.
+// no-op, which leaves HeroScene's SVG fallback visible). One <canvas>, one
+// fullscreen triangle, a fragment shader taken 1:1 from Lexcar
+// (src/components/HeroCanvas.js, commit 8a6b74d — the approved reference,
+// the same one Alex Finance restored in its TASK_058): `fold()` builds a
+// height field per layer (a large sine bent by low-frequency simplex noise),
+// `layer()` derives a pseudo-normal by finite differences and lights it
+// (diffuse → volume, specular → the soft sheen of a fold, the far side sinks
+// into `u_deep`), a `band` decides where each layer shows, and the three
+// layers add up to ONE continuous surface — not separate waves, ribbons or
+// stripes. The intermediate `waveShape()/relief()` look (Finance TASK_055,
+// carried into TASK_065 here) drew each wave as its own crest/valley shape
+// and is the thing this file must never grow back. The bottom of the scene
+// dissolves into `u_bot` inside the shader. Time is continuous — no seam.
 //
 // Only the PALETTE is Ministry's own (green-teal, see MINISTRY in tokens.ts):
 // it is read from the --ministry-* CSS variables that app/+html.tsx
@@ -36,7 +43,7 @@ type Palette = {
   alpha: Vec3; light: number;
 };
 
-const VERT = `
+export const VERT = `
 attribute vec2 a_pos;
 varying vec2 v_uv;
 void main() {
@@ -44,7 +51,7 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-const FRAG = `
+export const FRAG = `
 precision highp float;
 varying vec2 v_uv;
 uniform vec2  u_res;
@@ -79,65 +86,48 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
-
-// One wave = one large shape (height field), not a sine: a crest line whose
-// curvature and width drift slowly with time, a gaussian crest minus a
-// gaussian valley on one flank (asymmetric, "fabric" rather than "ripple"),
-// travelling across the scene along its own direction. The across-crest
-// distance is periodised through sin, so successive waves join seamlessly.
-float waveShape(vec2 p, float t, float ang, float speed, float per, float w0, float seed) {
-  vec2 q = rot(ang) * p;
-  float y = q.y - t * speed;
-  float c = 0.30 * sin(q.x * 0.9 + seed * 2.1 + t * 0.045)
-          + 0.42 * snoise(vec2(q.x * 0.55 + seed * 5.0, t * 0.035 + seed * 3.0));
-  float w = w0 * (1.0 + 0.40 * snoise(vec2(q.x * 0.7 + seed * 3.0, t * 0.025 - seed * 2.0)));
-  float d = (per / 3.14159) * sin(3.14159 * (y - c) / per) / w;
-  float crest  = exp(-pow(abs(d), 1.5));
-  float valley = exp(-(d - 1.6) * (d - 1.6) * 0.9);
-  return crest - 0.55 * valley;
+// height field одной складки: крупная синусоида, изогнутая низкочастотным шумом.
+// dir — направление дрейфа (складка входит с одного края и уходит с другого),
+// seed — своя фаза/форма у каждого слоя.
+float fold(vec2 p, float t, vec2 dir, float seed) {
+  vec2 q = p - dir * t * 0.05;
+  float n1 = snoise(vec2(q.x * 0.75 + seed * 11.0, q.y * 1.05 + t * 0.03 + seed));
+  float n2 = snoise(vec2(q.x * 1.3 - t * 0.02 + seed * 3.0, q.y * 1.4 + seed * 5.0));
+  float w  = sin(q.x * 1.5 + q.y * 1.1 + n1 * 1.9 + t * 0.14 + seed * 2.0);
+  return w * 0.58 + n1 * 0.45 + n2 * 0.06;
 }
 
-float relief(vec2 p, float t, out float h1, out float h2, out float h3) {
-  h1 = 1.00 * waveShape(p, t, -0.78, 0.055, 1.6, 0.17, 0.0);
-  h2 = 0.85 * waveShape(p, t, -0.50, 0.042, 1.8, 0.24, 1.0);
-  h3 = 0.45 * waveShape(p, t, -1.05, 0.070, 1.4, 0.13, 2.0);
-  return h1 + h2 + h3;
+// один слой ткани: band — где складка видна, N — псевдонормаль поверхности
+vec3 layer(vec3 col, vec2 p, float t, vec2 dir, float seed, vec3 tint, float alpha) {
+  const float e = 0.035;
+  float h  = fold(p, t, dir, seed);
+  float hx = fold(p + vec2(e, 0.0), t, dir, seed);
+  float hy = fold(p + vec2(0.0, e), t, dir, seed);
+  vec3 N = normalize(vec3(-(hx - h) / e * 0.30, -(hy - h) / e * 0.30, 1.0));
+  vec3 L = normalize(vec3(-0.45, 0.75, 0.55));      // свет сверху-слева
+  vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
+  float diff = clamp(dot(N, L), 0.0, 1.0);
+  float spec = pow(clamp(dot(N, H), 0.0, 1.0), 12.0);
+  float band = smoothstep(-0.35, 0.45, h) * (1.0 - smoothstep(0.55, 1.25, h));
+  vec3 shaded = tint * (0.82 + 0.28 * diff);          // объём
+  shaded = mix(shaded, u_deep, (1.0 - diff) * 0.26);  // мягкая тень на обратной стороне
+  shaded += vec3(1.0) * spec * u_light;               // светлая кромка складки
+  return mix(col, shaded, band * alpha);
 }
 
 void main() {
-  vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
+  vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);   // y сверху вниз, как в CSS
   float aspect = u_res.x / u_res.y;
   vec2 p = (uv - 0.5) * vec2(aspect, 1.0) * 1.15;
   float t = u_t;
 
-  const float e = 0.04;
-  float h1, h2, h3, d1, d2, d3;
-  float H  = relief(p, t, h1, h2, h3);
-  float Hx = relief(p + vec2(e, 0.0), t, d1, d2, d3);
-  float Hy = relief(p + vec2(0.0, e), t, d1, d2, d3);
-  vec3 N = normalize(vec3(-(Hx - H) / e * 0.50, -(Hy - H) / e * 0.50, 1.0));
-
-  vec3 L = normalize(vec3(-0.50, 0.62, 0.60));
-  vec3 Hv = normalize(L + vec3(0.0, 0.0, 1.0));
-  float diff = clamp(dot(N, L), 0.0, 1.0);
-  float lit    = clamp(diff - L.z, 0.0, 1.0);
-  float shadow = clamp(L.z - diff, 0.0, 1.0);
-  float spec   = pow(clamp(dot(N, Hv), 0.0, 1.0), 8.0);
-  float rim    = pow(1.0 - N.z, 1.3) * (0.4 + 0.6 * diff);
-  float valley = smoothstep(0.0, -0.40, H);
-
   vec3 col = mix(u_top, u_bot, uv.y);
-  col = mix(col, u_c1, clamp(h1, 0.0, 1.0) * u_alpha.x);
-  col = mix(col, u_c2, clamp(h2, 0.0, 1.0) * u_alpha.y);
-  col = mix(col, u_c3, clamp(h3, 0.0, 1.0) * u_alpha.z);
-  col *= 1.0 + 0.45 * lit;
-  col = mix(col, u_deep, shadow * 0.65 + valley * 0.25);
-  col = mix(col, u_c3, (spec * 0.9 + rim * 0.35) * u_light);
+  col = layer(col, p, t, vec2( 1.0, -0.35), 0.0, u_c1, u_alpha.x);  // teal: слева-снизу вправо-вверх
+  col = layer(col, p, t, vec2(-0.85, 0.30), 1.0, u_c2, u_alpha.y);  // ice blue: справа влево
+  col = layer(col, p, t, vec2( 0.55, 0.85), 2.0, u_c3, u_alpha.z);  // soft white: через центр
 
-  // Dissolve into the page ground toward the bottom edge — this IS the
-  // hero → content transition (no hard line), and it lightens the zone
-  // where the figures sit.
+  // плавно уходим в фон страницы к нижнему краю hero — без резкой линии;
+  // заодно облегчаем зону показателей (низ hero) для читаемости
   col = mix(col, u_bot, smoothstep(0.58, 1.0, uv.y));
   gl_FragColor = vec4(col, 1.0);
 }`;

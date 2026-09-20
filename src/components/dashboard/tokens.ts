@@ -132,9 +132,15 @@ export const MINISTRY = {
   surface: "#ffffff",
   ink: "#0f2a26",           // hero headlines: >= 6.8:1 on every wave color
   ink2: "#274640",          // hero secondary text: 4.65:1 even on a fully saturated wave-a crest
-  // Opacity of waves a/b/c and the specular sheen strength (shader uniforms).
-  heroAlpha: [0.56, 0.48, 0.40] as const,
-  heroLight: 0.62,
+  // Opacity of the three fold layers a/b/c and the specular sheen strength
+  // (shader uniforms). TASK_069: retuned for LexCar's final fold/layer
+  // shader — its sheen is added as pure white (`spec * u_light`), so the
+  // TASK_065 values (.56 .48 .40 / .62, tuned for the waveShape look) gave
+  // bright white spots on the crests. Alpha follows LexCar light
+  // (.46 .40 .52) with the pale-mint highlight layer slightly lower, as
+  // Finance did in its TASK_058; light .45 keeps the sheen soft.
+  heroAlpha: [0.46, 0.40, 0.48] as const,
+  heroLight: 0.45,
 } as const;
 
 // `:root{--ministry-*}` for app/+html.tsx. Kebab-case keys, numbers joined

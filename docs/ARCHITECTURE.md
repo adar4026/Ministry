@@ -64,7 +64,7 @@ ministry/
 │   │   ├── dashboard/          # Компоненты Главной (TASK_007)
 │   │   │   ├── tokens.ts       # DS + MINISTRY (палитра, TASK_065) + ministryCssVars()
 │   │   │   ├── HeroScene.tsx   # Фон hero: SVG-fallback + HeroCanvas (TASK_065)
-│   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкие волны» / native no-op
+│   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкий шёлк», шейдер LexCar 1:1 (TASK_069) / native no-op
 │   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065)
 │   │   ├── drawer/             # Боковая шторка Главной (TASK_066)
 │   │   │   ├── HomeDrawer.tsx  # RNModal + Animated + PanResponder, контент Профиля
@@ -266,9 +266,13 @@ StoreContext
 
 Верх Главной — не карточка, а **сцена**: `HeroScene` (absolute, clipped,
 `pointerEvents:none`) с SVG-fallback (градиент mint → фон + три мягких
-складки) и web-only `HeroCanvas` — WebGL-шейдер «жидкой ткани», перенесённый
-по механике из Alex Finance / Lexcar (три height-field-волны, псевдонормаль,
-diffuse/specular/rim, растворение в фон внутри шейдера). `HomeHero` кладёт
+складки) и web-only `HeroCanvas` — WebGL-шейдер «жидкого шёлка»: фрагментный
+шейдер взят **побайтно** из финального LexCar (`8a6b74d`, TASK_069):
+`fold()`/`layer()` — три height-field-складки одной непрерывной
+поверхности, псевдонормаль, diffuse/specular, мягкая тень, band,
+растворение в фон внутри шейдера. «Отдельные волны» `waveShape/relief`
+(Finance TASK_055) — снятый look; `HeroShader.test.ts` не даёт ему
+вернуться. `HomeHero` кладёт
 цифры месяца прямо на сцену. На Home `SafeAreaView` не паддит верх — сцена
 уходит под status bar, inset применяет сам экран.
 
@@ -283,7 +287,8 @@ diffuse/specular/rim, растворение в фон внутри шейдер
 Производительность: DPR ≤ 2, 30 fps, один draw на кадр, пауза при
 `document.hidden` / вне viewport, `prefers-reduced-motion` и слабое
 устройство → fallback, полный teardown при unmount. Подробности —
-`docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`.
+`docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`,
+`docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`.
 
 ---
 

@@ -1,8 +1,37 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_068 — вкладка «Скоро» открывает экран
-«Ближайшие события». **Ожидает подтверждения владельца — не
-закоммичено.**
+_Последнее обновление: TASK_069 — WebGL-hero Главной переведён на
+финальный шейдер LexCar (единая шёлковая поверхность). **Ожидает
+подтверждения владельца — не закоммичено.**
+
+Фрагментный шейдер `HeroCanvas.web.tsx` заменён побайтно на `FRAG` LexCar
+`8a6b74d` (`fold()`/`layer()`: три height-field-складки одной непрерывной
+поверхности, псевдонормаль, diffuse/specular, мягкая тень, band, нижний
+fade). Прежний `waveShape()/relief()` (Finance TASK_055 — «отдельные
+волны») снят. JS-обвязка, `VERT`, uniforms, CSS/SVG-fallback — без
+изменений. Hex-палитра Ministry не тронута; под новый шейдер
+подстроены только `heroAlpha .46 .40 .48` и `heroLight .45` (без белых
+пятен). Новый `HeroShader.test.ts` — regression-защита (структура
+fold/layer, запрет waveShape/relief, побайтное сравнение с LexCar при
+наличии репозитория рядом). Проверки: `tsc` чисто, jest 80/80 (1238),
+`git diff --check` чисто, web export собирается; браузер 320/390/430/
+desktop — canvas в границах сцены, DPR cap 2, overflow нет, движение
+медленное, context lost/restore и hidden/visible работают, консоль
+чистая. Детали — `docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`._
+
+---
+
+## TASK_069 — коротко
+
+Hero WebGL = финальный LexCar `fold/layer` побайтно; палитра своя,
+`alpha/light` подстроены; regression-тест против «отдельных волн».
+Не закоммичено. Детали —
+`docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`.
+
+---
+
+_Предыдущее обновление: TASK_068 — вкладка «Скоро» открывает экран
+«Ближайшие события».
 
 Tap по центральной вкладке «Скоро» (TASK_067) теперь делает
 `router.push("/upcoming-events")` — тот же переход, что «Показать все»

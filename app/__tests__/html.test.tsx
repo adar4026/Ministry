@@ -56,6 +56,8 @@ describe("+html.tsx root document", () => {
     expect(css).toBe(ministryCssVars());
     expect(css).toContain(`--ministry-hero-a:${MINISTRY.heroA}`);
     expect(css).toContain(`--ministry-bg:${MINISTRY.bg}`);
-    expect(css).toContain("--ministry-hero-alpha:0.56 0.48 0.4");
+    // TASK_069: fold-layer opacities retuned for LexCar's final shader
+    expect(css).toContain("--ministry-hero-alpha:0.46 0.4 0.48");
+    expect(css).toContain("--ministry-hero-light:0.45");
   });
 });
