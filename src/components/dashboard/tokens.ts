@@ -192,3 +192,36 @@ export const NAV = {
   addHighlight: "rgba(255,255,255,0.45)",
   addShadow: "rgba(10,87,72,0.14)",
 } as const;
+
+// ---------------------------------------------------------------------------
+// TASK_071 — the Home hero's headline figure ("37 ч") as frosted glass. The
+// GLYPHS are the glass, not a plate under them: a translucent gradient fill
+// clipped to the text, a soft teal shadow beneath, a hairline dark bottom
+// edge for depth and a faint white rim. Kept outside `MINISTRY` like `NAV`:
+// these are rgba surfaces derived from the palette (white + heroDeep), not
+// hex tokens the hue/contrast tests or the shader read. The unit ("ч"/"м")
+// gets the same layers at lower strength so it stays secondary.
+export const FIGURE_GLASS = {
+  // Body fill (web: background-clip:text gradient, top → bottom).
+  bodyTop: "rgba(255,255,255,0.98)",
+  bodyLight: "rgba(255,255,255,0.90)",
+  bodyMid: "rgba(255,255,255,0.74)",
+  bodyBottom: "rgba(214,240,231,0.70)", // pale mint, MINISTRY.heroC-ish — never pure white at the base
+  unitBodyTop: "rgba(255,255,255,0.94)",
+  unitBodyMid: "rgba(255,255,255,0.66)",
+  unitBodyBottom: "rgba(214,240,231,0.60)",
+  // Native (no background-clip): one flat frosted fill.
+  bodySolid: "rgba(255,255,255,0.92)",
+  unitBodySolid: "rgba(255,255,255,0.78)",
+  // Soft lift under the glass — MINISTRY.heroDeep at low alpha.
+  shadowFar: "rgba(10,87,72,0.30)",
+  shadowNear: "rgba(10,87,72,0.22)",
+  unitShadowFar: "rgba(10,87,72,0.22)",
+  unitShadowNear: "rgba(10,87,72,0.16)",
+  // Hairline dark bottom edge (depth) and the white rim (edge light).
+  depth: "rgba(10,87,72,0.34)",
+  unitDepth: "rgba(10,87,72,0.26)",
+  depthOffset: 1.5,
+  rim: "rgba(255,255,255,0.75)",
+  rimWidth: 1,
+} as const;

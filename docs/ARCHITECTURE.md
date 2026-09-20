@@ -62,10 +62,10 @@ ministry/
 │   │
 │   ├── components/             # Переиспользуемые компоненты
 │   │   ├── dashboard/          # Компоненты Главной (TASK_007)
-│   │   │   ├── tokens.ts       # DS + MINISTRY (палитра, TASK_065) + ministryCssVars()
+│   │   │   ├── tokens.ts       # DS + MINISTRY (палитра, TASK_065) + NAV + FIGURE_GLASS (TASK_071) + ministryCssVars()
 │   │   │   ├── HeroScene.tsx   # Фон hero: SVG-fallback + HeroCanvas (TASK_065)
 │   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкий шёлк», шейдер LexCar 1:1 (TASK_069) / native no-op
-│   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065)
+│   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065); стеклянная цифра (TASK_071)
 │   │   ├── drawer/             # Боковая шторка Главной (TASK_066)
 │   │   │   ├── HomeDrawer.tsx  # RNModal + Animated + PanResponder, контент Профиля
 │   │   │   ├── DrawerGroup.tsx # Заголовок группы + стеклянная карточка
@@ -277,7 +277,14 @@ StoreContext
 цифра — единственный **центрированный** элемент hero (wrapper `width 100%`,
 `alignItems center`): число `60/600` + единица `24/500` во вторичном ink
 вплотную, на одной базовой линии, SF Rounded на iOS через `ui-rounded`;
-caption и всё ниже — в левой сетке (TASK_070). На Home `SafeAreaView` не паддит верх — сцена
+caption и всё ниже — в левой сетке (TASK_070). Сама цифра — **frosted glass
+на глифах** (TASK_071), без плашки: `figureGlassStyles()` даёт четыре слоя
+одной и той же строки — `shadow` (прозрачный текст + мягкая teal-тень),
+`depth` (+1.5 px, тонкий тёмный teal), `body` (in-flow, градиент
+white → pale-mint с `background-clip: text`), `rim` (1 px белый
+text-stroke); оверлеи absolute, без `numberOfLines` (иначе RNW-`overflow:
+hidden` режет тень); native — одно тело frosted white + textShadow; rgba —
+`FIGURE_GLASS` в `tokens.ts`. На Home `SafeAreaView` не паддит верх — сцена
 уходит под status bar, inset применяет сам экран.
 
 Палитра — `MINISTRY` в `src/components/dashboard/tokens.ts`, единственный
@@ -293,7 +300,8 @@ caption и всё ниже — в левой сетке (TASK_070). На Home `S
 устройство → fallback, полный teardown при unmount. Подробности —
 `docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`,
 `docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`,
-`docs/TASKS/TASK_070_HOME_HERO_COMPACT_FIGURE_TYPOGRAPHY.md`.
+`docs/TASKS/TASK_070_HOME_HERO_COMPACT_FIGURE_TYPOGRAPHY.md`,
+`docs/TASKS/TASK_071_HOME_HERO_GLASS_FIGURE.md`.
 
 ---
 

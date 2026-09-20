@@ -3,8 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, STORAGE_KEYS } from "@/store/StoreContext";
-import { HomeHero, splitDuration } from "@/components/dashboard/HomeHero";
-import { DS, MINISTRY } from "@/components/dashboard/tokens";
+import { HomeHero, figureGlassStyles, splitDuration } from "@/components/dashboard/HomeHero";
+import { DS, FIGURE_GLASS, MINISTRY } from "@/components/dashboard/tokens";
 import { MONTHLY_GOAL } from "@/data/constants";
 import type { Session } from "@/types";
 
@@ -90,10 +90,13 @@ describe("HomeHero — structure", () => {
     expect(style.elevation).toBeUndefined();
   });
 
-  it("uses the hero inks (not DS.navy / DS.subInk) for the figure and captions", async () => {
+  it("uses the glass fill for the figure and the hero ink (not DS.navy / DS.subInk) for captions", async () => {
     const renderer = await render();
     const figure = renderer.root.findAll((n) => n.type === Text && flat(n.props.style).fontSize === 60)[0];
-    expect(flat(figure.props.style).color).toBe(MINISTRY.ink);
+    // jest-expo runs as iOS: the native (single-layer) frosted fill.
+    expect(flat(figure.props.style).color).toBe(FIGURE_GLASS.bodySolid);
+    const caption = renderer.root.findAll((n) => n.type === Text && String(n.props.children).startsWith("из цели"))[0];
+    expect(flat(caption.props.style).color).toBe(MINISTRY.ink2);
     const colors = renderer.root.findAllByType(Text).map((n) => flat(n.props.style).color);
     expect(colors).not.toContain(DS.navy);
     expect(colors).not.toContain(DS.subInk);
@@ -127,7 +130,7 @@ describe("HomeHero — headline typography", () => {
     expect(splitDuration("—")).toEqual([["—", ""]]);
   });
 
-  it("the digits are 60 pt / weight 600 (medium, not bold) in the headline ink; the unit is 24 pt / weight 500 in the secondary ink", async () => {
+  it("the digits are 60 pt / weight 600 (medium, not bold); the unit is 24 pt / weight 500 — both in the glass fill", async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify([sessionToday(37 * 60)]));
     const renderer = await render();
     const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
@@ -141,12 +144,12 @@ describe("HomeHero — headline typography", () => {
     expect(n.lineHeight).toBe(64);
     expect(n.fontWeight).toBe("600");           // a KPI, not a bold heading (TASK_065 was 800)
     expect(n.letterSpacing).toBeLessThan(0);
-    expect(n.color).toBe(MINISTRY.ink);
+    expect(n.color).toBe(FIGURE_GLASS.bodySolid);
     expect(n.fontVariant).toEqual(["tabular-nums"]);
     expect(u.fontSize).toBeGreaterThanOrEqual(22);
     expect(u.fontSize).toBeLessThanOrEqual(26);
     expect(u.fontWeight).toBe("500");
-    expect(u.color).toBe(MINISTRY.ink2);
+    expect(u.color).toBe(FIGURE_GLASS.unitBodySolid);
     // The unit is tucked against the digits: "37 ч" is one unit, not "37" + a stray "ч".
     expect(u.marginLeft as number).toBeLessThanOrEqual(3);
   });
@@ -196,6 +199,81 @@ describe("HomeHero — headline typography", () => {
         && flat(n.props.style).alignItems === "center" && flat(n.props.style).width === "100%");
     expect(centred).toHaveLength(0);
     for (const t of renderer.root.findAllByType(Text)) expect(flat(t.props.style).textAlign).toBeUndefined();
+  });
+});
+
+// TASK_071 — the figure is frosted glass, and the GLYPHS are the glass: no
+// plate behind them, nothing else in the hero gets the treatment.
+describe("HomeHero — glass figure", () => {
+  it("web: the body is a translucent gradient clipped to the text, with a soft teal shadow layer, a dark depth edge and a white rim", () => {
+    const g = figureGlassStyles("web");
+    for (const role of ["number", "unit"] as const) {
+      const body = g[role].body as Record<string, string>;
+      expect(body.backgroundClip).toBe("text");
+      expect(body.color).toBe("transparent");
+      expect(body.WebkitTextFillColor).toBe("transparent");
+      expect(body.backgroundImage).toMatch(/^linear-gradient\(180deg, rgba\(255,255,255,0\.9\d\) 0%/);
+      // Translucent, never an opaque white block; ends on the pale mint, not pure white.
+      expect(body.backgroundImage).toMatch(/rgba\(214,240,231,0\.\d+\) 100%\)$/);
+      const shadow = g[role].shadow as Record<string, string>;
+      expect(shadow.color).toBe("transparent");
+      expect(shadow.textShadow).toMatch(/^0 \d+px \d+px rgba\(10,87,72,0\.\d+\), 0 1px \dpx rgba\(10,87,72,0\.\d+\)$/);
+      const depth = g[role].depth as Record<string, string>;
+      expect(depth.color).toMatch(/^rgba\(10,87,72,0\.\d+\)$/);
+      const rim = g[role].rim as Record<string, string>;
+      expect(rim.color).toBe("transparent");
+      expect(rim.WebkitTextStroke).toBe(`${FIGURE_GLASS.rimWidth}px ${FIGURE_GLASS.rim}`);
+    }
+    // The unit is the same glass at lower strength — secondary, not a second headline.
+    const alpha = (s: string, i = 0) => Number((s.match(/0\.\d+/g) ?? [])[i]);
+    expect(alpha((g.unit.shadow as any).textShadow)).toBeLessThan(alpha((g.number.shadow as any).textShadow));
+    expect(alpha((g.unit.depth as any).color)).toBeLessThan(alpha((g.number.depth as any).color));
+  });
+
+  it("native: only the body carries anything — a flat frosted fill with a soft teal shadow, no overlay styles", () => {
+    const g = figureGlassStyles("ios");
+    expect(g.number.body).toEqual({
+      color: FIGURE_GLASS.bodySolid,
+      textShadowColor: FIGURE_GLASS.shadowFar,
+      textShadowOffset: { width: 0, height: 6 },
+      textShadowRadius: 14,
+    });
+    expect((g.unit.body as any).color).toBe(FIGURE_GLASS.unitBodySolid);
+    for (const role of ["number", "unit"] as const) {
+      expect(g[role].shadow).toEqual({});
+      expect(g[role].depth).toEqual({});
+      expect(g[role].rim).toEqual({});
+    }
+  });
+
+  it("renders no overlay layers on native and no plate behind the figure — the stack is bare", async () => {
+    const renderer = await render();
+    // jest-expo runs as iOS → no shadow/depth/rim copies of the row.
+    expect(renderer.root.findAll((n) => typeof n.props.testID === "string" && /^home-hero-figure-(shadow|depth|rim)$/.test(n.props.testID))).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ testID: "home-hero-figure" }).filter((n) => typeof n.type === "string")).toHaveLength(1);
+    // No glass plate: neither the wrapper nor the stack has a fill, border, radius or blur.
+    for (const id of ["home-hero-figure-wrap", "home-hero-figure-stack"]) {
+      const style = flat(renderer.root.findByProps({ testID: id }).props.style) as Record<string, unknown>;
+      expect(style.backgroundColor).toBeUndefined();
+      expect(style.backgroundImage).toBeUndefined();
+      expect(style.borderWidth).toBeUndefined();
+      expect(style.borderRadius).toBeUndefined();
+      expect(style.backdropFilter).toBeUndefined();
+      expect(style.shadowOpacity).toBeUndefined();
+    }
+  });
+
+  it("the glass stays on the figure only — caption, pace, metrics and pill labels keep plain inks", async () => {
+    const renderer = await render();
+    const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
+    const inFigure = new Set(figure.findAllByType(Text));
+    for (const t of renderer.root.findAllByType(Text)) {
+      if (inFigure.has(t)) continue;
+      const st = flat(t.props.style) as Record<string, unknown>;
+      expect(st.backgroundClip).toBeUndefined();
+      expect(st.textShadowColor).toBeUndefined();
+      expect(String(st.color)).not.toMatch(/^rgba\(255,255,255/);
+    }
   });
 });
 

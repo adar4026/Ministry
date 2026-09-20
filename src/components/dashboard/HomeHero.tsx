@@ -4,7 +4,7 @@ import { useStore } from "@/store/StoreContext";
 import { MONTHLY_GOAL, dayWord, formatHMRounded, formatHoursWord, monthProgress } from "@/data/constants";
 import { computePaceDeviation, formatDeviationLabel } from "@/data/cumulativeProgress";
 import { CalendarIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/components/icons";
-import { DS, MINISTRY } from "./tokens";
+import { DS, FIGURE_GLASS, MINISTRY } from "./tokens";
 
 // TASK_065 — the Home hero's CONTENT, laid out directly on HeroScene's
 // background. This replaces HoursHeroCard on Home: same numbers, same two
@@ -27,10 +27,11 @@ import { DS, MINISTRY } from "./tokens";
 // digits. formatHMRounded() is still the single source of the string;
 // splitDuration() only breaks it into (number, unit) pairs for layout.
 //
-// Text sits on an animated background, so the headline ink is
-// MINISTRY.ink (>= 6.8:1 even on a fully saturated crest) with a faint light
-// text shadow, and every caption uses MINISTRY.ink2 (4.65:1 on that same
-// worst case) — never the DS.subInk/metaText greys, which drop below AA here.
+// Text sits on an animated background: the headline is frosted glass
+// (TASK_071, see figureGlassStyles below — its legibility comes from the
+// soft teal shadow under the light glyphs, not from a dark ink), and every
+// caption uses MINISTRY.ink2 (4.65:1 even on a fully saturated crest) — never
+// the DS.subInk/metaText greys, which drop below AA here.
 // All durations are display-rounded via formatHMRounded(); the underlying
 // monthProgress() values are never mutated.
 
@@ -40,17 +41,72 @@ const MONTHS_NOM = [
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
 ];
 
-// A faint light halo under the headline, as in both reference apps. RNW 0.21
-// deprecates the textShadow* props in favour of the CSS shorthand, so web
-// gets the shorthand and native keeps the props — no console warning either way.
-const FIGURE_SHADOW = Platform.select<object>({
-  web: { textShadow: "0 1px 0 rgba(255,255,255,0.35)" },
-  default: {
-    textShadowColor: "rgba(255,255,255,0.35)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
-  },
-});
+// TASK_071 — the headline figure is FROSTED GLASS, and the glyphs themselves
+// are the glass: no plate, no card, nothing behind the digits. A true
+// backdrop-filter cannot be clipped to a text shape, so the glass is built
+// from layers of the very same "number + unit" row stacked on one another:
+//   shadow — transparent text carrying a soft teal text-shadow (the lift
+//            that keeps light glass legible on the light mint scene),
+//   depth  — the row again, 1.5 pt lower, in a thin dark teal: the bottom
+//            edge of a thick pane,
+//   body   — the in-flow row: a translucent white→pale-mint gradient clipped
+//            to the text (bright at the top = inner light, more see-through
+//            towards the base),
+//   rim    — transparent text with a hairline white stroke: the edge light.
+// The unit ("ч"/"м") gets the same layers at lower strength so it stays
+// secondary. Native has neither background-clip:text nor text-stroke, so it
+// renders the body alone as a flat frosted fill with a soft shadow. All the
+// rgba values live in FIGURE_GLASS (tokens.ts).
+export type GlassLayer = "shadow" | "depth" | "body" | "rim";
+type GlassStyles = Record<"number" | "unit", Record<GlassLayer, object>>;
+
+/**
+ * Per-layer text styles for the glass figure. Pure so the web contract can
+ * be unit-tested from the (iOS) jest preset. Web: four layers; native: only
+ * `body` carries anything, the overlay layers are never rendered.
+ */
+export function figureGlassStyles(os: string): GlassStyles {
+  const G = FIGURE_GLASS;
+  if (os === "web") {
+    const clipped = { backgroundClip: "text", color: "transparent", WebkitTextFillColor: "transparent" };
+    return {
+      number: {
+        body: {
+          ...clipped,
+          backgroundImage: `linear-gradient(180deg, ${G.bodyTop} 0%, ${G.bodyLight} 28%, ${G.bodyMid} 62%, ${G.bodyBottom} 100%)`,
+        },
+        shadow: { color: "transparent", textShadow: `0 8px 22px ${G.shadowFar}, 0 1px 3px ${G.shadowNear}` },
+        depth: { color: G.depth },
+        rim: { color: "transparent", WebkitTextStroke: `${G.rimWidth}px ${G.rim}` },
+      },
+      unit: {
+        body: {
+          ...clipped,
+          backgroundImage: `linear-gradient(180deg, ${G.unitBodyTop} 0%, ${G.unitBodyMid} 55%, ${G.unitBodyBottom} 100%)`,
+        },
+        shadow: { color: "transparent", textShadow: `0 6px 16px ${G.unitShadowFar}, 0 1px 2px ${G.unitShadowNear}` },
+        depth: { color: G.unitDepth },
+        rim: { color: "transparent", WebkitTextStroke: `${G.rimWidth}px ${G.rim}` },
+      },
+    };
+  }
+  const none = {};
+  return {
+    number: {
+      body: { color: G.bodySolid, textShadowColor: G.shadowFar, textShadowOffset: { width: 0, height: 6 }, textShadowRadius: 14 },
+      shadow: none, depth: none, rim: none,
+    },
+    unit: {
+      body: { color: G.unitBodySolid, textShadowColor: G.unitShadowFar, textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 10 },
+      shadow: none, depth: none, rim: none,
+    },
+  };
+}
+
+const GLASS_STYLES = figureGlassStyles(Platform.OS);
+// Overlay layers exist on web only; native renders just the body.
+const GLASS_OVERLAYS_UNDER: GlassLayer[] = Platform.OS === "web" ? ["shadow", "depth"] : [];
+const GLASS_OVERLAYS_OVER: GlassLayer[] = Platform.OS === "web" ? ["rim"] : [];
 
 // The headline digits in the platform's rounded system face: on iOS/macOS
 // Safari `ui-rounded` resolves to SF Rounded, elsewhere the chain falls back
@@ -84,6 +140,33 @@ export function splitDuration(text: string): Array<[string, string]> {
   return pairs.length ? pairs : [[text, ""]];
 }
 
+/**
+ * One "number + unit" row of the headline — pairs of (number, unit) on one
+ * baseline. Rendered once in flow as the glass `body` and, on web, again as
+ * each overlay layer stacked on it. Only the body carries the testID and
+ * `numberOfLines`: RNW turns numberOfLines into overflow:hidden, which would
+ * clip the shadow layer's blur to a hard rectangle.
+ */
+function FigureRow({ pairs, layer }: { pairs: Array<[string, string]>; layer: GlassLayer }) {
+  const body = layer === "body";
+  return (
+    <View style={styles.figure} testID={body ? "home-hero-figure" : undefined}>
+      {pairs.map(([num, unit], i) => (
+        <View key={i} style={[styles.figurePair, i > 0 && styles.figurePairNext]}>
+          <Text style={[styles.figureNumber, FIGURE_FONT, GLASS_STYLES.number[layer]]} numberOfLines={body ? 1 : undefined}>
+            {num}
+          </Text>
+          {unit ? (
+            <Text style={[styles.figureUnit, FIGURE_FONT, GLASS_STYLES.unit[layer]]} numberOfLines={body ? 1 : undefined}>
+              {unit}
+            </Text>
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function HomeHero() {
   const { records, sessions } = useStore();
   const now = new Date();
@@ -112,6 +195,8 @@ export function HomeHero() {
     ? `из цели ${formatHoursWord(MONTHLY_GOAL)} · ${Math.round(pctRaw)}% выполнено`
     : "Месячная цель не задана";
 
+  const pairs = splitDuration(formatHMRounded(p.hoursDone));
+
   const a11yLabel = hasGoal
     ? `${eyebrow}: внесено ${formatHMRounded(p.hoursDone)} из цели ${formatHoursWord(MONTHLY_GOAL)}. Выполнено ${Math.round(pctRaw)} процентов. ${p.hoursRemaining > 0 ? `Осталось ${formatHMRounded(p.hoursRemaining)}.` : "Цель достигнута."} ${daysText} до конца месяца. ${deviationLabel}.`
     : `${eyebrow}: внесено ${formatHMRounded(p.hoursDone)}. Месячная цель не задана.`;
@@ -122,13 +207,36 @@ export function HomeHero() {
         {/* The one centred element of the hero: a full-width wrapper centres
             the figure on the screen; the figure itself is a baseline-aligned
             row (not nested Text — mixed sizes in one line box stretch it),
-            so the small unit sits on the digits' baseline on native and web. */}
+            so the small unit sits on the digits' baseline on native and web.
+            TASK_071: the row is stacked into glass layers (see figureGlassStyles);
+            the stack is exactly the body row's size, overlays are absolute. */}
         <View style={styles.figureWrap} importantForAccessibility="no" testID="home-hero-figure-wrap">
-          <View style={styles.figure} testID="home-hero-figure">
-            {splitDuration(formatHMRounded(p.hoursDone)).map(([num, unit], i) => (
-              <View key={i} style={[styles.figurePair, i > 0 && styles.figurePairNext]}>
-                <Text style={[styles.figureNumber, FIGURE_FONT, FIGURE_SHADOW]} numberOfLines={1}>{num}</Text>
-                {unit ? <Text style={[styles.figureUnit, FIGURE_FONT, FIGURE_SHADOW]} numberOfLines={1}>{unit}</Text> : null}
+          <View style={styles.figureStack} testID="home-hero-figure-stack">
+            {GLASS_OVERLAYS_UNDER.map((layer) => (
+              <View
+                key={layer}
+                style={[styles.figureLayer, layer === "depth" && { top: FIGURE_GLASS.depthOffset }]}
+                pointerEvents="none"
+                aria-hidden
+                importantForAccessibility="no-hide-descendants"
+                testID={`home-hero-figure-${layer}`}
+              >
+                <FigureRow pairs={pairs} layer={layer} />
+              </View>
+            ))}
+            <View style={styles.figureBody}>
+              <FigureRow pairs={pairs} layer="body" />
+            </View>
+            {GLASS_OVERLAYS_OVER.map((layer) => (
+              <View
+                key={layer}
+                style={[styles.figureLayer, styles.figureLayerOver]}
+                pointerEvents="none"
+                aria-hidden
+                importantForAccessibility="no-hide-descendants"
+                testID={`home-hero-figure-${layer}`}
+              >
+                <FigureRow pairs={pairs} layer={layer} />
               </View>
             ))}
           </View>
@@ -200,6 +308,13 @@ const styles = StyleSheet.create({
   // A little extra space above (on top of the screen's heroBlock gap) keeps
   // it clear of the date line without floating away from the header.
   figureWrap: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 8 },
+  // TASK_071 — the glass stack: sized by the in-flow body row; the overlay
+  // layers are absolute copies of that row (same content, same width, same
+  // centring), so they land glyph-on-glyph without touching the layout.
+  figureStack: { position: "relative" },
+  figureLayer: { position: "absolute", left: 0, right: 0, top: 0, alignItems: "center", zIndex: 0 },
+  figureLayerOver: { zIndex: 2 },
+  figureBody: { zIndex: 1 },
   // The whole "37 ч" / "1 ч 30 м" run: pairs of (number, unit) on one
   // baseline, exactly one 64 pt line tall.
   figure: { flexDirection: "row", alignItems: "baseline", flexWrap: "nowrap", justifyContent: "center" },
@@ -207,25 +322,25 @@ const styles = StyleSheet.create({
   figurePairNext: { marginLeft: 12 },
   // The digits: large (60) but a MEDIUM weight (600) — a dashboard KPI, not
   // a bold heading. Slightly negative tracking keeps two digits compact;
-  // tabular digits keep the width steady as the number grows.
+  // tabular digits keep the width steady as the number grows. Colour/fill
+  // comes from the glass layer (figureGlassStyles), not from here.
   figureNumber: {
     fontSize: 60,
     lineHeight: 64,
     fontWeight: "600",
     letterSpacing: -1.5,
-    color: MINISTRY.ink,
     fontVariant: ["tabular-nums"],
   },
-  // The unit ("ч", "м"): secondary — 24 pt, weight 500, the secondary ink —
-  // on the digits' baseline and tucked right against them (2 pt), so
-  // "37 ч" reads as one typographic unit rather than "37" + a stray "ч".
+  // The unit ("ч", "м"): secondary — 24 pt, weight 500, a more see-through
+  // glass than the digits — on the digits' baseline and tucked right against
+  // them (2 pt), so "37 ч" reads as one typographic unit rather than "37" +
+  // a stray "ч".
   figureUnit: {
     marginLeft: 2,
     fontSize: 24,
     lineHeight: 30,
     fontWeight: "500",
     letterSpacing: -0.2,
-    color: MINISTRY.ink2,
   },
   caption: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: "600", color: MINISTRY.ink2 },
   track: {
