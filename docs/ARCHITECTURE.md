@@ -273,7 +273,9 @@ StoreContext
 растворение в фон внутри шейдера. «Отдельные волны» `waveShape/relief`
 (Finance TASK_055) — снятый look; `HeroShader.test.ts` не даёт ему
 вернуться. `HomeHero` кладёт
-цифры месяца прямо на сцену. На Home `SafeAreaView` не паддит верх — сцена
+цифры месяца прямо на сцену: без eyebrow месяца (дата уже в шапке), главная
+цифра — число `56/700` + единица `24/600` во вторичном ink на одной
+базовой линии, сразу под строкой даты (TASK_070). На Home `SafeAreaView` не паддит верх — сцена
 уходит под status bar, inset применяет сам экран.
 
 Палитра — `MINISTRY` в `src/components/dashboard/tokens.ts`, единственный
@@ -288,7 +290,8 @@ StoreContext
 `document.hidden` / вне viewport, `prefers-reduced-motion` и слабое
 устройство → fallback, полный teardown при unmount. Подробности —
 `docs/TASKS/TASK_065_HOME_HERO_SILK_WAVES.md`,
-`docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`.
+`docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`,
+`docs/TASKS/TASK_070_HOME_HERO_COMPACT_FIGURE_TYPOGRAPHY.md`.
 
 ---
 

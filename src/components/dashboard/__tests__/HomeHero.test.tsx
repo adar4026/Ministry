@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, STORAGE_KEYS } from "@/store/StoreContext";
-import { HomeHero } from "@/components/dashboard/HomeHero";
+import { HomeHero, splitDuration } from "@/components/dashboard/HomeHero";
 import { DS, MINISTRY } from "@/components/dashboard/tokens";
 import { MONTHLY_GOAL } from "@/data/constants";
 import type { Session } from "@/types";
@@ -50,14 +50,34 @@ beforeEach(async () => {
 });
 
 describe("HomeHero — structure", () => {
-  it("shows eyebrow (month + year), the headline figure and its goal caption", async () => {
+  it("shows the headline figure (as number + unit pieces) and its goal caption", async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify([sessionToday(90)]));
     const renderer = await render();
+    const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
+    const pieces = figure.findAllByType(Text).map((n) => n.props.children).filter((c): c is string => typeof c === "string");
+    expect(pieces).toEqual(["1", "ч", "30", "м"]);
     const all = texts(renderer);
-    const now = new Date();
-    expect(all.some((t) => new RegExp(`^[А-Я][а-я]+ ${now.getFullYear()}$`).test(t))).toBe(true);
-    expect(all).toContain("1 ч 30 м");
     expect(all.some((t) => t.startsWith(`из цели ${MONTHLY_GOAL} ч`) && t.includes("% выполнено"))).toBe(true);
+  });
+
+  // TASK_070 — the month eyebrow ("СЕНТЯБРЬ 2026") is gone: the header's
+  // date line already names the month. It survives only in the spoken summary.
+  it("shows no month/year eyebrow above the figure (but keeps it in the a11y summary)", async () => {
+    const renderer = await render();
+    const now = new Date();
+    const monthYear = new RegExp(`^[А-Яа-я]+ ${now.getFullYear()}$`);
+    expect(texts(renderer).some((t) => monthYear.test(t))).toBe(false);
+    expect(renderer.root.findAllByType(Text).some((n) => flat(n.props.style).textTransform === "uppercase")).toBe(false);
+    const summary = renderer.root.findAll(
+      (n) => typeof n.type === "string" && typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.includes("внесено"),
+    )[0];
+    expect(summary.props.accessibilityLabel).toMatch(new RegExp(`^[А-Я][а-я]+ ${now.getFullYear()}:`));
+  });
+
+  it("has no top padding of its own — the header→figure distance is the screen's", async () => {
+    const renderer = await render();
+    const wrap = renderer.root.findByProps({ testID: "home-hero" });
+    expect(flat(wrap.props.style).paddingTop).toBe(0);
   });
 
   it("has no card surface of its own — the wrapper carries no background, radius or shadow", async () => {
@@ -72,7 +92,7 @@ describe("HomeHero — structure", () => {
 
   it("uses the hero inks (not DS.navy / DS.subInk) for the figure and captions", async () => {
     const renderer = await render();
-    const figure = renderer.root.findAll((n) => n.type === Text && flat(n.props.style).fontSize === 46)[0];
+    const figure = renderer.root.findAll((n) => n.type === Text && flat(n.props.style).fontSize === 56)[0];
     expect(flat(figure.props.style).color).toBe(MINISTRY.ink);
     const colors = renderer.root.findAllByType(Text).map((n) => flat(n.props.style).color);
     expect(colors).not.toContain(DS.navy);
@@ -94,6 +114,53 @@ describe("HomeHero — structure", () => {
     );
     expect(summary).toHaveLength(1);
     expect(summary[0].props.accessibilityLabel).toContain(`из цели ${MONTHLY_GOAL}`);
+  });
+});
+
+// TASK_070 — the headline is set like an iOS dashboard figure: a large,
+// not-too-heavy number and a clearly secondary unit on the same baseline.
+describe("HomeHero — headline typography", () => {
+  it("splitDuration() breaks formatHMRounded() output into (number, unit) pairs", () => {
+    expect(splitDuration("37 ч")).toEqual([["37", "ч"]]);
+    expect(splitDuration("1 ч 30 м")).toEqual([["1", "ч"], ["30", "м"]]);
+    expect(splitDuration("0 ч")).toEqual([["0", "ч"]]);
+    expect(splitDuration("—")).toEqual([["—", ""]]);
+  });
+
+  it("the number is 56 pt / weight 700 in the headline ink; the unit is 24 pt / weight 600 in the secondary ink", async () => {
+    await AsyncStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify([sessionToday(37 * 60)]));
+    const renderer = await render();
+    const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
+    const [num, unit] = figure.findAllByType(Text);
+    const n = flat(num.props.style);
+    const u = flat(unit.props.style);
+    expect(num.props.children).toBe("37");
+    expect(unit.props.children).toBe("ч");
+    expect(n.fontSize).toBe(56);
+    expect(n.lineHeight).toBe(60);
+    expect(n.fontWeight).toBe("700");           // lighter than TASK_065's 800
+    expect(n.color).toBe(MINISTRY.ink);
+    expect(n.fontVariant).toEqual(["tabular-nums"]);
+    expect(u.fontSize).toBeLessThan((n.fontSize as number) / 2);
+    expect(u.fontWeight).toBe("600");
+    expect(u.color).toBe(MINISTRY.ink2);
+    expect(n.fontFamily).toBeUndefined();       // system font, nothing decorative
+    expect(u.fontFamily).toBeUndefined();
+  });
+
+  it("number and unit share one baseline-aligned row exactly one line tall", async () => {
+    const renderer = await render();
+    const figure = renderer.root.findByProps({ testID: "home-hero-figure" });
+    const style = flat(figure.props.style);
+    expect(style.flexDirection).toBe("row");
+    expect(style.alignItems).toBe("baseline");
+    expect(style.flexWrap).toBe("nowrap");
+    // No pair element adds vertical padding/margin — the row is the number's line height.
+    for (const pair of figure.findAll((n) => flat(n.props.style).alignItems === "baseline" && n !== figure)) {
+      const ps = flat(pair.props.style);
+      expect(ps.marginTop).toBeUndefined();
+      expect(ps.paddingTop).toBeUndefined();
+    }
   });
 });
 

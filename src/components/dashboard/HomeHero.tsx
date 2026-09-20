@@ -10,10 +10,19 @@ import { DS, MINISTRY } from "./tokens";
 // background. This replaces HoursHeroCard on Home: same numbers, same two
 // routes ("Детали" → /hours/month/[key], "Добавить часы" → /entry, never the
 // tab bar's global /add), but no white card around them. Structure, top to
-// bottom: eyebrow (month + year) → the one headline figure → its caption →
-// a thin progress line → pace status → two small metrics → two light glass
-// pills. Everything reads through useStore()/monthProgress()/
-// computePaceDeviation() — no new source of truth.
+// bottom: the one headline figure → its caption → a thin progress line →
+// pace status → two small metrics → two light glass pills. Everything reads
+// through useStore()/monthProgress()/computePaceDeviation() — no new source
+// of truth.
+//
+// TASK_070 — the "СЕНТЯБРЬ 2026" eyebrow is gone (the header's date line
+// already says the month) and the figure moved up into its place: no top
+// padding of its own, the header→hero gap is the screen's (index.tsx). The
+// figure is set as number + unit on one baseline — the number large and a
+// weight lighter than before, the unit ("ч"/"м") smaller, lighter and in
+// the secondary ink — so "37 ч" reads like an iOS dashboard headline, not
+// a bold label. formatHMRounded() is still the single source of the string;
+// splitDuration() only breaks it into (number, unit) pairs for layout.
 //
 // Text sits on an animated background, so the headline ink is
 // MINISTRY.ink (>= 6.8:1 even on a fully saturated crest) with a faint light
@@ -22,6 +31,7 @@ import { DS, MINISTRY } from "./tokens";
 // All durations are display-rounded via formatHMRounded(); the underlying
 // monthProgress() values are never mutated.
 
+// Month names are now only spoken (accessibilityLabel), never shown.
 const MONTHS_NOM = [
   "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
@@ -46,6 +56,20 @@ const GLASS = Platform.select<object>({
   web: { backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" },
   default: {},
 });
+
+/**
+ * "1 ч 30 м" → [["1", "ч"], ["30", "м"]]; "37 ч" → [["37", "ч"]]. Pure
+ * layout helper for the headline — the string itself comes unchanged from
+ * formatHMRounded(). Anything that does not match (e.g. "—") comes back as
+ * a single number-less pair so it still renders.
+ */
+export function splitDuration(text: string): Array<[string, string]> {
+  const pairs: Array<[string, string]> = [];
+  const re = /(\d+)\s*([^\d\s]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) pairs.push([m[1], m[2]]);
+  return pairs.length ? pairs : [[text, ""]];
+}
 
 export function HomeHero() {
   const { records, sessions } = useStore();
@@ -82,10 +106,18 @@ export function HomeHero() {
   return (
     <View style={styles.wrap} testID="home-hero">
       <View accessible accessibilityLabel={a11yLabel}>
-        <Text style={styles.eyebrow} importantForAccessibility="no">{eyebrow}</Text>
-        <Text style={styles.figure} importantForAccessibility="no" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-          {formatHMRounded(p.hoursDone)}
-        </Text>
+        {/* A baseline-aligned row rather than nested Text: mixed font sizes
+            inside one Text stretch the line box (each size gets its own
+            half-leading), while a row gives an exact 60 pt height and puts
+            the small unit on the number's baseline on native and web. */}
+        <View style={styles.figure} importantForAccessibility="no" testID="home-hero-figure">
+          {splitDuration(formatHMRounded(p.hoursDone)).map(([num, unit], i) => (
+            <View key={i} style={[styles.figurePair, i > 0 && styles.figurePairNext]}>
+              <Text style={[styles.figureNumber, FIGURE_SHADOW]} numberOfLines={1}>{num}</Text>
+              {unit ? <Text style={[styles.figureUnit, FIGURE_SHADOW]} numberOfLines={1}>{unit}</Text> : null}
+            </View>
+          ))}
+        </View>
         <Text style={styles.caption} importantForAccessibility="no">{caption}</Text>
 
         {hasGoal && (
@@ -145,26 +177,36 @@ export function HomeHero() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingTop: 18, gap: 0 },
-  eyebrow: {
-    fontSize: 13,
-    lineHeight: 17,
+  // No top padding: the header→hero distance is the screen's heroBlock gap
+  // (index.tsx), so the figure sits right under the date line (TASK_070).
+  wrap: { paddingTop: 0, gap: 0 },
+  // The whole "37 ч" / "1 ч 30 м" run: pairs of (number, unit) on one
+  // baseline, exactly one 60 pt line tall.
+  figure: { flexDirection: "row", alignItems: "baseline", flexWrap: "nowrap" },
+  figurePair: { flexDirection: "row", alignItems: "baseline" },
+  figurePairNext: { marginLeft: 10 },
+  // The number: bigger than before (46 → 56) and one weight lighter
+  // (800 → 700) — large, clean, not heavy. Tight tracking keeps two digits
+  // from reading as wide; tabular digits keep the width steady as it grows.
+  figureNumber: {
+    fontSize: 56,
+    lineHeight: 60,
     fontWeight: "700",
-    color: MINISTRY.ink2,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  figure: {
-    marginTop: 6,
-    fontSize: 46,
-    lineHeight: 52,
-    fontWeight: "800",
-    letterSpacing: -1.2,
+    letterSpacing: -1.6,
     color: MINISTRY.ink,
     fontVariant: ["tabular-nums"],
-    ...FIGURE_SHADOW,
   },
-  caption: { marginTop: 2, fontSize: 14, lineHeight: 18, fontWeight: "600", color: MINISTRY.ink2 },
+  // The unit ("ч", "м"): clearly secondary — less than half the size, a
+  // weight lighter, the secondary ink — sitting on the number's baseline.
+  figureUnit: {
+    marginLeft: 5,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+    color: MINISTRY.ink2,
+  },
+  caption: { marginTop: 4, fontSize: 14, lineHeight: 18, fontWeight: "600", color: MINISTRY.ink2 },
   track: {
     marginTop: 14,
     height: 5,

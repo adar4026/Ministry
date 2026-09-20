@@ -228,9 +228,12 @@ const styles = StyleSheet.create({
   // paddingTop is applied at the call site: top safe-area inset + 10
   // (TASK_065 — Home owns its own top inset, see above).
   content: { paddingHorizontal: 16, gap: 22 },
-  // Header + HomeHero measured as one block for the scene height; the
-  // 22 px gap between them mirrors `content.gap`.
-  heroBlock: { gap: 22 },
+  // Header + HomeHero measured as one block for the scene height. The gap
+  // is deliberately tighter than `content.gap` (TASK_070: 22 → 14): with
+  // the month eyebrow gone, the headline figure is the very next thing
+  // under the date line and should read as part of the header composition,
+  // not as a block floating below it.
+  heroBlock: { gap: 14 },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
