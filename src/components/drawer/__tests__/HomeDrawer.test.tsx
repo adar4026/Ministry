@@ -12,6 +12,8 @@ import { StoreProvider, useStore } from "@/store/StoreContext";
 import { HeroCanvas } from "@/components/dashboard/HeroCanvas";
 import { APP_VERSION, formatUpdatedLabel } from "@/data/appInfo";
 import { ABOUT_ITEMS, SETTINGS_ITEMS } from "@/components/profile/profileMenu";
+import { ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
+import { ProfileSummary } from "@/components/profile/ProfileSummary";
 import { DrawerGroup } from "../DrawerGroup";
 import {
   DRAWER_MAX_WIDTH,
@@ -343,26 +345,49 @@ describe("HomeDrawer — profile summary from useStore().profile", () => {
     expect(t).toContain("13-05-2012");
     expect(t).toContain("Пионер");
     expect(t).toContain("Последний переезд");
-    expect(t).toContain("3 из 3");
     await act(async () => {
       store().saveProfile({ displayName: "Алекс", events: [{ title: "Крещение", date: "2012-05-13" }] });
     });
     t = texts(renderer);
     expect(t).not.toContain("Пионер");
-    expect(t).toContain("1 из 3");
   });
 
-  it("'Личные данные' and 'Памятные даты' open the same ProfileEditSheet", async () => {
+  // TASK_072 — the dates live in the summary's milestones block and are
+  // edited from the same sheet, so the ПРОФИЛЬ group has one row only.
+  it("has no «Памятные даты» row or «N из 3» counter — ПРОФИЛЬ is a single whole «Личные данные» cell", async () => {
+    const { renderer, store } = await renderDrawer(true);
+    await act(async () => {
+      store().saveProfile({ displayName: "Алекс", events: [{ title: "Крещение", date: "2012-05-13" }] });
+    });
+    const t = texts(renderer);
+    expect(t).not.toContain("Памятные даты");
+    expect(t.some((s) => /^\d из \d$/.test(s))).toBe(false);
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Памятные даты" })).toHaveLength(0);
+    const profileGroup = renderer.root.findAllByType(DrawerGroup).find((g) => g.props.title === "Профиль")!;
+    const rows = profileGroup.findAllByType(ProfileSettingsRow);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].props.title).toBe("Личные данные");
+    expect(rows[0].props.last).toBe(true); // no divider under a lone row
+  });
+
+  it("'Личные данные' opens the ProfileEditSheet", async () => {
     const { renderer } = await renderDrawer(true);
-    for (const label of ["Личные данные", "Памятные даты"]) {
-      await act(async () => {
-        renderer.root.findByProps({ accessibilityLabel: label }).props.onPress();
-      });
-      expect(renderer.root.findAllByProps({ accessibilityLabel: "Сохранить" }).length).toBeGreaterThan(0);
-      await act(async () => {
-        renderer.root.findByProps({ accessibilityLabel: "Закрыть редактор профиля" }).props.onPress();
-      });
-    }
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Личные данные" }).props.onPress();
+    });
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Сохранить" }).length).toBeGreaterThan(0);
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Закрыть редактор профиля" }).props.onPress();
+    });
+  });
+
+  it("keeps the name row clear of the overlaid × so the milestones block can run full width", async () => {
+    const { renderer } = await renderDrawer(true);
+    const summary = renderer.root.findByType(ProfileSummary);
+    expect(summary.props.headTrailingSpace).toBeGreaterThanOrEqual(44);
+    const close = renderer.root.findByProps({ testID: "drawer-close" });
+    const style = flat(typeof close.props.style === "function" ? close.props.style({ pressed: false }) : close.props.style);
+    expect(style.position).toBe("absolute");
   });
 });
 

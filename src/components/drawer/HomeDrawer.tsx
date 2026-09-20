@@ -44,7 +44,7 @@ import {
 } from "@/components/profile/profileMenu";
 import { HeroScene } from "@/components/dashboard/HeroScene";
 import { MINISTRY } from "@/components/dashboard/tokens";
-import { CloudIcon, InfoIcon, PersonIcon, StarIcon, XIcon } from "@/components/icons";
+import { CloudIcon, InfoIcon, PersonIcon, XIcon } from "@/components/icons";
 import { APP_VERSION } from "@/data/appInfo";
 import { prefersReducedMotion } from "@/utils/motion";
 import { useStore } from "@/store/StoreContext";
@@ -64,7 +64,8 @@ const SWIPE_CLOSE_DX = 60;
 const SWIPE_CLOSE_VX = 0.5;
 const OPEN_MS = 320;
 const CLOSE_MS = 220;
-const MAX_PROFILE_EVENTS = 3;
+// Width the × button (44) plus its gap takes out of the summary's name row.
+const CLOSE_BTN_SPACE = 50;
 
 // The three gesture decisions, kept pure (and exported) so the swipe logic
 // is unit-testable without synthesising responder touch histories.
@@ -190,7 +191,6 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   );
 
   const nameSubtitle = profile.displayName?.trim() || "Имя и фотография";
-  const datesSubtitle = `${profile.events.length} из ${MAX_PROFILE_EVENTS}`;
 
   return (
     <RNModal visible={rendered} transparent animationType="none" onRequestClose={onClose}>
@@ -226,10 +226,16 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             keyboardShouldPersistTaps="handled"
             testID="drawer-scroll"
           >
+            {/* TASK_072 — the × is overlaid on the name row (the summary
+                keeps that corner free via headTrailingSpace) so the
+                milestones block under the name runs the full width. */}
             <View style={styles.topRow}>
-              <View style={styles.summaryWrap}>
-                <ProfileSummary profile={profile} onPress={() => setEditOpen(true)} onInvalidPhoto={clearInvalidPhoto} />
-              </View>
+              <ProfileSummary
+                profile={profile}
+                onPress={() => setEditOpen(true)}
+                onInvalidPhoto={clearInvalidPhoto}
+                headTrailingSpace={CLOSE_BTN_SPACE}
+              />
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
@@ -243,19 +249,16 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             </View>
 
             <ProfileRowVariantContext.Provider value="drawer">
+              {/* TASK_072 — one row: the dates are edited from the same
+                  sheet (and shown as milestones in ProfileSummary above), so
+                  the former «Памятные даты» row is gone. A single `last` row
+                  in a DrawerGroup is one whole rounded cell, no divider. */}
               <DrawerGroup title="Профиль">
                 <ProfileSettingsRow
                   icon={PersonIcon}
                   title="Личные данные"
                   subtitle={nameSubtitle}
                   accessibilityLabel="Личные данные"
-                  onPress={() => setEditOpen(true)}
-                />
-                <ProfileSettingsRow
-                  icon={StarIcon}
-                  title="Памятные даты"
-                  subtitle={datesSubtitle}
-                  accessibilityLabel="Памятные даты"
                   onPress={() => setEditOpen(true)}
                   last
                 />
@@ -343,17 +346,19 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 14, gap: 16 },
-  topRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, paddingHorizontal: 2 },
-  summaryWrap: { flex: 1, minWidth: 0 },
-  // 44×44 touch target, light glass circle, no border.
+  topRow: { position: "relative", paddingHorizontal: 2 },
+  // 44×44 touch target, light glass circle, no border — pinned to the top
+  // right corner of the summary's name row.
   closeBtn: {
+    position: "absolute",
+    top: 6,
+    right: 2,
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.55)",
-    marginTop: 2,
   },
   closeBtnPressed: { backgroundColor: "rgba(255,255,255,0.85)" },
 });

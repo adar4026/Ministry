@@ -301,20 +301,6 @@ export function XIcon({ size = 22, color }: IconProps) {
   );
 }
 
-// "Памятные даты" row in the drawer's ПРОФИЛЬ group.
-export function StarIcon({ size = 22, color }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8L12 3.5Z"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 // TASK_067 — the "Скоро" placeholder tab: a calm outline hourglass, same
 // 24x24 stroke style as the other tab icons, nothing bright or symbolic.
 export function HourglassIcon({ size = 22, color }: IconProps) {
