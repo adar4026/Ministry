@@ -488,3 +488,46 @@ describe("Home hero zone — TASK_065", () => {
     expect(flat(title.props.style).color).not.toBe(DS.navy);
   });
 });
+
+// TASK_073 — a publisher's Home carries no hours: the hero switches to
+// participation days and the service-year hours grid is not rendered; both
+// come back untouched when the mode is switched back.
+describe("Home — ministry mode — TASK_073", () => {
+  const collect = (renderer: ReactTestRenderer): string[] => {
+    const out: string[] = [];
+    const walk = (node: unknown): void => {
+      if (node == null) return;
+      if (typeof node === "string" || typeof node === "number") { out.push(String(node)); return; }
+      if (Array.isArray(node)) { node.forEach(walk); return; }
+      if (typeof node === "object" && "children" in (node as Record<string, unknown>)) walk((node as { children: unknown }).children);
+    };
+    walk(renderer.toJSON());
+    return out;
+  };
+
+  it("pioneer (migrated) shows the service-year grid and hours pills; publisher hides them and shows «Отметить служение»", async () => {
+    const now = new Date();
+    const iso = now.toISOString();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    await AsyncStorage.setItem("mj_sessions_v1", JSON.stringify([{ id: "s1", date: day, durationMinutes: 60, note: "", source: "manual", createdAt: iso, updatedAt: iso }]));
+    const { renderer, store } = await renderScreen();
+    expect(store().settings.ministryMode).toBe("pioneer");
+    expect(collect(renderer)).toContain("Текущий служебный год");
+    expect(collect(renderer)).toContain("Добавить часы");
+
+    await act(async () => store().setMinistryMode("publisher"));
+    let t = collect(renderer);
+    expect(t).not.toContain("Текущий служебный год");
+    expect(t).not.toContain("Добавить часы");
+    expect(t.some((x) => x.includes("из цели"))).toBe(false);
+    expect(t).toContain("Отметить служение");
+    expect(t).toContain("Ближайшие события");
+    expect(t).toContain("Последние события");
+    expect(store().sessions).toHaveLength(1);
+
+    await act(async () => store().setMinistryMode("pioneer"));
+    t = collect(renderer);
+    expect(t).toContain("Текущий служебный год");
+    expect(t).toContain("Добавить часы");
+  });
+});

@@ -1,8 +1,21 @@
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
-import { CAT, uid } from "@/data/constants";
-import type { CustomCategory, HourRecord, MinistryEvent, ProfileEvent, Session, Talk, UserProfile } from "@/types";
+import { CAT, toISODate, uid } from "@/data/constants";
+import { DEFAULT_MINISTRY_SETTINGS, isValidMonthlyGoal, normalizeMinistrySettings, settingsEqual } from "@/data/ministryMode";
+import { isFutureDate, isISODay } from "@/data/participation";
+import type {
+  CustomCategory,
+  HourRecord,
+  MinistryEvent,
+  MinistryMode,
+  MinistrySettings,
+  ProfileEvent,
+  ServiceParticipation,
+  Session,
+  Talk,
+  UserProfile,
+} from "@/types";
 
 // AsyncStorage keys — see ARCHITECTURE.md. Bump the version + write a migration
 // if the shape of any of these arrays ever changes.
@@ -13,6 +26,12 @@ const KEYS = {
   sessions: "mj_sessions_v1",
   profile: "mj_profile_v1",
   customCategories: "mj_custom_categories_v1",
+  // TASK_073 — two NEW keys, added beside the existing ones. Nothing above
+  // is read, renamed or rewritten because of them: an installation that
+  // predates them simply gets the seeds below written once, and looks
+  // exactly as it did (pioneer, 50-hour goal) until the user changes mode.
+  settings: "mj_settings_v1",
+  participation: "mj_participation_v1",
 } as const;
 
 // Re-exported for src/data/backupImport.ts (TASK_013) — single source of
@@ -29,6 +48,11 @@ const SEED_PROFILE: UserProfile = { events: [] };
 
 // TASK_045 — no user-created event topics on first run.
 const SEED_CUSTOM_CATEGORIES: CustomCategory[] = [];
+
+// TASK_073 — an existing (or brand-new) installation starts as a pioneer
+// with the historical fixed goal; participation starts empty.
+const SEED_SETTINGS: MinistrySettings = DEFAULT_MINISTRY_SETTINGS;
+const SEED_PARTICIPATION: ServiceParticipation[] = [];
 
 // Hard cap on profile events (TASK_042 revision — was 4, now 3) — enforced
 // here, not just in the UI, so no caller (including a future backup-restore
@@ -108,6 +132,15 @@ export type ReplaceAllDataInput = {
   profile?: UserProfile;
 };
 
+// TASK_073 — outcome of a participation write. "future" — the date is after
+// today; "duplicate" — another record already holds that date (only for a
+// date change: a fresh mark of an already-marked day is `ok` with
+// `created: false`, i.e. a no-op, never a second record); "invalid" — not a
+// real "YYYY-MM-DD" day.
+export type ParticipationWriteResult =
+  | { ok: true; created: boolean; item: ServiceParticipation }
+  | { ok: false; error: "future" | "duplicate" | "invalid" | "missing" };
+
 type StoreValue = {
   records: HourRecord[];
   events: MinistryEvent[];
@@ -115,6 +148,8 @@ type StoreValue = {
   sessions: Session[];
   profile: UserProfile;
   customCategories: CustomCategory[];
+  settings: MinistrySettings;
+  participation: ServiceParticipation[];
   loaded: boolean;
   saveRecord: (input: RecordInput) => void;
   deleteRecord: (id: string) => void;
@@ -127,6 +162,11 @@ type StoreValue = {
   saveProfile: (input: ProfileInput) => void;
   addCustomCategory: (name: string) => AddCustomCategoryResult;
   replaceAllData: (data: ReplaceAllDataInput) => void;
+  setMinistryMode: (mode: MinistryMode) => void;
+  setMonthlyHourGoal: (goal: number | null) => void;
+  markParticipation: (dateISO: string, now?: Date) => ParticipationWriteResult;
+  updateParticipationDate: (id: string, dateISO: string, now?: Date) => ParticipationWriteResult;
+  deleteParticipation: (id: string) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -142,7 +182,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     SEED_CUSTOM_CATEGORIES,
   );
 
-  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded && ccLoaded;
+  const [rawSettings, setSettings, stLoaded] = usePersistentState<MinistrySettings>(KEYS.settings, SEED_SETTINGS);
+  const [rawParticipation, setParticipation, ptLoaded] = usePersistentState<ServiceParticipation[]>(
+    KEYS.participation,
+    SEED_PARTICIPATION,
+  );
+  // A non-array under the key (corrupt storage) reads as empty rather than
+  // crashing every consumer; it is not rewritten until the first real write.
+  const participation = useMemo(() => (Array.isArray(rawParticipation) ? rawParticipation : []), [rawParticipation]);
+
+  const loaded = rLoaded && eLoaded && tLoaded && sLoaded && pLoaded && ccLoaded && stLoaded && ptLoaded;
+
+  // TASK_073 — what screens read is always a COMPLETE settings object: a
+  // stored value with a missing/unknown mode or a bad goal is coerced to the
+  // safe defaults (pioneer, 50) here, and written back once after hydration
+  // — same guard-on-loaded pattern as the profile cap below. Additive only:
+  // no other key is touched.
+  const settings = useMemo(() => normalizeMinistrySettings(rawSettings), [rawSettings]);
+  useEffect(() => {
+    if (stLoaded && !settingsEqual(settings, rawSettings as MinistrySettings)) setSettings(settings);
+  }, [stLoaded, settings, rawSettings]);
 
   // TASK_042 revision — normalizes a profile persisted by the previous
   // (uncommitted, never-shipped) 4-event limit down to the current 3-event
@@ -254,6 +313,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return { ok: true, category };
   }
 
+  // TASK_073 — mode and goal are two independent fields: changing the mode
+  // never clears the goal (Pioneer 50 → Publisher → Pioneer is still 50),
+  // and setting the goal never changes the mode.
+  function setMinistryMode(mode: MinistryMode) {
+    setSettings((s) => ({ ...normalizeMinistrySettings(s), ministryMode: mode }));
+  }
+  function setMonthlyHourGoal(goal: number | null) {
+    if (!isValidMonthlyGoal(goal)) return;
+    setSettings((s) => ({ ...normalizeMinistrySettings(s), monthlyHourGoal: goal }));
+  }
+
+  // TASK_073 — participation is keyed by calendar day. The uniqueness and
+  // no-future rules live HERE, not only in the sheet's UI, so no caller can
+  // persist a duplicate or a future day. Both writes compute against the
+  // current `participation` (not a functional update) so the result can be
+  // returned synchronously to the caller.
+  function markParticipation(dateISO: string, now: Date = new Date()): ParticipationWriteResult {
+    if (!isISODay(dateISO)) return { ok: false, error: "invalid" };
+    if (isFutureDate(dateISO, toISODate(now))) return { ok: false, error: "future" };
+    const existing = participation.find((p) => p.date === dateISO);
+    if (existing) return { ok: true, created: false, item: existing };
+    const iso = now.toISOString();
+    const item: ServiceParticipation = { id: uid(), date: dateISO, participated: true, createdAt: iso, updatedAt: iso };
+    setParticipation((ps) => (ps.some((p) => p.date === dateISO) ? ps : [...ps, item]));
+    return { ok: true, created: true, item };
+  }
+  function updateParticipationDate(id: string, dateISO: string, now: Date = new Date()): ParticipationWriteResult {
+    const current = participation.find((p) => p.id === id);
+    if (!current) return { ok: false, error: "missing" };
+    if (!isISODay(dateISO)) return { ok: false, error: "invalid" };
+    if (isFutureDate(dateISO, toISODate(now))) return { ok: false, error: "future" };
+    if (current.date === dateISO) return { ok: true, created: false, item: current };
+    if (participation.some((p) => p.id !== id && p.date === dateISO)) return { ok: false, error: "duplicate" };
+    const item: ServiceParticipation = { ...current, date: dateISO, updatedAt: now.toISOString() };
+    setParticipation((ps) => ps.map((p) => (p.id === id ? item : p)));
+    return { ok: true, created: false, item };
+  }
+  function deleteParticipation(id: string) {
+    setParticipation((ps) => ps.filter((p) => p.id !== id));
+  }
+
   function replaceAllData(data: ReplaceAllDataInput) {
     setRecords(data.records);
     setEvents(data.events);
@@ -274,6 +374,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     sessions,
     profile,
     customCategories,
+    settings,
+    participation,
     loaded,
     saveRecord,
     deleteRecord,
@@ -286,6 +388,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     saveProfile,
     addCustomCategory,
     replaceAllData,
+    setMinistryMode,
+    setMonthlyHourGoal,
+    markParticipation,
+    updateParticipationDate,
+    deleteParticipation,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

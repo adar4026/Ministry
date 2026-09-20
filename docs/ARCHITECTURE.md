@@ -34,6 +34,10 @@ ministry/
 │   │   ├── timeline.tsx        # События (вкл. публичные речи)
 │   │   ├── profile.tsx         # Профиль (содержимое продублировано в HomeDrawer, TASK_066)
 │   │   └── _layout.tsx         # Tab navigator (5 вкладок)
+│   ├── settings.tsx            # «Настройки»: режим служения + цель часов (TASK_073)
+│   ├── participation/          # Статистика участия возвещателя (TASK_073)
+│   │   ├── index.tsx           # Месяцы → дни служения
+│   │   └── [key].tsx           # Месяц: календарь + отметки
 │   ├── notifications.tsx       # «Уведомления» — заглушка «Скоро появится» (TASK_060)
 │   ├── upcoming-events.tsx     # Ближайшие события (TASK_019)
 │   ├── service.tsx             # Легаси-маршрут: redirect к /hours
@@ -47,6 +51,8 @@ ministry/
 │   │   ├── periodStats.ts      # Сводки периода (TASK_037)
 │   │   ├── periodChart.ts      # Дневные ряды и шкалы графиков (TASK_061)
 │   │   ├── timer.ts            # Чистые функции таймера (TASK_005C)
+│   │   ├── ministryMode.ts     # Режим служения / настройки: fallback, цель (TASK_073)
+│   │   ├── participation.ts    # Участие: уникальность по дате, месяцы (TASK_073)
 │   │   ├── backup.ts           # Формат копии v2 (.json), валидация, миграция (TASK_064)
 │   │   ├── backupImport.ts     # Восстановление: страховка, откат (TASK_062)
 │   │   ├── backupFile(.web).ts # Сохранение/выбор файла по платформам
@@ -65,7 +71,11 @@ ministry/
 │   │   │   ├── tokens.ts       # DS + MINISTRY (палитра, TASK_065) + NAV + FIGURE_GLASS (TASK_071) + ministryCssVars()
 │   │   │   ├── HeroScene.tsx   # Фон hero: SVG-fallback + HeroCanvas (TASK_065)
 │   │   │   ├── HeroCanvas(.web).tsx  # WebGL «жидкий шёлк», шейдер LexCar 1:1 (TASK_069) / native no-op
-│   │   │   └── HomeHero.tsx    # Контент hero без карточки (TASK_065); стеклянная цифра (TASK_071)
+│   │   │   ├── HomeHero.tsx    # Контент hero по режиму (TASK_073): часы (pioneer) / PublisherHero
+│   │   │   ├── heroFigure.tsx  # GlassFigure + общие стили hero (TASK_071 → TASK_073)
+│   │   │   ├── PublisherHero.tsx            # Дни участия + мини-календарь (TASK_073)
+│   │   │   └── ParticipationMiniCalendar.tsx
+│   │   ├── participation/      # ParticipationSheet (bottom sheet), ParticipationJournal, ParticipationRow (TASK_073)
 │   │   ├── drawer/             # Боковая шторка Главной (TASK_066)
 │   │   │   ├── HomeDrawer.tsx  # RNModal + Animated + PanResponder, контент Профиля
 │   │   │   ├── DrawerGroup.tsx # Заголовок группы + стеклянная карточка
@@ -144,6 +154,33 @@ type Session = {
 
 ---
 
+### MinistrySettings / ServiceParticipation (TASK_073)
+
+```typescript
+type MinistryMode = "publisher" | "pioneer" | "specialPioneer";
+type MinistrySettings = {
+  ministryMode:    MinistryMode;   // отсутствует в старых данных → "pioneer"
+  monthlyHourGoal: number | null;  // отсутствует → 50 (= бывшая константа MONTHLY_GOAL); null = цель не задана
+};
+type ServiceParticipation = {
+  id:           string;
+  date:         string;  // "YYYY-MM-DD" — уникальна; счётчики считают только различные даты
+  participated: true;
+  createdAt:    string;
+  updatedAt:    string;
+};
+```
+
+`pioneer` и `specialPioneer` — один часовой механизм (цель, прогресс,
+таймер), различаются только сохранённым режимом. `publisher` — отдельная
+главная метрика (участие). Часы и участие никогда не конвертируются друг
+в друга; переключение режима меняет только presentation layer. Служебная
+годовая цель = `monthlyHourGoal × 12` (`yearlyGoalFor`), `MONTHLY_GOAL` /
+`YEARLY_GOAL` остались значениями по умолчанию. `monthProgress()` принимает
+`goal` четвёртым параметром (по умолчанию — прежняя константа).
+
+---
+
 ## Ключи хранилища (AsyncStorage)
 
 ```
@@ -154,6 +191,8 @@ mj_sessions_v1           — массив Session[]        (TASK_005A)
 mj_timer_v1              — TimerState              (TASK_005C)
 mj_profile_v1            — UserProfile             (TASK_042)
 mj_custom_categories_v1  — CustomCategory[]        (TASK_045)
+mj_settings_v1           — MinistrySettings        (TASK_073; seed {pioneer, 50}, normalizeMinistrySettings())
+mj_participation_v1      — ServiceParticipation[]  (TASK_073; seed [])
 mj_backup_safety_v1      — страховочная копия данных     (TASK_062)
 mj_last_backup_v1        — ISO-дата последней копии      (TASK_062)
 ```
@@ -213,12 +252,21 @@ StoreContext
 ├── events:   Event[]
 ├── talks:    Talk[]
 ├── sessions: Session[]   (TASK_005A)
+├── settings: MinistrySettings           (TASK_073)
+├── participation: ServiceParticipation[] (TASK_073)
 ├── loaded:   boolean
 ├── saveRecord  / deleteRecord
 ├── saveEvent   / deleteEvent
 ├── saveTalk    / deleteTalk
-└── saveSession / deleteSession   (TASK_005A)
+├── saveSession / deleteSession   (TASK_005A)
+├── setMinistryMode / setMonthlyHourGoal                              (TASK_073)
+└── markParticipation / updateParticipationDate / deleteParticipation (TASK_073)
 ```
+
+Правила участия живут в сторе, не только в UI: повторная отметка той же
+даты — no-op (`{ ok: true, created: false }`), будущая дата —
+`{ ok: false, error: "future" }`, перенос на уже отмеченный день —
+`"duplicate"`.
 
 Все экраны читают из стора через `useStore()`. Никакого локального состояния для данных.
 
@@ -255,6 +303,10 @@ StoreContext
 запись → сверка байтов и счётчиков → применение к `StoreContext` → откат
 при любой ошибке. Подробности —
 `docs/TASKS/TASK_064_BACKUP_SINGLE_JSON_FORMAT.md`.
+
+Копия v2 **пока не включает** `mj_settings_v1` и `mj_participation_v1`
+(TASK_073) — расширение формата до v3 (счётчики, checksum, валидация) —
+отдельная задача; восстановление эти два ключа не трогает.
 
 Ключи `mj_backup_safety_v1` и `mj_last_backup_v1` принадлежат этой
 подсистеме, а не модели данных: `StoreProvider` их не читает,
@@ -302,6 +354,27 @@ hidden` режет тень); native — одно тело frosted white + textS
 `docs/TASKS/TASK_069_MINISTRY_HERO_LEXCAR_FINAL_SURFACE.md`,
 `docs/TASKS/TASK_070_HOME_HERO_COMPACT_FIGURE_TYPOGRAPHY.md`,
 `docs/TASKS/TASK_071_HOME_HERO_GLASS_FIGURE.md`.
+
+---
+
+## Режим служения (TASK_073)
+
+`settings.ministryMode` переключает **только контентный слой**; сцена
+hero (`HeroScene` / WebGL), палитра, Events, Timeline, Profile, routes —
+общие для всех режимов.
+
+| | Pioneer / Special pioneer | Publisher |
+|---|---|---|
+| `HomeHero` | `HoursHero`: `37 ч`, цель из настроек, %, прогресс, темп, метрики | `PublisherHero`: `8` (тот же `GlassFigure`), «дней служения в сентябре», «Последний раз: …», `ParticipationMiniCalendar` |
+| Кнопки hero | Детали → `/hours/month/[key]`; «+ Добавить часы» → `/entry` | Детали → `/participation`; «✓ Отметить служение» → `ParticipationSheet` |
+| Главная, «Текущий служебный год» | показан | скрыт |
+| Вкладка `hours` | «Часы», Hours dashboard | «Служение» (`hoursTabTitle`), `ParticipationJournal` — тот же route |
+| `/add` | три карточки | без «Добавить месяц (часы)» |
+
+Шторка → ПРИЛОЖЕНИЕ → «Настройки» (`SETTINGS_SCREEN_ITEM`, подпись
+«Режим: …») → `app/settings.tsx`: radio-карточки трёх режимов + поле
+«Цель часов» (только для часовых режимов; целое 1–9999, пусто = null;
+значение хранится независимо от режима и не стирается при переключении).
 
 ---
 

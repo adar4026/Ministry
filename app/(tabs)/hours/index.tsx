@@ -4,6 +4,9 @@ import { HoursNavList } from "@/components/hours/HoursNavList";
 import { HOURS_COLORS as C } from "@/components/hours/hoursTokens";
 import { DS, HomeBackground } from "@/components/dashboard";
 import { useTabBarContentInset } from "@/components/TabBar";
+import { ParticipationJournal } from "@/components/participation/ParticipationJournal";
+import { isHoursMode } from "@/data/ministryMode";
+import { useStore } from "@/store/StoreContext";
 
 // "Часы" dashboard, redesigned (TASK_031) into a minimal time-tracking
 // control center: a large heading, the timer as the page's main visual
@@ -16,7 +19,17 @@ import { useTabBarContentInset } from "@/components/TabBar";
 // TASK_046: background unified with Home/Profile/Events — same
 // View{DS.homeBase} + <HomeBackground/> + transparent ScrollView pattern,
 // instead of this screen's own flat HOURS_COLORS.screenBackground.
+//
+// TASK_073: for a PUBLISHER this very route renders the participation
+// journal instead (ParticipationJournal) — the route, file and tab slot are
+// unchanged; only what the tab presents follows the ministry mode.
 export default function HoursDashboard() {
+  const { settings } = useStore();
+  if (!isHoursMode(settings.ministryMode)) return <ParticipationJournal />;
+  return <HoursDashboardContent />;
+}
+
+function HoursDashboardContent() {
   // TASK_054 — clearance now lives on this ScrollView's own content instead
   // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx), so the
   // screen's background fills the full height with nothing else painted

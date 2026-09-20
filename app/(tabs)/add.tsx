@@ -8,10 +8,14 @@ import { RecordForm } from "@/components/forms/RecordForm";
 import { EventForm } from "@/components/forms/EventForm";
 import { TalkForm } from "@/components/forms/TalkForm";
 import { COLORS } from "@/data/constants";
+import { isHoursMode } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 
 export default function AddScreen() {
-  const { sessions, customCategories, saveRecord, saveEvent, saveTalk } = useStore();
+  const { sessions, customCategories, settings, saveRecord, saveEvent, saveTalk } = useStore();
+  // TASK_073 — a publisher does not log hours, so the monthly-hours card is
+  // not offered here; events and talks are unchanged.
+  const hoursMode = isHoursMode(settings.ministryMode);
   // TASK_045 — the "События" screen's "＋ Добавить событие" action links
   // here as `/add?focus=event` (same pattern as `/entry?id=…` elsewhere) to
   // land directly in event-creation mode, with no intermediate record-type
@@ -41,7 +45,7 @@ export default function AddScreen() {
         </View>
       )}
 
-      {!eventOnly && (
+      {!eventOnly && hoursMode && (
         <Card>
           <Text style={styles.title}>Добавить месяц (часы)</Text>
           <Text style={styles.hint}>Запишите часы за конкретный месяц</Text>

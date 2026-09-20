@@ -14,7 +14,6 @@ import {
   formatHM,
   formatDateDMY,
   MF,
-  MONTHLY_GOAL,
   monthTotal,
   sessionsForMonth,
   svcYear,

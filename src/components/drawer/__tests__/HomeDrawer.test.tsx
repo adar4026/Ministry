@@ -418,6 +418,23 @@ describe("HomeDrawer — grouped Profile content and footer", () => {
     expect(mockPush).toHaveBeenCalledWith("/notifications");
   });
 
+  // TASK_073 — «Настройки» opens the app's own settings screen.
+  it("'Настройки' (Приложение group, first row) closes the drawer and pushes /settings, showing the current mode", async () => {
+    const onClose = jest.fn();
+    const { renderer, store } = await renderDrawer(true, onClose);
+    const row = renderer.root.findByProps({ accessibilityLabel: "Настройки. Режим: Пионер" });
+    expect(row).toBeTruthy();
+    const groups = renderer.root.findAllByProps({ testID: "drawer-group" }).filter((n) => typeof n.type === "string");
+    const appGroup = groups[2];
+    const firstRowLabel = appGroup.findAll((n) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityRole === "button")[0];
+    expect(firstRowLabel.props.accessibilityLabel).toBe("Настройки. Режим: Пионер");
+    act(() => row.props.onPress());
+    expect(onClose).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/settings");
+    act(() => store().setMinistryMode("publisher"));
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Настройки. Режим: Возвещатель" }).length).toBeGreaterThan(0);
+  });
+
   it("footer: 'A-Lex Ministry · v<version>' bold, 'Обновлено: <month year>' lighter, centred, last in the scroll", async () => {
     const { renderer } = await renderDrawer(true);
     const footer = renderer.root.findByProps({ testID: "drawer-footer" });

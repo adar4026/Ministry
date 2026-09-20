@@ -39,13 +39,16 @@ import {
   ABOUT_ITEMS,
   DRAWER_APP_KEYS,
   DRAWER_SERVICE_KEYS,
+  SETTINGS_SCREEN_ITEM,
   activateMenuItem,
   pickMenuItems,
+  type ProfileMenuItem,
 } from "@/components/profile/profileMenu";
 import { HeroScene } from "@/components/dashboard/HeroScene";
 import { MINISTRY } from "@/components/dashboard/tokens";
 import { CloudIcon, InfoIcon, PersonIcon, XIcon } from "@/components/icons";
 import { APP_VERSION } from "@/data/appInfo";
+import { MODE_LABEL } from "@/data/ministryMode";
 import { prefersReducedMotion } from "@/utils/motion";
 import { useStore } from "@/store/StoreContext";
 import { DrawerFooter } from "./DrawerFooter";
@@ -93,7 +96,17 @@ function haptic(fn: () => Promise<void>) {
 }
 
 export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { profile, saveProfile } = useStore();
+  const { profile, saveProfile, settings } = useStore();
+  const modeSubtitle = `Режим: ${MODE_LABEL[settings.ministryMode]}`;
+  // A row that navigates closes the drawer first (TASK_073), so the pushed
+  // screen is not left under this modal; placeholder rows keep the drawer.
+  const openMenuItem = useCallback(
+    (item: ProfileMenuItem) => {
+      if (item.href) onClose();
+      activateMenuItem(item);
+    },
+    [onClose],
+  );
   // Degrade-to-zero insets outside the app shell (component tests), the
   // same rule useTabBarContentInset() follows.
   const insets = useContext(SafeAreaInsetsContext);
@@ -270,19 +283,28 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                     key={item.key}
                     icon={item.icon}
                     title={item.label}
-                    onPress={() => activateMenuItem(item)}
+                    onPress={() => openMenuItem(item)}
                     last={i === all.length - 1}
                   />
                 ))}
               </DrawerGroup>
 
               <DrawerGroup title="Приложение">
+                {/* TASK_073 — «Настройки» opens the app's own settings screen
+                    (ministry mode, hours goal); closes the drawer first so the
+                    pushed screen is not covered by the modal. */}
+                <ProfileSettingsRow
+                  icon={SETTINGS_SCREEN_ITEM.icon}
+                  title={SETTINGS_SCREEN_ITEM.label}
+                  subtitle={modeSubtitle}
+                  onPress={() => openMenuItem(SETTINGS_SCREEN_ITEM)}
+                />
                 {pickMenuItems(DRAWER_APP_KEYS).map((item, i, all) => (
                   <ProfileSettingsRow
                     key={item.key}
                     icon={item.icon}
                     title={item.label}
-                    onPress={() => activateMenuItem(item)}
+                    onPress={() => openMenuItem(item)}
                     last={i === all.length - 1}
                   />
                 ))}
@@ -300,7 +322,7 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                     key={item.key}
                     icon={item.icon}
                     title={item.label}
-                    onPress={() => activateMenuItem(item)}
+                    onPress={() => openMenuItem(item)}
                     last={i === all.length - 1}
                   />
                 ))}

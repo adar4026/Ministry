@@ -106,3 +106,31 @@ export type TimerRecoveryOutcome =
   | { kind: "running"; state: TimerState }
   | { kind: "recovery-screen"; state: TimerState; elapsedSeconds: number; startedAt: Date }
   | { kind: "clock-rollback"; bankedSeconds: number; startedAt: Date };
+
+// TASK_073 — how the user serves, and therefore which of the two primary
+// metrics the main interface is built around. `pioneer` and
+// `specialPioneer` share the hours machinery (they differ only in which
+// mode is stored); `publisher` tracks participation days instead of hours.
+export type MinistryMode = "publisher" | "pioneer" | "specialPioneer";
+
+// App settings persisted under mj_settings_v1 (TASK_073). `monthlyHourGoal`
+// is stored separately from the mode on purpose: switching to `publisher`
+// hides it but never clears it, so switching back restores the old goal.
+// `null` = no monthly goal (the pre-existing "Месячная цель не задана"
+// branch of the hours hero).
+export type MinistrySettings = {
+  ministryMode: MinistryMode;
+  monthlyHourGoal: number | null;
+};
+
+// One calendar day on which the user took part in the ministry (TASK_073).
+// A separate entity from Session/HourRecord — hours and participation are
+// never converted into one another. Unique per `date`: the store rejects a
+// second mark for the same day and every counter counts distinct dates.
+export type ServiceParticipation = {
+  id: string;
+  date: string; // ISO day "YYYY-MM-DD"
+  participated: true;
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+};

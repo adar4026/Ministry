@@ -12,6 +12,7 @@ import { useTabBarContentInset } from "@/components/TabBar";
 import { DS, EventCard, HERO_HEIGHT, HeroScene, HomeHero, SectionHeader, SummaryCard } from "@/components/dashboard";
 import { MINISTRY } from "@/components/dashboard/tokens";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
+import { isHoursMode } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, MinistryEvent } from "@/types";
 
@@ -33,7 +34,11 @@ const HERO_CONTENT_TOP = 10;
 const HERO_TAIL = 64;
 
 export default function Dashboard() {
-  const { records, sessions, events, customCategories, saveRecord, deleteRecord, saveEvent } = useStore();
+  const { records, sessions, events, customCategories, settings, saveRecord, deleteRecord, saveEvent } = useStore();
+  // TASK_073 — a publisher's Home carries no hours anywhere: the hero
+  // switches to participation days (HomeHero) and the service-year hours
+  // grid below is not rendered. The data stays; only the presentation goes.
+  const hoursMode = isHoursMode(settings.ministryMode);
   // TASK_066 — the left-hand drawer replaces the header avatar as the way
   // into the profile; it owns the profile data/editor itself (same store).
   const [menuOpen, setMenuOpen] = useState(false);
@@ -155,7 +160,7 @@ export default function Dashboard() {
           <UpcomingEventsCard />
         </View>
 
-        {curYear && (
+        {hoursMode && curYear && (
           <View style={styles.section}>
             <SectionHeader title="Текущий служебный год" />
             <SummaryCard title={curYear.sy} accent={DS.tealInk} meta={formatHM(curYear.total)}>

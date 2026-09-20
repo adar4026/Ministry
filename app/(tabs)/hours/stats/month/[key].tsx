@@ -6,7 +6,8 @@ import { BackButton } from "@/components/BackButton";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { PeriodChartCard } from "@/components/stats/PeriodChartCard";
 import { PeriodSummaryCard } from "@/components/stats/PeriodSummaryCard";
-import { COLORS, MF, MONTHLY_GOAL, formatHM } from "@/data/constants";
+import { COLORS, MF, formatHM } from "@/data/constants";
+import { effectiveMonthlyGoal } from "@/data/ministryMode";
 import { monthChartSeries } from "@/data/periodChart";
 import { monthPeriodSummary, periodStatusLabel } from "@/data/periodStats";
 import { useStore } from "@/store/StoreContext";
@@ -17,7 +18,8 @@ import { useStore } from "@/store/StoreContext";
 // не заводится, экран открывается уже с нужным периодом.
 export default function MonthStatsScreen() {
   const { key } = useLocalSearchParams<{ key?: string }>();
-  const { records, sessions } = useStore();
+  const { records, sessions, settings } = useStore();
+  const goal = effectiveMonthlyGoal(settings); // TASK_073 — the user's own goal
 
   const [yearStr, monthStr] = (key ?? "").split("-");
   const year = parseInt(yearStr, 10);
@@ -26,12 +28,12 @@ export default function MonthStatsScreen() {
 
   const now = useMemo(() => new Date(), []);
   const summary = useMemo(
-    () => monthPeriodSummary(records, sessions, year, month, MONTHLY_GOAL, now),
-    [records, sessions, year, month, now],
+    () => monthPeriodSummary(records, sessions, year, month, goal, now),
+    [records, sessions, year, month, goal, now],
   );
   const series = useMemo(
-    () => monthChartSeries(records, sessions, year, month, MONTHLY_GOAL, now),
-    [records, sessions, year, month, now],
+    () => monthChartSeries(records, sessions, year, month, goal, now),
+    [records, sessions, year, month, goal, now],
   );
   // TASK_054 — clearance now lives on this ScrollView's own content instead
   // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).

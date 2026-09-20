@@ -19,6 +19,7 @@ import {
   type IconProps,
   MessageIcon,
   PaletteIcon,
+  SettingsIcon,
   TargetIcon,
 } from "@/components/icons";
 
@@ -48,6 +49,12 @@ export const SETTINGS_ITEMS: readonly ProfileMenuItem[] = [
   { key: "appearance", label: "Оформление", icon: PaletteIcon },
   { key: "language", label: "Язык", icon: GlobeIcon },
 ];
+
+// TASK_073 — the drawer-only row that opens the app's Settings screen
+// (ministry mode, hours goal). Deliberately NOT part of SETTINGS_ITEMS: the
+// Profile page must not grow a «Настройки» row inside its own «Настройки»
+// card — the settings themselves belong to /settings, not to Profile.
+export const SETTINGS_SCREEN_ITEM: ProfileMenuItem = { key: "settings", label: "Настройки", icon: SettingsIcon, href: "/settings" };
 
 // The two actionable rows of the page's "О приложении" card (the version
 // row is a static value, rendered by each surface from appInfo).

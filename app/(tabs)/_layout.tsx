@@ -8,10 +8,15 @@ import { TabBar } from "@/components/TabBar";
 // HOME_GRADIENT undefined on first evaluation (TypeError in TabsLayout).
 import { MINISTRY } from "@/components/dashboard/tokens";
 import { COLORS } from "@/data/constants";
+import { hoursTabTitle } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 
 export default function TabsLayout() {
-  const { loaded } = useStore();
+  const { loaded, settings } = useStore();
+  // TASK_073 — the `hours` route keeps its name and screen file; only its
+  // presentation (tab label, and so the tab's spoken name) follows the
+  // ministry mode: «Часы» for pioneers, «Служение» for a publisher.
+  const hoursTitle = hoursTabTitle(settings.ministryMode);
   // TASK_048 — top safe-area strip is painted by this SafeAreaView's own
   // background. On Home that used to be COLORS.bg (#f8fafc) sitting above
   // HomeBackground's gradient, which read on-device as an empty white band
@@ -70,7 +75,7 @@ export default function TabsLayout() {
           }}
         >
           <Tabs.Screen name="index" options={{ title: "Главная" }} />
-          <Tabs.Screen name="hours" options={{ title: "Часы" }} />
+          <Tabs.Screen name="hours" options={{ title: hoursTitle }} />
           <Tabs.Screen name="timeline" options={{ title: "События" }} />
           <Tabs.Screen name="profile" options={{ title: "Профиль" }} />
           <Tabs.Screen name="add" options={{ title: "Добавить" }} />

@@ -347,16 +347,24 @@ export type MonthProgress = {
 
 // Derived state of the current month vs. the monthly goal, built on
 // hoursForMonth() — single source for the Today card. `sessions` is
-// optional and defaults to `[]` — see hoursForMonth() above.
-export function monthProgress(records: HourRecord[], now: Date = new Date(), sessions: Session[] = []): MonthProgress {
+// optional and defaults to `[]` — see hoursForMonth() above. `goal`
+// (TASK_073) defaults to the historical fixed MONTHLY_GOAL, so every
+// existing caller returns byte-identical results; Home passes the user's
+// own goal from settings.
+export function monthProgress(
+  records: HourRecord[],
+  now: Date = new Date(),
+  sessions: Session[] = [],
+  goal: number = MONTHLY_GOAL,
+): MonthProgress {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysLeft = daysInMonth - now.getDate() + 1;
   const hoursDone = hoursForMonth(records, now, sessions);
-  const hoursRemaining = Math.max(0, MONTHLY_GOAL - hoursDone);
+  const hoursRemaining = Math.max(0, goal - hoursDone);
   const requiredPerDay = daysLeft > 0 ? hoursRemaining / daysLeft : hoursRemaining;
 
   // Expected pace by the start of today, with half a day's pace as tolerance.
-  const dailyPace = MONTHLY_GOAL / daysInMonth;
+  const dailyPace = goal / daysInMonth;
   const expected = dailyPace * (now.getDate() - 1);
   const status =
     hoursDone >= expected + dailyPace / 2 ? "ahead" : hoursDone < expected - dailyPace / 2 ? "behind" : "on";

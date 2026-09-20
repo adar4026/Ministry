@@ -5,7 +5,8 @@ import { useMemo } from "react";
 import { BackButton } from "@/components/BackButton";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { PeriodOverviewCard } from "@/components/stats/PeriodOverviewCard";
-import { COLORS, MONTHLY_GOAL, YEARLY_GOAL, svcYear } from "@/data/constants";
+import { COLORS, svcYear } from "@/data/constants";
+import { effectiveMonthlyGoal, yearlyGoalFor } from "@/data/ministryMode";
 import { monthPeriodSummary, yearPeriodSummary } from "@/data/periodStats";
 import { useStore } from "@/store/StoreContext";
 
@@ -14,7 +15,11 @@ import { useStore } from "@/store/StoreContext";
 // детальных экранах /hours/stats/month/[key] и /hours/stats/year/[key],
 // куда ведут сами карточки.
 export default function StatsOverviewScreen() {
-  const { records, sessions } = useStore();
+  const { records, sessions, settings } = useStore();
+  // TASK_073 — goals come from the user's settings (50 / 600 for a
+  // pre-existing install, exactly the former constants).
+  const monthlyGoal = effectiveMonthlyGoal(settings);
+  const yearlyGoal = yearlyGoalFor(monthlyGoal);
 
   const now = useMemo(() => new Date(), []);
   const year = now.getFullYear();
@@ -22,10 +27,13 @@ export default function StatsOverviewScreen() {
   const syLabel = useMemo(() => svcYear(year, month), [year, month]);
 
   const monthSummary = useMemo(
-    () => monthPeriodSummary(records, sessions, year, month, MONTHLY_GOAL, now),
-    [records, sessions, year, month, now],
+    () => monthPeriodSummary(records, sessions, year, month, monthlyGoal, now),
+    [records, sessions, year, month, monthlyGoal, now],
   );
-  const yearSummary = useMemo(() => yearPeriodSummary(records, sessions, syLabel, YEARLY_GOAL, now), [records, sessions, syLabel, now]);
+  const yearSummary = useMemo(
+    () => yearPeriodSummary(records, sessions, syLabel, yearlyGoal, now),
+    [records, sessions, syLabel, yearlyGoal, now],
+  );
 
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
   const yearKey = syLabel.split("–")[0];

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { COLORS, formatHM, MF, MONTHLY_GOAL, monthTotal, svcYear } from "@/data/constants";
+import { COLORS, formatHM, MF, monthTotal, svcYear } from "@/data/constants";
+import { effectiveMonthlyGoal } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
 
@@ -21,8 +22,9 @@ export function MonthHeader({
   sessions = [],
   onPressAddSession,
 }: MonthHeaderProps) {
-  const { records } = useStore();
-  const goal = MONTHLY_GOAL;
+  const { records, settings } = useStore();
+  // TASK_073 — the user's own goal (mj_settings_v1), 50 for a pre-existing install.
+  const goal = effectiveMonthlyGoal(settings);
   const delta = totalHours - goal;
   const isAhead = delta >= 0;
   const sy = svcYear(year, month);
