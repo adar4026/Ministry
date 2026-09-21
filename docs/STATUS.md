@@ -107,6 +107,35 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 
 ---
 
+## TASK_080 — коротко
+
+Финальная утверждённая иконка Ministry (`public/ministry-icon.png`,
+неотредактирована) установлена во все слоты: `expo.icon` и
+`expo.web.favicon` → `assets/ministry-icon.png` (resize 1024×1024, без
+изменения композиции); `apple-touch-icon.png` в `public/` заменён тем же
+образом, 180×180 (ссылка в `app/+html.tsx` не менялась). Android
+adaptive icon — отдельный ассет `assets/ministry-icon-adaptive-foreground.png`
+(1024×1024 RGBA): тот же артворк, отмасштабирован до 676×676 (66 % —
+Android safe zone) и отцентрирован на прозрачном холсте, без
+кадрирования/перекраски/перерисовки самого изображения; `backgroundColor
+#323f70` посчитан усреднением пикселей внешней подложки исходника.
+Визуально проверено под circle/squircle/rounded-square масками — артворк
+не обрезается. Старые ассеты TASK_012 (`icon.png`,
+`adaptive-icon-foreground.png`, `adaptive-icon-background.png`,
+`favicon.png`) удалены — не осталось ни одной ссылки. `tsc --noEmit`
+чисто, jest 91/91 suites / 1335/1335 тестов, `expo export --platform
+web` чисто, `git diff --check` чисто. Закоммичено (`7d24af6`), запушено
+в `origin/main`, задеплоено на GitHub Pages (`gh-pages` `b63a0dca`),
+production-хэши favicon.ico/apple-touch-icon.png/ministry-icon.png и
+нового JS-бандла совпадают с локальным `dist/` побайтово, старые
+icon-файлы на проде отдают 404. Native-сборка (iOS/Android) в рамках
+этого web-деплоя не собиралась — обновлённая иконка/adaptive icon
+конфигурация в `app.json` применится при следующей native-сборке
+(EAS/`expo prebuild`), отдельно от этого деплоя. Детали —
+`docs/TASKS/TASK_080_APP_ICON_MINISTRY_FINAL.md`.
+
+---
+
 ## TASK_079 — коротко
 
 Шапка шторки: × убрана, кнопка темы ☼/☾ заняла её место (крайняя правая),

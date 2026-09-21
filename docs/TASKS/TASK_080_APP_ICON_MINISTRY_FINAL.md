@@ -1,10 +1,12 @@
 # TASK_080 — Финальная иконка Ministry: установка во все слоты
 
 **Дата:** 21 сентября 2026
-**Статус:** В работе (реализация локальная, не закоммичена). §4a —
+**Статус:** Implemented / deployed / production verified. §4a —
 поправка владельца после первого прохода: Android adaptive icon
 переделан на отдельный foreground-ассет с прозрачной safe zone вместо
-edge-to-edge полноформатного изображения.
+edge-to-edge полноформатного изображения. Закоммичено (`7d24af6`),
+запушено в `origin/main`, задеплоено на GitHub Pages (`gh-pages`
+`b63a0dca`), проверено на production (см. §7).
 **Основание:** ADR-004 (нет TASK — нет кода). Владелец предоставил
 финальную утверждённую иконку (`public/ministry-icon.png`, уже в
 репозитории как untracked-файл) и явно запретил любое редактирование
@@ -109,3 +111,36 @@ adaptive icon, web favicon, apple-touch-icon. Web-манифеста /
 проверка `dist/` (favicon.ico, apple-touch-icon.png, отсутствие ссылок
 на старые файлы), `git diff --check`. Результаты — в отчёте владельцу и,
 после подтверждения, в `docs/STATUS.md`.
+
+## 7. Деплой и production-проверка (после подтверждения владельцем)
+
+- Коммит `7d24af6` (`main`), запушен в `origin/main`.
+- `npm run deploy` → `expo export --platform web && gh-pages -d dist
+  --nojekyll`; `gh-pages` HEAD после публикации — `b63a0dca`.
+- GitHub Pages CDN отдал предыдущий (закэшированный) бандл при первой
+  проверке сразу после деплоя — известная задержка ~20 с – 2 мин;
+  повторный опрос с `Cache-Control: no-cache` и cache-busting query
+  подтвердил обновление в течение первой же повторной попытки.
+- Побайтовое сравнение (`shasum -a 256`) production-файлов с локальным
+  `dist/`: `favicon.ico`, `apple-touch-icon.png`, `ministry-icon.png` и
+  JS-бандл (`entry-73082e35084373bf60a2783385c8cc14.js`) — хэши
+  совпадают.
+- Старые icon-файлы на production (`icon.png`, `favicon.png`,
+  `adaptive-icon-foreground.png`, `adaptive-icon-background.png`) —
+  все 404.
+- В production-бандле нет ни одной строки со старыми путями (`grep` по
+  скачанному `entry-*.js`).
+- Визуально в свежей вкладке браузера (`adar4026.github.io/Ministry`,
+  без предшествующего кэша/AsyncStorage): консоль без ошибок, favicon
+  рендерится как новая иконка Ministry (проверено через `<link
+  rel="icon">` → живой fetch → inline `<img>`), `apple-touch-icon`
+  отдаёт корректный 180×180 PNG. Нулевые метрики на экране — пустой
+  seed для новой браузерной сессии (TASK_009), не утечка данных
+  владельца.
+- Working tree после финального коммита — чистый (`git status
+  --porcelain` пуст).
+- **Native (iOS/Android) сборка не выполнялась** в рамках этого
+  web-деплоя — `npm run deploy` собирает только web-экспорт. Обновлённая
+  иконка/adaptive icon конфигурация в `app.json` (§4, §4a) применится
+  автоматически при следующей native-сборке (`expo prebuild` / EAS
+  Build) — отдельное, не выполненное в этой задаче действие.
