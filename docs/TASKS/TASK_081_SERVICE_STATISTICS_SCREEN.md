@@ -1,8 +1,9 @@
 # TASK_081 — Раздел «Статистика служения»: год, месяцы, динамика, за всё время
 
 **Дата:** 21 сентября 2026
-**Статус:** Implemented, verified locally (см. §5а). Commit / deploy /
-production — см. §5б.
+**Статус:** Implemented / deployed / production verified. Закоммичено
+(`2690561`), запушено в `origin/main`, задеплоено на GitHub Pages
+(`gh-pages` `4f4c382`), проверено на production (см. §5б).
 **Скоуп:** пункт «Статистика» в шторке Профиля (группа СЛУЖЕНИЕ) и на
 странице Профиля перестаёт быть заглушкой и открывает новый полноэкранный
 раздел `/statistics` (root-Stack, как `/participation` и `/appearance`) с
@@ -164,6 +165,26 @@ light + dark, консоль без ошибок), затем commit → push �
     закрывает SPA-fallback). Первая версия hit-зон графика (`onPress` на
     SVG `Rect`) сыпала в консоль «Unknown event handler property
     onResponder…» на web — заменена на `Pressable`-колонки поверх SVG.
+
+## 5б. Production
+
+Закоммичено `2690561` (`main`, было `e1604f2`; 21 файл, +2449/−6),
+запушено в `origin/main`. Задеплоено на GitHub Pages: `gh-pages`
+`4f4c382` (было `b63a0dc`), бандл `entry-12b070190678d2a8aa0933d79935bb7a.js`
+— хэш идентичен между `npx expo export` локально и ответом
+`adar4026.github.io` (вторая попытка опроса `curl … ?nocache=` после ~20 с
+CDN-задержки; первая ещё отдавала старый `entry-73082e35…`). Изолированная
+вкладка браузера фактически загрузила именно этот `entry-*.js`
+(`document.scripts`). Проверено на production (390 px): deep-link
+`/Ministry/statistics/` открывается через SPA-fallback (единственная
+запись консоли — ожидаемый 404 самого fallback, как у всех deep-link'ов);
+на этом origin записей нет → корректный empty state «Пока нет
+статистики» + «Открыть календарь» → `/Ministry/hours/history`; Главная →
+☰ → «Статистика» → `/Ministry/statistics`, шторка закрылась,
+`stats-period` на месте. Полная проверка с данными (годы, месяцы, график,
+сравнение, месяц → день → редактор) выполнена на dev-сервере (§5а) —
+production отдаёт тот же бандл побайтно (хэш). Ожидает проверки владельца
+на iPhone (PWA) с реальными записями.
 
 ## 6. Architecture Review Checklist (ADR-007)
 
