@@ -4,8 +4,17 @@ _Последнее обновление: TASK_083 — «Календарь сл
 больше не заглушка, открывает root-экран `/calendar` — тело History
 (`ServiceCalendarContent`) в Ministry-скине (DS/MINISTRY, radius 22),
 publisher → `/participation`; `/hours/history` не изменился.
-**Реализовано и проверено локально; commit / deploy / production — ниже
-после выполнения.**_
+**Реализовано, закоммичено, запушено, задеплоено, проверено на
+production.**
+
+Закоммичено `63fa025` (`main`, было `7c79eeb`; 19 файлов), запушено в
+`origin/main`. Задеплоено на GitHub Pages: `gh-pages` `720f924` (бандл
+`entry-8b2c8ee29d58084e16718532a59437fc.js`) — хэш совпал с локальной
+сборкой (вторая попытка после ~20 с CDN-задержки); изолированная вкладка
+загрузила именно его. Проверено на production (390 px):
+`/Ministry/calendar` — «Календарь служения», период и сетка в
+Ministry-скине, tab bar не смонтирован, без горизонтального скролла,
+консоль пуста. Ожидает проверки владельца на iPhone с реальными записями._
 
 ---
 
@@ -160,8 +169,9 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 «Календарь служения» в шторке → `/calendar` (root): общее тело History
 `ServiceCalendarContent` в Ministry-скине через `CalendarVariantContext`;
 `/hours/history` не менялся; publisher → `/participation`; статистика
-«Открыть календарь» → `/calendar`. jest 95/95, 1391/1391. Детали —
-`docs/TASKS/TASK_083_SERVICE_CALENDAR_SCREEN.md`.
+«Открыть календарь» → `/calendar`. jest 95/95, 1391/1391. Закоммичено
+(`63fa025`), задеплоено (`gh-pages` `720f924`), проверено на production.
+Детали — `docs/TASKS/TASK_083_SERVICE_CALENDAR_SCREEN.md`.
 
 ---
 
