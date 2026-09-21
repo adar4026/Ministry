@@ -180,12 +180,12 @@ describe("Статистика — служебный год", () => {
     expect(first.props.testID).toBe("stats-month-2025-09");
   });
 
-  it("empty state offers «Открыть календарь» → /hours/history", async () => {
+  it("empty state offers «Открыть календарь» → /calendar (TASK_083)", async () => {
     const r = await render([]);
     expect(texts(r)).toContain("Пока нет статистики");
     expect(r.root.findAllByProps({ testID: "stats-trend" })).toHaveLength(0);
     await press(r, "stats-open-calendar");
-    expect(mockPush).toHaveBeenCalledWith("/hours/history");
+    expect(mockPush).toHaveBeenCalledWith("/calendar");
   });
 
   it("the back button pops history (Профиль → Статистика → назад)", async () => {

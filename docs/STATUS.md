@@ -1,40 +1,40 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_082 — «Статистика» переведена с календарного
-года на **служебный год** (сентябрь–август) по существующей логике
-`src/data/serviceYear.ts`: переключатель «‹ 2025–2026 ›» с подписью
-«Сентябрь 2025 — август 2026», месяцы и график Сен → Авг, среднее по
-месяцам с записями, «Сравнение» с предыдущим служебным годом, «По годам»
-по служебным годам. **Реализовано, закоммичено, запушено, задеплоено,
-проверено на production.**
-
-Закоммичено `fd2675f` (`main`, было `c5a6eaa`; 10 файлов), запушено в
-`origin/main`. Задеплоено на GitHub Pages: `gh-pages` `9eb2bdf` (бандл
-`entry-e1241371eb61786e5d8b6b1a9c5c2a97.js`) — хэш совпал с локальной
-сборкой (вторая попытка после ~20 с CDN-задержки); изолированная вкладка
-загрузила именно его. Проверено на production (390 px):
-`/Ministry/statistics/` открывается на «2026–2027 · Сентябрь 2026 — август
-2027 · Текущий год»; консоль без ошибок, кроме ожидаемого 404 fallback'а.
-Ожидает проверки владельца на iPhone с реальными записями._
+_Последнее обновление: TASK_083 — «Календарь служения» из шторки: пункт
+больше не заглушка, открывает root-экран `/calendar` — тело History
+(`ServiceCalendarContent`) в Ministry-скине (DS/MINISTRY, radius 22),
+publisher → `/participation`; `/hours/history` не изменился.
+**Реализовано и проверено локально; commit / deploy / production — ниже
+после выполнения.**_
 
 ---
 
 _Описание реализации (до деплоя):
 
-Ни одной новой трактовки границы: `serviceStats.ts` импортирует
-`serviceYearEndYear` / `serviceYearMonths` / `currentServiceYearEndYear`,
-UI — `serviceYearLabel` / `serviceYearRange` (та же подпись, что у
-`/hours/stats` и History). Год = год окончания (в сентябре 2026 текущий —
-2026–2027). `MonthStat` получил календарный `year`; ключи строк и
-маршрут детализации — по реальному месяцу (`/statistics/month/2025-09`).
-Индекс, Session-first, `monthDetail`, данные и дизайн TASK_081 — без
-изменений. Тесты: +8 (32 в `serviceStats.test.ts`, 12 в
-`statisticsScreen.test.tsx`), включая regression «январь — не начало
-статистического года», 31.08 / 01.09, 31.12 + 01.01 в одном году,
-comparison соседних Сен–Авг, lifetime-группировка. `tsc` чисто, jest
-**94/94, 1384/1384**, `expo export` ок, `git diff --check` чист; браузер
-320/390/430, light/dark — сентябрь и август проверены на синтетике
-(отдельный origin). Детали — `docs/TASKS/TASK_082_STATISTICS_SERVICE_YEAR.md`._
+Второго календаря нет. Из `app/(tabs)/hours/history.tsx` вынесено общее
+тело `src/components/hours/ServiceCalendarContent.tsx` (период, ‹ ›,
+«Итого» + зачёт, `HistoryCalendar`, `HistorySessionRow` /
+`LegacyMonthRow`, тап по дню → `/entry?id=` / выбор / `/hours/month`);
+History теперь — только шапка и фон. Скин — `CalendarVariantContext`
+(`history` | `ministry`, по прецеденту `ProfileRowVariantContext`) +
+`MINISTRY_CALENDAR_PALETTE` на live-токенах; шесть компонентов History
+строят стили через `useCalendarStyles()`; без провайдера — прежний
+лавандовый вид (тест `history.test.tsx` не менялся). `app/calendar.tsx`:
+`HomeBackground`, `BackButton fallbackHref="/"`, «Календарь служения»;
+`publisher` → `<Redirect href="/participation" />`. `profileMenu.ts`:
+`calendar.href = "/calendar"`; `/statistics` empty state → `/calendar`.
+Год — служебный («2026–2027 · Сентябрь 2026 — август 2027»). Тесты: +1
+suite (7), правки трёх; `tsc` чисто, jest **95/95, 1391/1391**, `expo
+export` ок, `git diff --check` чист; браузер 320/390/430, light/dark,
+несколько сессий в день, легаси, пустой месяц, publisher, Back → `/`.
+Детали — `docs/TASKS/TASK_083_SERVICE_CALENDAR_SCREEN.md`._
+
+---
+
+_Предыдущее обновление: TASK_082 — «Статистика» переведена на служебный
+год (Сен–Авг). **Реализовано, закоммичено (`fd2675f`, docs `7c79eeb`),
+задеплоено (`gh-pages` `9eb2bdf`), проверено на production.** Детали —
+`docs/TASKS/TASK_082_STATISTICS_SERVICE_YEAR.md`._
 
 ---
 
@@ -152,6 +152,16 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 `prefers-color-scheme` в обе стороны, светлая тема — как раньше,
 перезагрузка с сохранённым dark стартует тёмной до бандла. Детали —
 `docs/TASKS/TASK_078_APP_THEME_DARK_LIGHT.md`._
+
+---
+
+## TASK_083 — коротко
+
+«Календарь служения» в шторке → `/calendar` (root): общее тело History
+`ServiceCalendarContent` в Ministry-скине через `CalendarVariantContext`;
+`/hours/history` не менялся; publisher → `/participation`; статистика
+«Открыть календарь» → `/calendar`. jest 95/95, 1391/1391. Детали —
+`docs/TASKS/TASK_083_SERVICE_CALENDAR_SCREEN.md`.
 
 ---
 

@@ -1,143 +1,23 @@
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
-import { Modal } from "@/components/Modal";
 import { useTabBarContentInset } from "@/components/TabBar";
-import { HistoryCalendar } from "@/components/hours/HistoryCalendar";
-import { HistorySessionRow } from "@/components/hours/HistorySessionRow";
-import { HistoryTotalCard } from "@/components/hours/HistoryTotalCard";
-import { LegacyMonthRow } from "@/components/hours/LegacyMonthRow";
-import { PeriodNav } from "@/components/hours/PeriodNav";
-import { PeriodSwitcher } from "@/components/hours/PeriodSwitcher";
+import { ServiceCalendarContent } from "@/components/hours/ServiceCalendarContent";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "@/components/hours/historyTokens";
-import { ClockIcon } from "@/components/icons";
-import { addMonths } from "@/data/calendarGrid";
-import { MF, formatClockDuration, toISODate } from "@/data/constants";
-import { formatHistoryListDate } from "@/data/dateFormat";
-import {
-  dailyMinutesForMonth,
-  sessionsForDay,
-  sessionsForMonth,
-  sortSessionsDescending,
-  totalCreditForPeriod,
-  totalMinutesForPeriod,
-  type HistoryPeriod,
-} from "@/data/stats";
-import { currentServiceYearEndYear } from "@/data/serviceYear";
-import { useStore } from "@/store/StoreContext";
-import type { Session } from "@/types";
 import { useThemedStyles } from "@/theme";
 
-// History: period switcher (Month/Year/All-time) + total card, then the
-// TASK_032 calendar grid + flat session list for the currently *displayed*
-// month (TASK_033). The displayed month/year (`viewYear`/`viewMonthIndex0`)
-// is independent, navigable UI state — Month-period arrows move it via
-// addMonths() (Dec/Jan wraparound already handled there); All-time hides/
-// disables navigation and the calendar simply keeps showing the last
-// displayed month. The calendar/list below always reflect
-// viewYear/viewMonthIndex0 regardless of `period` — they are never
-// service-year-scoped, only the currently displayed calendar month.
-//
-// Year-period navigation is a *separate* state, `viewServiceYear` (TASK_038)
-// — it cannot reuse `viewYear`, because the two use different calendars:
-// `viewYear` is a plain calendar year (for the month grid), while a service
-// year runs Sep..Aug and is identified by the calendar year it *ends* in
-// (see currentServiceYearEndYear() in src/data/serviceYear.ts, the
-// canonical domain module — this screen does not compute the boundary
-// itself).
-// These only happen to start out equal because `now` here defaults to the
-// literal current moment — during Sep..Dec they'd diverge (e.g. now =
-// October 2026: `viewYear` should default to 2026 for the month grid, but
-// the *current* service year is Sep 2026..Aug 2027, ending in 2027).
-// Year-period arrows move only `viewServiceYear`, leaving the displayed
-// month untouched per the owner's spec, so returning to Month-period shows
-// the same month again. Only the "Итого" total is period-scoped
-// (totalMinutesForPeriod). Credit hours (TASK_039 — e.g. pioneer school
-// attendance) get their own parallel figure, creditMinutes
-// (totalCreditForPeriod), shown as a second line on the same card — the two
-// numbers are never combined into one; a HourRecord with `hours: 30,
-// creditHours: 30` contributes 30 to totalMinutes and 30 to creditMinutes,
-// not 0 to one or 60 to the other.
+// «История» of the «Часы» tab (TASK_032 → TASK_039). TASK_083: the whole
+// calendar body — period switcher, ‹ › nav, «Итого», month grid, session /
+// legacy list, day picker — now lives in ServiceCalendarContent, shared
+// with the drawer's /calendar screen. This file is only History's own
+// chrome: its header, its HISTORY_COLORS ground and the tab-bar inset. No
+// CalendarVariantContext provider here, so the content renders in the
+// default "history" skin — exactly as before.
 export default function HistoryScreen() {
   const styles = useThemedStyles(makeStyles);
-  const { records, sessions } = useStore();
-
-  const now = useMemo(() => new Date(), []);
-  const todayISO = useMemo(() => toISODate(now), [now]);
-
-  const [period, setPeriod] = useState<HistoryPeriod>("month");
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonthIndex0, setViewMonthIndex0] = useState(now.getMonth());
-  const [viewServiceYear, setViewServiceYear] = useState(() => currentServiceYearEndYear(now));
-  const [dayPicker, setDayPicker] = useState<{ iso: string; sessions: Session[] } | null>(null);
   // TASK_054 — clearance now lives on this ScrollView's own content instead
   // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx).
   const bottomInset = useTabBarContentInset();
-
-  const dailyMinutes = useMemo(
-    () => dailyMinutesForMonth(sessions, viewYear, viewMonthIndex0 + 1),
-    [sessions, viewYear, viewMonthIndex0],
-  );
-  const monthSessions = useMemo(
-    () => sortSessionsDescending(sessionsForMonth(sessions, viewYear, viewMonthIndex0 + 1)),
-    [sessions, viewYear, viewMonthIndex0],
-  );
-  // Session-first (docs/TASKS/TASK_005_ARCHITECTURE.md §7–§8): when the
-  // viewed month has zero Sessions, its legacy HourRecord (if any) is
-  // authoritative — resolved here once and consumed both by the list
-  // below and by the LegacyMonthRow's tap target.
-  const legacyRecord = useMemo(
-    () => (monthSessions.length === 0 ? records.find((r) => r.year === viewYear && r.month === viewMonthIndex0 + 1) : undefined),
-    [records, monthSessions, viewYear, viewMonthIndex0],
-  );
-  const totalMinutes = useMemo(
-    () => totalMinutesForPeriod(records, sessions, period, period === "year" ? viewServiceYear : viewYear, viewMonthIndex0 + 1),
-    [records, sessions, period, viewYear, viewMonthIndex0, viewServiceYear],
-  );
-  // TASK_039 — credit hours get their own line on the "Итого" card, only
-  // for the service-year period (that's the "итоговая карточка служебного
-  // года" the credit belongs on) — never merged into totalMinutes above.
-  const creditMinutes = useMemo(
-    () => (period === "year" ? Math.round(totalCreditForPeriod(records, period, viewServiceYear, viewMonthIndex0 + 1) * 60) : 0),
-    [records, period, viewServiceYear, viewMonthIndex0],
-  );
-
-  function handlePrev() {
-    if (period === "month") {
-      const next = addMonths(viewYear, viewMonthIndex0, -1);
-      setViewYear(next.year);
-      setViewMonthIndex0(next.monthIndex0);
-    } else if (period === "year") {
-      setViewServiceYear((y) => y - 1);
-    }
-  }
-
-  function handleNext() {
-    if (period === "month") {
-      const next = addMonths(viewYear, viewMonthIndex0, 1);
-      setViewYear(next.year);
-      setViewMonthIndex0(next.monthIndex0);
-    } else if (period === "year") {
-      setViewServiceYear((y) => y + 1);
-    }
-  }
-
-  function handleDayPress(iso: string) {
-    const daySessions = sessionsForDay(sessions, iso);
-    if (daySessions.length === 0) return;
-    if (daySessions.length === 1) {
-      router.push(`/entry?id=${daySessions[0].id}`);
-      return;
-    }
-    setDayPicker({ iso, sessions: daySessions });
-  }
-
-  function openSession(id: string) {
-    setDayPicker(null);
-    router.push(`/entry?id=${id}`);
-  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -149,80 +29,8 @@ export default function HistoryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]} showsVerticalScrollIndicator={false}>
-        <PeriodSwitcher period={period} onChange={setPeriod} />
-        <PeriodNav
-          period={period}
-          year={period === "year" ? viewServiceYear : viewYear}
-          monthIndex0={viewMonthIndex0}
-          now={now}
-          onPrev={handlePrev}
-          onNext={handleNext}
-        />
-
-        <HistoryTotalCard totalMinutes={totalMinutes} creditMinutes={creditMinutes} />
-
-        <HistoryCalendar
-          year={viewYear}
-          monthIndex0={viewMonthIndex0}
-          dailyMinutes={dailyMinutes}
-          todayISO={todayISO}
-          onDayPress={handleDayPress}
-        />
-
-        <Text style={styles.monthHeading}>
-          {MF[viewMonthIndex0]} {viewYear}
-        </Text>
-
-        {monthSessions.length > 0 ? (
-          <View style={styles.listCard}>
-            {monthSessions.map((session, i) => (
-              <HistorySessionRow
-                key={session.id}
-                session={session}
-                showDivider={i < monthSessions.length - 1}
-                onPress={openSession}
-              />
-            ))}
-          </View>
-        ) : legacyRecord ? (
-          <>
-            <Text style={styles.legacyCaption}>Сохранён месячный итог без разбивки по дням</Text>
-            <View style={styles.listCard}>
-              <LegacyMonthRow
-                hours={legacyRecord.hours}
-                creditHours={legacyRecord.creditHours}
-                onPress={() => router.push(`/hours/month/${viewYear}-${String(viewMonthIndex0 + 1).padStart(2, "0")}`)}
-              />
-            </View>
-          </>
-        ) : (
-          <Text style={styles.empty}>Нет записей за этот месяц</Text>
-        )}
+        <ServiceCalendarContent />
       </ScrollView>
-
-      <Modal
-        visible={dayPicker !== null}
-        title={dayPicker ? formatHistoryListDate(dayPicker.iso) : ""}
-        onClose={() => setDayPicker(null)}
-      >
-        {dayPicker?.sessions.map((s) => (
-          <Pressable
-            key={s.id}
-            onPress={() => openSession(s.id)}
-            style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Запись: ${formatClockDuration(s.durationMinutes)}`}
-          >
-            <View style={styles.pickerIconWrap}>
-              <ClockIcon size={18} color={C.secondaryText} />
-            </View>
-            <Text style={styles.pickerDuration}>{formatClockDuration(s.durationMinutes)}</Text>
-            <Text style={styles.pickerDate}>
-              {formatHistoryListDate(s.date, s.source === "timer" ? s.startTime : undefined)}
-            </Text>
-          </Pressable>
-        ))}
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -247,47 +55,4 @@ const makeStyles = () => StyleSheet.create({
     fontFamily: FONT,
   },
   content: { paddingHorizontal: 16, paddingTop: 8 },
-  monthHeading: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: C.secondaryText,
-    marginTop: 20,
-    marginBottom: 12,
-    fontFamily: FONT,
-  },
-  listCard: {
-    backgroundColor: C.cardBackground,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-  },
-  empty: {
-    fontSize: 15,
-    color: C.secondaryText,
-    textAlign: "center",
-    marginTop: 24,
-    fontFamily: FONT,
-  },
-  legacyCaption: {
-    fontSize: 13,
-    color: C.mutedText,
-    marginBottom: 8,
-    fontFamily: FONT,
-  },
-  pickerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-  },
-  pickerRowPressed: { opacity: 0.6 },
-  pickerIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: C.iconBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pickerDuration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
-  pickerDate: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.primaryText, fontFamily: FONT },
 });

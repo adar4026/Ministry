@@ -3,8 +3,7 @@ import { ClockIcon } from "@/components/icons";
 import { formatClockDuration } from "@/data/constants";
 import { formatHistoryListDate } from "@/data/dateFormat";
 import type { Session } from "@/types";
-import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
-import { useThemedStyles } from "@/theme";
+import { useCalendarPalette, useCalendarStyles, type CalendarPalette } from "./calendarVariant";
 
 // One row of the History month list (TASK_032; made pressable in TASK_034).
 // `startTime` is only ever read for source === "timer" — manual entries
@@ -39,7 +38,8 @@ export function HistorySessionRow({
   onPress?: (id: string) => void;
   onLongPress?: (id: string) => void;
 }) {
-  const styles = useThemedStyles(makeStyles);
+  const styles = useCalendarStyles(makeStyles);
+  const C = useCalendarPalette();
   const label = formatHistoryListDate(session.date, session.source === "timer" ? session.startTime : undefined);
   const note = session.note?.trim();
   const notePreview = note && note.length > 60 ? `${note.slice(0, 60)}…` : note;
@@ -71,7 +71,9 @@ export function HistorySessionRow({
   );
 }
 
-const makeStyles = () => StyleSheet.create({
+// TASK_083 — built from the active CalendarPalette (History lavender by
+// default, Ministry DS/MINISTRY tokens under /calendar).
+const makeStyles = (C: CalendarPalette) => StyleSheet.create({
   row: {
     flexDirection: "column",
     paddingVertical: 14,
@@ -94,8 +96,8 @@ const makeStyles = () => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  duration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
-  date: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.primaryText, fontFamily: FONT },
+  duration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: C.font },
+  date: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.primaryText, fontFamily: C.font },
   note: {
     marginLeft: 42,
     marginTop: 4,
@@ -103,6 +105,6 @@ const makeStyles = () => StyleSheet.create({
     fontWeight: "400",
     color: C.secondaryText,
     textAlign: "left",
-    fontFamily: FONT,
+    fontFamily: C.font,
   },
 });

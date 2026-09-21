@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ClockIcon } from "@/components/icons";
 import { formatHM } from "@/data/constants";
-import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
-import { useThemedStyles } from "@/theme";
+import { useCalendarPalette, useCalendarStyles, type CalendarPalette } from "./calendarVariant";
 
 // Legacy-month row (TASK_034) — shown in place of the Session list when the
 // viewed month has zero Session and its total comes from a legacy
@@ -30,7 +29,8 @@ export function LegacyMonthRow({
   creditHours?: number;
   onPress: () => void;
 }) {
-  const styles = useThemedStyles(makeStyles);
+  const styles = useCalendarStyles(makeStyles);
+  const C = useCalendarPalette();
   const hasCredit = (creditHours ?? 0) > 0;
   return (
     <Pressable
@@ -55,7 +55,9 @@ export function LegacyMonthRow({
   );
 }
 
-const makeStyles = () => StyleSheet.create({
+// TASK_083 — built from the active CalendarPalette (History lavender by
+// default, Ministry DS/MINISTRY tokens under /calendar).
+const makeStyles = (C: CalendarPalette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -72,7 +74,7 @@ const makeStyles = () => StyleSheet.create({
     justifyContent: "center",
   },
   durationWrap: { flexShrink: 1 },
-  duration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
-  creditCaption: { fontSize: 12, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 1 },
-  label: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.secondaryText, fontFamily: FONT },
+  duration: { fontSize: 17, fontWeight: "700", color: C.primaryText, fontFamily: C.font },
+  creditCaption: { fontSize: 12, fontWeight: "500", color: C.mutedText, fontFamily: C.font, marginTop: 1 },
+  label: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600", color: C.secondaryText, fontFamily: C.font },
 });

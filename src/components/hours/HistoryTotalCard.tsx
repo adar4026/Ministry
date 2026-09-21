@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ShareIcon } from "@/components/icons";
 import { formatDurationRu } from "@/data/constants";
-import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
-import { useThemedStyles } from "@/theme";
+import { useCalendarPalette, useCalendarStyles, type CalendarPalette } from "./calendarVariant";
 
 // "Итого" heading + total-time card (TASK_033). The share/export button is
 // disabled — the project has no report-export mechanism yet (see
@@ -16,7 +15,8 @@ import { useThemedStyles } from "@/theme";
 // when > 0, so the card matches its usual look whenever there's no credit
 // to report.
 export function HistoryTotalCard({ totalMinutes, creditMinutes = 0 }: { totalMinutes: number; creditMinutes?: number }) {
-  const styles = useThemedStyles(makeStyles);
+  const styles = useCalendarStyles(makeStyles);
+  const C = useCalendarPalette();
   return (
     <View>
       <Text style={styles.heading}>Итого</Text>
@@ -45,21 +45,23 @@ export function HistoryTotalCard({ totalMinutes, creditMinutes = 0 }: { totalMin
   );
 }
 
-const makeStyles = () => StyleSheet.create({
-  heading: { fontSize: 20, fontWeight: "700", color: C.primaryText, marginTop: 20, marginBottom: 10, fontFamily: FONT },
+// TASK_083 — built from the active CalendarPalette (History lavender by
+// default, Ministry DS/MINISTRY tokens under /calendar).
+const makeStyles = (C: CalendarPalette) => StyleSheet.create({
+  heading: { fontSize: 20, fontWeight: "700", color: C.primaryText, marginTop: 20, marginBottom: 10, fontFamily: C.font },
   card: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: C.cardBackground,
-    borderRadius: 18,
+    borderRadius: C.cardRadius,
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
   },
   valueWrap: { flex: 1 },
-  value: { fontSize: 20, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
-  creditLine: { fontSize: 13, fontWeight: "500", color: C.mutedText, fontFamily: FONT, marginTop: 4 },
+  value: { fontSize: 20, fontWeight: "700", color: C.primaryText, fontFamily: C.font },
+  creditLine: { fontSize: 13, fontWeight: "500", color: C.mutedText, fontFamily: C.font, marginTop: 4 },
   shareBtn: {
     width: 44,
     height: 44,

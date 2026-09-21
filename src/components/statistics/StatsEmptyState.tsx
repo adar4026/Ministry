@@ -1,7 +1,8 @@
 // TASK_081 — the quiet empty state for a year (or a lifetime) with no
 // entries: no zeroed grid, no empty chart — one card with a sentence and a
-// button into the existing service calendar (/hours/history), where time
-// is actually recorded.
+// button into the service calendar — /calendar (TASK_083, the drawer's
+// root-Stack screen; History's calendar body in Ministry's skin), where
+// time is actually recorded.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { DS, MINISTRY } from "@/components/dashboard/tokens";
@@ -18,7 +19,7 @@ export function StatsEmptyState({ text }: { text: string }) {
       <Text style={styles.title}>Пока нет статистики</Text>
       <Text style={styles.text}>{text}</Text>
       <Pressable
-        onPress={() => router.push("/hours/history" as never)}
+        onPress={() => router.push("/calendar" as never)}
         accessibilityRole="button"
         accessibilityLabel="Открыть календарь"
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}

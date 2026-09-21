@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { HistoryPeriod } from "@/data/stats";
-import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
-import { useThemedStyles } from "@/theme";
+import { useCalendarPalette, useCalendarStyles, type CalendarPalette } from "./calendarVariant";
 
 const OPTIONS: { key: HistoryPeriod; label: string }[] = [
   { key: "month", label: "Месяц" },
@@ -14,7 +13,7 @@ const OPTIONS: { key: HistoryPeriod; label: string }[] = [
 // `period`/`onChange` alone. Mouse and touch both go through Pressable's
 // onPress, so no separate handling is needed for the two input types.
 export function PeriodSwitcher({ period, onChange }: { period: HistoryPeriod; onChange: (p: HistoryPeriod) => void }) {
-  const styles = useThemedStyles(makeStyles);
+  const styles = useCalendarStyles(makeStyles);
   return (
     <View style={styles.track} accessibilityRole="tablist">
       {OPTIONS.map((opt) => {
@@ -36,7 +35,9 @@ export function PeriodSwitcher({ period, onChange }: { period: HistoryPeriod; on
   );
 }
 
-const makeStyles = () => StyleSheet.create({
+// TASK_083 — built from the active CalendarPalette (History lavender by
+// default, Ministry DS/MINISTRY tokens under /calendar).
+const makeStyles = (C: CalendarPalette) => StyleSheet.create({
   track: {
     flexDirection: "row",
     backgroundColor: C.segmentTrack,
@@ -59,6 +60,6 @@ const makeStyles = () => StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  label: { fontSize: 14, fontWeight: "600", color: C.secondaryText, fontFamily: FONT },
+  label: { fontSize: 14, fontWeight: "600", color: C.secondaryText, fontFamily: C.font },
   labelActive: { color: C.primaryText, fontWeight: "700" },
 });

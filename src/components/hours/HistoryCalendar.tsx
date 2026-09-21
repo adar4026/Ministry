@@ -1,8 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { buildMonthGrid, WEEKDAYS_SHORT } from "@/data/calendarGrid";
 import { formatClockDuration } from "@/data/constants";
-import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
-import { useThemedStyles } from "@/theme";
+import { useCalendarPalette, useCalendarStyles, type CalendarPalette } from "./calendarVariant";
 
 function isoOf(year: number, monthIndex0: number, day: number): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -35,7 +34,7 @@ export function HistoryCalendar({
   todayISO: string;
   onDayPress?: (dateISO: string) => void;
 }) {
-  const styles = useThemedStyles(makeStyles);
+  const styles = useCalendarStyles(makeStyles);
   const grid = buildMonthGrid(year, monthIndex0);
 
   return (
@@ -95,7 +94,9 @@ export function HistoryCalendar({
   );
 }
 
-const makeStyles = () => StyleSheet.create({
+// TASK_083 — built from the active CalendarPalette (History lavender by
+// default, Ministry DS/MINISTRY tokens under /calendar).
+const makeStyles = (C: CalendarPalette) => StyleSheet.create({
   row: { flexDirection: "row", gap: 6, marginBottom: 6 },
   weekday: {
     flex: 1,
@@ -104,7 +105,7 @@ const makeStyles = () => StyleSheet.create({
     fontWeight: "700",
     color: C.secondaryText,
     paddingVertical: 6,
-    fontFamily: FONT,
+    fontFamily: C.font,
   },
   emptyCell: {
     flex: 1,
@@ -133,9 +134,9 @@ const makeStyles = () => StyleSheet.create({
     justifyContent: "center",
   },
   dayBadgeToday: { backgroundColor: C.todayAccent },
-  dayNumber: { fontSize: 14, fontWeight: "700", color: C.primaryText, fontFamily: FONT },
-  dayNumberToday: { color: "#FFFFFF" },
-  duration: { fontSize: 12, fontWeight: "700", fontFamily: FONT },
+  dayNumber: { fontSize: 14, fontWeight: "700", color: C.primaryText, fontFamily: C.font },
+  dayNumberToday: { color: C.onTodayAccent },
+  duration: { fontSize: 12, fontWeight: "700", fontFamily: C.font },
   durationFilled: { color: C.primaryText },
   durationEmpty: { color: C.mutedText },
 });

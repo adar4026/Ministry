@@ -39,6 +39,7 @@ ministry/
 │   ├── participation/          # Статистика участия возвещателя (TASK_073)
 │   │   ├── index.tsx           # Месяцы → дни служения
 │   │   └── [key].tsx           # Месяц: календарь + отметки
+│   ├── calendar.tsx            # «Календарь служения» из шторки (TASK_083): ServiceCalendarContent в Ministry-скине; publisher → /participation
 │   ├── statistics/             # «Статистика служения» из шторки Профиля (TASK_081)
 │   │   ├── index.tsx           # Служебный год (‹ 2025–2026 ›) / За всё время: hero, Кратко, Динамика, По месяцам, Сравнение
 │   │   └── month/[key].tsx     # Месяц: итог, дни служения → /entry
@@ -94,6 +95,9 @@ ministry/
 │   │   ├── profile/            # ProfileHeroCard, ProfileEditSheet, ProfileSummary,
 │   │   │                       #   ProfileSettingsRow (+ ProfileRowVariantContext), profileMenu.ts
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
+│   │   ├── hours/              # History: HistoryCalendar, HistorySessionRow, PeriodNav, … +
+│   │   │                       #   ServiceCalendarContent (общее тело календаря, TASK_083) и
+│   │   │                       #   calendarVariant.ts (CalendarVariantContext: history | ministry)
 │   │   ├── stats/              # Карточки и график статистики служебного года (TASK_061)
 │   │   ├── statistics/         # Раздел «Статистика» (TASK_081): YearSwitcher, StatsHero, StatTiles,
 │   │   │                       #   YearTrendChart (SVG), BarRows, FactRows, YearComparisonCard, StatsEmptyState
@@ -559,6 +563,34 @@ MonthBucket>` (минуты, источник `session | legacy`, дни `Map<"Y
 `react-native-svg`, Catmull-Rom с клампом контрольных точек к оси, цвета
 только `MINISTRY.accent` + `DS`. Подробности —
 `docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`.
+
+---
+
+## Календарь служения из шторки (TASK_083)
+
+Пункт «Календарь служения» (`profileMenu.ts`, `href: "/calendar"`)
+открывает root-Stack экран `app/calendar.tsx`. Второго календаря нет:
+тело History (`ServiceCalendarContent`, `src/components/hours/`) — период
+Месяц/Год/Всё, ‹ ›, «Итого» (+зачёт), сетка `HistoryCalendar`, список
+`HistorySessionRow` / `LegacyMonthRow`, тап по дню → `/entry?id=` или
+выбор, легаси → `/hours/month/[key]` — рендерят оба экрана:
+
+```
+вкладка «Часы» → /hours/history ─┐  (без провайдера → вариант "history",
+                                  ├─ ServiceCalendarContent   лаванда HISTORY_COLORS как прежде)
+шторка → /calendar (root) ───────┘  (<CalendarVariantContext value="ministry"> → DS/MINISTRY)
+```
+
+`calendarVariant.ts`: `CalendarVariantContext` по прецеденту
+`ProfileRowVariantContext`; `CalendarPalette` — роли `HISTORY_COLORS` +
+`cardRadius`/`font`; `HISTORY_CALENDAR_PALETTE` и
+`MINISTRY_CALENDAR_PALETTE` (геттеры на live-токены); компоненты строят
+листы через `useCalendarStyles(build)` (одна стабильная фабрика на
+(build, variant) поверх кэша `useThemedStyles`) и читают цвета иконок
+через `useCalendarPalette()`. В варианте `ministry` `PeriodNav` подписывает
+служебный год как `/hours/stats` («2025–2026»). Режим `publisher` →
+`<Redirect href="/participation" />`. `/statistics` empty state «Открыть
+календарь» → `/calendar`.
 
 ---
 
