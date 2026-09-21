@@ -13,10 +13,19 @@
 // Everything is counted in whole MINUTES and only formatted as hours at the
 // edge (formatStatMinutes) — no fractional-hour sums, no float drift.
 // Dates are grouped by string slices of the stored "YYYY-MM-DD" day, never
-// through `new Date()`, so a late-evening 31 December entry can never slide
-// into the neighbouring day or year via a timezone conversion.
+// through `new Date()`, so a late-evening 31 August entry can never slide
+// into the neighbouring day or service year via a timezone conversion.
+//
+// TASK_082 — the "year" of this section is Ministry's SERVICE year
+// (September 1 … August 31), identified by the calendar year it ENDS in
+// and labelled "2025–2026", exactly as /hours/stats and History do. The
+// boundary itself is never re-derived here: serviceYearEndYear() /
+// serviceYearMonths() / serviceYearLabel() (src/data/serviceYear.ts) are
+// the single source, so a month can never belong to one service year in
+// «Часы» and another one in «Статистика».
 import type { HourRecord, Session } from "@/types";
 import { formatHM } from "@/data/constants";
+import { currentServiceYearEndYear, serviceYearEndYear, serviceYearMonths } from "@/data/serviceYear";
 
 export type MonthSource = "session" | "legacy";
 
@@ -72,10 +81,11 @@ export function buildServiceStatsIndex(records: HourRecord[], sessions: Session[
 }
 
 // ---------------------------------------------------------------------------
-// Year view
+// Service-year view
 // ---------------------------------------------------------------------------
 
 export type MonthStat = {
+  year: number; // calendar year of this month (Sep..Dec belong to endYear − 1)
   month: number; // 1–12
   minutes: number;
   activeDays: number; // distinct Session dates; 0 for a legacy month
@@ -85,32 +95,33 @@ export type MonthStat = {
 export type BusiestMonth = { year: number; month: number; minutes: number };
 
 export type YearStats = {
+  // The service year's END year: 2026 = September 2025 … August 2026.
   year: number;
   totalMinutes: number;
-  months: MonthStat[]; // always 12, January..December
+  months: MonthStat[]; // always 12, September..August (serviceYearMonths order)
   monthsWithData: number;
   // total / monthsWithData — a month with no entries (including the months
-  // of the current year that have not happened yet) never dilutes it.
+  // of the current service year that have not happened yet) never dilutes it.
   averagePerMonthMinutes: number;
   activeDays: number;
   busiestMonth: BusiestMonth | null;
   hasData: boolean;
 };
 
-export function yearStats(index: ServiceStatsIndex, year: number): YearStats {
+export function yearStats(index: ServiceStatsIndex, endYear: number): YearStats {
   const months: MonthStat[] = [];
   let totalMinutes = 0;
   let monthsWithData = 0;
   let activeDays = 0;
   let busiest: BusiestMonth | null = null;
 
-  for (let month = 1; month <= 12; month++) {
+  for (const { year, month } of serviceYearMonths(endYear)) {
     const bucket = index.get(monthKey(year, month));
     if (!bucket) {
-      months.push({ month, minutes: 0, activeDays: 0, source: "none" });
+      months.push({ year, month, minutes: 0, activeDays: 0, source: "none" });
       continue;
     }
-    months.push({ month, minutes: bucket.minutes, activeDays: bucket.days.size, source: bucket.source });
+    months.push({ year, month, minutes: bucket.minutes, activeDays: bucket.days.size, source: bucket.source });
     totalMinutes += bucket.minutes;
     monthsWithData += 1;
     activeDays += bucket.days.size;
@@ -118,7 +129,7 @@ export function yearStats(index: ServiceStatsIndex, year: number): YearStats {
   }
 
   return {
-    year,
+    year: endYear,
     totalMinutes,
     months,
     monthsWithData,
@@ -130,25 +141,26 @@ export function yearStats(index: ServiceStatsIndex, year: number): YearStats {
 }
 
 export type YearComparison = {
-  year: number;
+  year: number; // service end year
   minutes: number;
-  prevYear: number;
+  prevYear: number; // the previous service year's end year
   prevMinutes: number;
   deltaMinutes: number; // minutes - prevMinutes (signed)
   deltaPercent: number | null; // null when prevMinutes is 0
 };
 
-// Neutral year-over-year figures. `null` when the previous year has no data
-// at all — the UI then simply omits the block (never "worse"/"better").
-export function yearComparison(index: ServiceStatsIndex, year: number): YearComparison | null {
-  const prev = yearStats(index, year - 1);
+// Neutral figures against the PREVIOUS SERVICE YEAR (Sep–Aug against the
+// Sep–Aug before it). `null` when that year has no data at all — the UI
+// then simply omits the block (never "worse"/"better").
+export function yearComparison(index: ServiceStatsIndex, endYear: number): YearComparison | null {
+  const prev = yearStats(index, endYear - 1);
   if (!prev.hasData) return null;
-  const cur = yearStats(index, year);
+  const cur = yearStats(index, endYear);
   const deltaMinutes = cur.totalMinutes - prev.totalMinutes;
   return {
-    year,
+    year: endYear,
     minutes: cur.totalMinutes,
-    prevYear: year - 1,
+    prevYear: endYear - 1,
     prevMinutes: prev.totalMinutes,
     deltaMinutes,
     deltaPercent: prev.totalMinutes > 0 ? (deltaMinutes / prev.totalMinutes) * 100 : null,
@@ -167,11 +179,11 @@ export type LifetimeStats = {
   // False when `firstDate` is only known to the month (a legacy HourRecord
   // has no day), so the UI shows "Сентябрь 2023" rather than a made-up day.
   firstDateIsExact: boolean;
-  yearsWithData: number;
+  yearsWithData: number; // service years with data
   activeDays: number;
   averagePerMonthMinutes: number; // over months with data
   busiestMonth: BusiestMonth | null;
-  years: { year: number; minutes: number }[]; // newest first
+  years: { year: number; minutes: number }[]; // service END years, newest first
   hasData: boolean;
 };
 
@@ -186,7 +198,8 @@ export function lifetimeStats(index: ServiceStatsIndex): LifetimeStats {
   for (const bucket of index.values()) {
     totalMinutes += bucket.minutes;
     activeDays += bucket.days.size;
-    perYear.set(bucket.year, (perYear.get(bucket.year) ?? 0) + bucket.minutes);
+    const sy = serviceYearEndYear(bucket.year, bucket.month);
+    perYear.set(sy, (perYear.get(sy) ?? 0) + bucket.minutes);
     if (!busiest || bucket.minutes > busiest.minutes) {
       busiest = { year: bucket.year, month: bucket.month, minutes: bucket.minutes };
     }
@@ -250,21 +263,24 @@ export function monthDetail(index: ServiceStatsIndex, year: number, month: numbe
 }
 
 // ---------------------------------------------------------------------------
-// Year navigation
+// Service-year navigation
 // ---------------------------------------------------------------------------
 
-// Every calendar year that has at least one month with data, ascending.
+// Every service year (by end year) that has at least one month with data,
+// ascending.
 export function availableYears(index: ServiceStatsIndex): number[] {
   const years = new Set<number>();
-  for (const bucket of index.values()) years.add(bucket.year);
+  for (const bucket of index.values()) years.add(serviceYearEndYear(bucket.year, bucket.month));
   return [...years].sort((a, b) => a - b);
 }
 
-// Range the ‹ › switcher may move through: from the earliest year with data
-// (or the current year when there is none) up to the current year — there
-// is nothing meaningful to show for a year that has not started.
+// Range the ‹ › switcher may move through: from the earliest service year
+// with data (or the current one when there is none) up to the current
+// service year — there is nothing meaningful to show for one that has not
+// started. "Current" is currentServiceYearEndYear(): in September 2026 that
+// is 2027 (Sep 2026 … Aug 2027), not the calendar year.
 export function yearSwitcherBounds(index: ServiceStatsIndex, now: Date = new Date()): { min: number; max: number } {
-  const current = now.getFullYear();
+  const current = currentServiceYearEndYear(now);
   const years = availableYears(index);
   const earliest = years.length > 0 ? years[0] : current;
   return { min: Math.min(earliest, current), max: Math.max(current, years[years.length - 1] ?? current) };

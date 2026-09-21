@@ -1,5 +1,6 @@
-// TASK_081 — «Динамика»: twelve months of one year as a smooth line with a
-// dot per month and a soft accent wash under it. react-native-svg (already a
+// TASK_081 — «Динамика»: the twelve months of one service year (September
+// … August, in the order `months` arrives — TASK_082) as a smooth line with
+// a dot per month and a soft accent wash under it. react-native-svg (already a
 // dependency — PeriodChart uses it), no chart library. One colour family:
 // MINISTRY.accent for the line/dots, its low-opacity fills for the area and
 // the selected halo; grid and captions in DS's muted inks. Tapping a month
@@ -10,6 +11,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } 
 import { DS, MINISTRY } from "@/components/dashboard/tokens";
 import { MF, MN } from "@/data/constants";
 import { formatStatMinutes, type MonthStat } from "@/data/serviceStats";
+import { serviceYearLabel } from "@/data/serviceYear";
 import { useThemedStyles } from "@/theme";
 
 const PAD_TOP = 14;
@@ -49,11 +51,13 @@ export function YearTrendChart({
   months,
   year,
   height = 190,
-  // Months after this index (0-based, exclusive) have not happened yet in
-  // the current year: they get no dot, the line stops at the last real one.
+  // Months after this index (0-based, into `months`) have not happened yet
+  // in the current service year: they get no dot, the line stops at the
+  // last real one.
   lastMonthIndex = 11,
 }: {
   months: MonthStat[];
+  // Service end year — only used to key the gradient id and the a11y label.
   year: number;
   height?: number;
   lastMonthIndex?: number;
@@ -83,7 +87,7 @@ export function YearTrendChart({
     drawn.length > 0 ? `${linePath} L${drawn[drawn.length - 1].x} ${baseline} L${drawn[0].x} ${baseline} Z` : "";
 
   const gridLines = [0.5, 1].map((f) => PAD_TOP + plotHeight - f * plotHeight);
-  const captionText = shown !== null ? `${MF[shown]} · ${formatStatMinutes(months[shown].minutes)}` : "Нет данных";
+  const captionText = shown !== null ? `${MF[months[shown].month - 1]} · ${formatStatMinutes(months[shown].minutes)}` : "Нет данных";
 
   return (
     <View testID="stats-trend">
@@ -92,7 +96,7 @@ export function YearTrendChart({
       </Text>
       <View style={styles.plot} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && (
-          <Svg width={width} height={height} accessibilityLabel={`Динамика по месяцам, ${year}`}>
+          <Svg width={width} height={height} accessibilityLabel={`Динамика по месяцам, служебный год ${serviceYearLabel(year)}`}>
             <Defs>
               <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor={MINISTRY.accent} stopOpacity={0.22} />
@@ -127,7 +131,7 @@ export function YearTrendChart({
               <Circle cx={drawn[shown].x} cy={drawn[shown].y} r={11} fill={MINISTRY.accent} fillOpacity={0.14} />
             )}
 
-            {months.map((_, i) => (
+            {months.map((m, i) => (
               <SvgText
                 key={i}
                 x={x(i)}
@@ -138,7 +142,7 @@ export function YearTrendChart({
                 fill={shown === i ? DS.navy : DS.subInk}
                 textAnchor="middle"
               >
-                {MN[i]}
+                {MN[m.month - 1]}
               </SvgText>
             ))}
 
@@ -154,7 +158,7 @@ export function YearTrendChart({
                 key={`hit-${i}`}
                 onPress={() => setSelected(i)}
                 accessibilityRole="button"
-                accessibilityLabel={`${MF[i]}: ${formatStatMinutes(months[i].minutes)}`}
+                accessibilityLabel={`${MF[months[i].month - 1]}: ${formatStatMinutes(months[i].minutes)}`}
                 style={{ width: slot, height }}
                 testID={`stats-trend-hit-${i + 1}`}
               />

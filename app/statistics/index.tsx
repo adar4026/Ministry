@@ -25,12 +25,18 @@ import {
   yearStats,
   yearSwitcherBounds,
 } from "@/data/serviceStats";
+import { currentServiceYearEndYear, serviceYearLabel } from "@/data/serviceYear";
 import { useStore } from "@/store/StoreContext";
 import { useThemedStyles } from "@/theme";
 
 // TASK_081 — «Статистика», opened from the drawer / Profile page
 // (СЛУЖЕНИЕ → Статистика). Root-Stack route like /participation and
 // /appearance, so the tab bar is not mounted under it.
+//
+// TASK_082 — the period is Ministry's SERVICE year (September … August),
+// identified by its end year and labelled «2025–2026» exactly as
+// /hours/stats does; the boundary comes from src/data/serviceYear.ts only.
+// `year` in this file is always that end year.
 //
 // Nothing here is stored: the screen builds one index over the store's
 // `records` + `sessions` (memoized on those two arrays) and every block is a
@@ -43,12 +49,15 @@ export default function StatisticsScreen() {
   const { records, sessions } = useStore();
   const params = useLocalSearchParams<{ year?: string }>();
   const now = useMemo(() => new Date(), []);
-  const currentYear = now.getFullYear();
+  // The service year containing today (September 2026 → 2027).
+  const currentYear = useMemo(() => currentServiceYearEndYear(now), [now]);
 
   const index = useMemo(() => buildServiceStatsIndex(records, sessions), [records, sessions]);
   const bounds = useMemo(() => yearSwitcherBounds(index, now), [index, now]);
 
   const [mode, setMode] = useState<StatsPeriodMode>("year");
+  // `?year=` is a service END year (2026 = Sep 2025 … Aug 2026), like
+  // History's plain year label.
   const [year, setYear] = useState(() => {
     const y = Number(params.year);
     return Number.isInteger(y) && y > 1900 && y < 3000 ? y : currentYear;
@@ -109,10 +118,12 @@ export default function StatisticsScreen() {
     ];
   }, [stats]);
 
+  // September … August, each row carrying its own calendar year (the
+  // Sep–Dec rows belong to `year − 1`), so a key is always the real month.
   const monthRows: BarRow[] = useMemo(
     () =>
       stats.months.map((m) => {
-        const key = monthKey(year, m.month);
+        const key = monthKey(m.year, m.month);
         return {
           key,
           label: MF[m.month - 1],
@@ -122,8 +133,16 @@ export default function StatisticsScreen() {
           testID: `stats-month-${key}`,
         };
       }),
-    [stats, year],
+    [stats],
   );
+
+  // Index of today's month inside the Sep..Aug order — the chart stops its
+  // line there for the current service year.
+  const lastMonthIndex = useMemo(() => {
+    if (year !== currentYear) return 11;
+    const i = stats.months.findIndex((m) => m.year === now.getFullYear() && m.month === now.getMonth() + 1);
+    return i >= 0 ? i : 11;
+  }, [stats, year, currentYear, now]);
 
   const lifetimeFacts: FactRow[] = useMemo(() => {
     const rows: FactRow[] = [];
@@ -136,7 +155,7 @@ export default function StatisticsScreen() {
         value: lifetime.firstDateIsExact ? formatDateHuman(lifetime.firstDate, now) : `${MF[m - 1]} ${y}`,
       });
     }
-    rows.push({ key: "years", label: "Лет с данными", value: `${lifetime.yearsWithData} ${pluralYearsRu(lifetime.yearsWithData)}` });
+    rows.push({ key: "years", label: "Служебных лет с данными", value: `${lifetime.yearsWithData} ${pluralYearsRu(lifetime.yearsWithData)}` });
     rows.push({
       key: "days",
       label: "Дней служения",
@@ -159,7 +178,7 @@ export default function StatisticsScreen() {
     () =>
       lifetime.years.map((y) => ({
         key: String(y.year),
-        label: String(y.year),
+        label: serviceYearLabel(y.year),
         minutes: y.minutes,
         onPress: () => showYear(y.year),
         testID: `stats-year-${y.year}`,
@@ -167,7 +186,7 @@ export default function StatisticsScreen() {
     [lifetime, showYear],
   );
 
-  const busiestKey = stats.busiestMonth ? monthKey(year, stats.busiestMonth.month) : null;
+  const busiestKey = stats.busiestMonth ? monthKey(stats.busiestMonth.year, stats.busiestMonth.month) : null;
 
   return (
     <View style={styles.screen}>
@@ -197,11 +216,11 @@ export default function StatisticsScreen() {
             ) : (
               <>
                 <StatsHero
-                  eyebrow={String(year)}
+                  eyebrow={serviceYearLabel(year)}
                   minutes={stats.totalMinutes}
-                  caption="Служение за год"
+                  caption="Служение за служебный год"
                   detail={`Среднее ${formatStatMinutes(stats.averagePerMonthMinutes)} / месяц`}
-                  accessibilityLabel={`${year}: ${formatStatMinutes(stats.totalMinutes)} служения за год, в среднем ${formatStatMinutes(stats.averagePerMonthMinutes)} в месяц`}
+                  accessibilityLabel={`Служебный год ${serviceYearLabel(year)}: ${formatStatMinutes(stats.totalMinutes)}, в среднем ${formatStatMinutes(stats.averagePerMonthMinutes)} в месяц`}
                 />
 
                 <View style={styles.section}>
@@ -212,7 +231,7 @@ export default function StatisticsScreen() {
                 </View>
 
                 <StatsCard title="Динамика">
-                  <YearTrendChart key={year} months={stats.months} year={year} lastMonthIndex={year === currentYear ? now.getMonth() : 11} />
+                  <YearTrendChart key={year} months={stats.months} year={year} lastMonthIndex={lastMonthIndex} />
                 </StatsCard>
 
                 <StatsCard title="По месяцам" padded={false} testID="stats-months">

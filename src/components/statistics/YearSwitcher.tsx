@@ -1,12 +1,23 @@
 // TASK_081 — the period control under the «Статистика» header: a two-way
-// segmented switch (Год / За всё время) and, in year mode, the ‹ 2026 ›
-// stepper. The stepper is bounded by yearSwitcherBounds() — it stops at
-// the earliest year with data on the left and at the current year on the
-// right, so there is never a blank future year to page into.
+// segmented switch (Год / За всё время) and, in year mode, the stepper.
+// TASK_082 — the year is Ministry's SERVICE year: `year` is its end year
+// and the stepper shows the same «2025–2026» label /hours/stats uses, with
+// History's «Сентябрь 2025 — август 2026» range under it. Bounded by
+// yearSwitcherBounds() — it stops at the earliest service year with data
+// on the left and at the current one on the right, so there is never a
+// blank future year to page into.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DS, MINISTRY } from "@/components/dashboard/tokens";
 import { ChevronRightIcon } from "@/components/icons";
+import { serviceYearLabel, serviceYearRange } from "@/data/serviceYear";
 import { useThemedStyles } from "@/theme";
+
+// «Сентябрь 2025 — август 2026» for the service year ending in `endYear`,
+// the same phrase PeriodNav (History) shows — the start year comes from
+// serviceYearRange(), never from `endYear - 1` computed here.
+export function serviceYearRangeLabel(endYear: number): string {
+  return `Сентябрь ${serviceYearRange(endYear).start.getFullYear()} — август ${endYear}`;
+}
 
 export type StatsPeriodMode = "year" | "all";
 
@@ -70,9 +81,12 @@ export function YearSwitcher({
 
           <View style={styles.yearWrap} pointerEvents="none">
             <Text style={styles.year} testID="stats-year">
-              {year}
+              {serviceYearLabel(year)}
             </Text>
-            {isCurrentYear && <Text style={styles.yearSub}>Текущий год</Text>}
+            <Text style={styles.yearSub} testID="stats-year-range">
+              {serviceYearRangeLabel(year)}
+            </Text>
+            {isCurrentYear && <Text style={styles.yearCurrent}>Текущий год</Text>}
           </View>
 
           <Pressable
@@ -128,7 +142,8 @@ const makeStyles = () => StyleSheet.create({
   arrowOff: { backgroundColor: DS.ringTrack },
   arrowFlip: { transform: [{ rotate: "180deg" }] },
   yearWrap: { alignItems: "center", flex: 1 },
-  year: { fontSize: 24, fontWeight: "700", color: DS.navy, letterSpacing: -0.3, fontVariant: ["tabular-nums"] },
-  yearSub: { fontSize: 12, fontWeight: "600", color: DS.subInk, marginTop: 1 },
+  year: { fontSize: 22, fontWeight: "700", color: DS.navy, letterSpacing: -0.3, fontVariant: ["tabular-nums"] },
+  yearSub: { fontSize: 11, fontWeight: "600", color: DS.subInk, marginTop: 1, textAlign: "center" },
+  yearCurrent: { fontSize: 11, fontWeight: "700", color: MINISTRY.primary, marginTop: 1 },
   pressed: { opacity: 0.7 },
 });

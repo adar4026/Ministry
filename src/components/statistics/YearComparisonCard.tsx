@@ -1,9 +1,11 @@
-// TASK_081 — «Сравнение»: this year beside the previous one, and the plain
-// signed difference («+37 ч», «+9,5 %»). Deliberately neutral — figures only,
-// no "better / worse" wording, no colour judgement on the delta.
+// TASK_081 — «Сравнение»: this service year beside the previous one
+// («2025–2026» / «2024–2025», TASK_082), and the plain signed difference
+// («+37 ч», «+9,5 %»). Deliberately neutral — figures only, no "better /
+// worse" wording, no colour judgement on the delta.
 import { StyleSheet, Text, View } from "react-native";
 import { DS } from "@/components/dashboard/tokens";
 import { formatSignedMinutes, formatSignedPercent, formatStatMinutes, type YearComparison } from "@/data/serviceStats";
+import { serviceYearLabel } from "@/data/serviceYear";
 import { useThemedStyles } from "@/theme";
 
 export function YearComparisonCard({ comparison }: { comparison: YearComparison }) {
@@ -13,19 +15,19 @@ export function YearComparisonCard({ comparison }: { comparison: YearComparison 
     <View
       style={styles.wrap}
       accessible
-      accessibilityLabel={`Сравнение: ${c.year} — ${formatStatMinutes(c.minutes)}, ${c.prevYear} — ${formatStatMinutes(c.prevMinutes)}, разница ${formatSignedMinutes(c.deltaMinutes)}`}
+      accessibilityLabel={`Сравнение: ${serviceYearLabel(c.year)} — ${formatStatMinutes(c.minutes)}, ${serviceYearLabel(c.prevYear)} — ${formatStatMinutes(c.prevMinutes)}, разница ${formatSignedMinutes(c.deltaMinutes)}`}
       testID="stats-comparison"
     >
       <View style={styles.columns}>
         <View style={styles.col}>
-          <Text style={styles.year}>{c.year}</Text>
+          <Text style={styles.year}>{serviceYearLabel(c.year)}</Text>
           <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {formatStatMinutes(c.minutes)}
           </Text>
         </View>
         <View style={styles.vline} />
         <View style={styles.col}>
-          <Text style={styles.year}>{c.prevYear}</Text>
+          <Text style={styles.year}>{serviceYearLabel(c.prevYear)}</Text>
           <Text style={[styles.value, styles.valuePrev]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {formatStatMinutes(c.prevMinutes)}
           </Text>

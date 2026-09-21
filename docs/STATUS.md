@@ -1,58 +1,41 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_081 — Раздел «Статистика служения»: пункт
-«Статистика» в шторке Профиля больше не заглушка — открывает
-полноэкранный `/statistics` (год ‹ 2026 › / За всё время: hero с итогом
-и средним, «Кратко» 2×2, «Динамика» (SVG-график по 12 месяцам),
-«По месяцам» с полосами, «Сравнение» с предыдущим годом, «По годам»)
-и детализацию месяца `/statistics/month/[key]` со списком дней → существующий
-редактор `/entry`. **Реализовано, закоммичено, запушено, задеплоено,
-проверено на production.**
-
-Закоммичено `2690561` (`main`, было `e1604f2`; 21 файл), запушено в
-`origin/main`. Задеплоено на GitHub Pages: `gh-pages` `4f4c382` (бандл
-`entry-12b070190678d2a8aa0933d79935bb7a.js`) — хэш подтверждён идентичным
-между локальной сборкой и ответом `adar4026.github.io` (вторая попытка
-опроса после ~20 с CDN-задержки); изолированная вкладка загрузила именно
-этот `entry-*.js`. Проверено на production (390 px): deep-link
-`/Ministry/statistics/` открывается (SPA-fallback), на этом origin записей
-нет → empty state «Пока нет статистики» → «Открыть календарь» →
-`/Ministry/hours/history`; Главная → ☰ → «Статистика» → `/Ministry/statistics`;
-консоль без ошибок, кроме ожидаемого 404 fallback'а. Полная проверка с
-данными — на dev-сервере (тот же бандл по хэшу). Ожидает проверки
-владельца на iPhone (PWA) с реальными записями._
+_Последнее обновление: TASK_082 — «Статистика» переведена с календарного
+года на **служебный год** (сентябрь–август) по существующей логике
+`src/data/serviceYear.ts`: переключатель «‹ 2025–2026 ›» с подписью
+«Сентябрь 2025 — август 2026», месяцы и график Сен → Авг, среднее по
+месяцам с записями, «Сравнение» с предыдущим служебным годом, «По годам»
+по служебным годам. **Реализовано и проверено локально; commit / deploy /
+production — ниже после выполнения.**_
 
 ---
 
 _Описание реализации (до деплоя):
 
-Статистика — производное представление `records` + `sessions` из
-`StoreContext`, без собственного хранилища и без изменения модели данных
-(миграции нет). Ядро — новый чистый модуль `src/data/serviceStats.ts`:
-`buildServiceStatsIndex()` (один проход, `Map<"YYYY-MM", {minutes, source,
-days}>`, Session-first по месяцу — то же правило, что `monthTotal()`;
-`creditHours` не входит), `yearStats()`, `yearComparison()`,
-`lifetimeStats()`, `monthDetail()`, `yearSwitcherBounds()`,
-`formatStatMinutes()` («37 ч 30 м» через `formatHM`, тысячи — «1 842 ч»).
-Всё в целых минутах, группировка по строке `"YYYY-MM-DD"` без `new Date()`
-(31.12 → 01.01 не смешиваются). Среднее в месяц = итог / месяцы с
-записями (будущие/пустые не искажают). Календарный год (Янв–Дек);
-`/hours/stats` (служебный год) не менялся. UI —
-`src/components/statistics/` (`YearSwitcher`, `StatsHero`, `StatTiles`,
-`YearTrendChart` на `react-native-svg` с клампом кривой к оси, `BarRows`,
-`FactRows`, `YearComparisonCard`, `StatsEmptyState`, `StatsCard`), только
-live-токены `DS`/`MINISTRY`, light/dark. Легаси-месяцы: «нет разбивки по
-дням» + ссылка в `/hours/month/[key]`; empty state → `/hours/history`;
-`profileMenu.ts`: `stats.href = "/statistics"`.
+Ни одной новой трактовки границы: `serviceStats.ts` импортирует
+`serviceYearEndYear` / `serviceYearMonths` / `currentServiceYearEndYear`,
+UI — `serviceYearLabel` / `serviceYearRange` (та же подпись, что у
+`/hours/stats` и History). Год = год окончания (в сентябре 2026 текущий —
+2026–2027). `MonthStat` получил календарный `year`; ключи строк и
+маршрут детализации — по реальному месяцу (`/statistics/month/2025-09`).
+Индекс, Session-first, `monthDetail`, данные и дизайн TASK_081 — без
+изменений. Тесты: +8 (32 в `serviceStats.test.ts`, 12 в
+`statisticsScreen.test.tsx`), включая regression «январь — не начало
+статистического года», 31.08 / 01.09, 31.12 + 01.01 в одном году,
+comparison соседних Сен–Авг, lifetime-группировка. `tsc` чисто, jest
+**94/94, 1384/1384**, `expo export` ок, `git diff --check` чист; браузер
+320/390/430, light/dark — сентябрь и август проверены на синтетике
+(отдельный origin). Детали — `docs/TASKS/TASK_082_STATISTICS_SERVICE_YEAR.md`._
 
-Проверки: `tsc --noEmit` чисто; `npx jest` — **94/94 suites, 1376/1376**
-(+3 suites, +41 tests); `npx expo export --platform web` собирается;
-`git diff --check` чист. Браузер (отдельный origin `127.0.0.1:8082` с
-синтетическими данными 2023–2026, данные `localhost` не тронуты): 320 px
-dark, 390 px light, 430 px light — hero до «1 714 ч 45 м» помещается на
-320 px, график не слипается, тап по колонке/месяцу/дню, «За всё время» →
-«По годам» → год, Главная → ☰ → Статистика → Назад → Главная, консоль без
-новых ошибок. Детали — `docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`._
+---
+
+_Предыдущее обновление: TASK_081 — Раздел «Статистика служения»: пункт
+«Статистика» в шторке Профиля больше не заглушка — открывает
+полноэкранный `/statistics` и детализацию месяца. **Реализовано,
+закоммичено (`2690561`, docs `c5a6eaa`), задеплоено (`gh-pages`
+`4f4c382`), проверено на production.** Детали —
+`docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`. Период TASK_081
+(календарный год) заменён служебным в TASK_082._
 
 ---
 
@@ -160,6 +143,17 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 `prefers-color-scheme` в обе стороны, светлая тема — как раньше,
 перезагрузка с сохранённым dark стартует тёмной до бандла. Детали —
 `docs/TASKS/TASK_078_APP_THEME_DARK_LIGHT.md`._
+
+---
+
+## TASK_082 — коротко
+
+`/statistics` считает по служебному году (Сен–Авг) через существующий
+`src/data/serviceYear.ts`; подпись «2025–2026» как в `/hours/stats`,
+диапазон как в History; месяцы/график Сен → Авг, comparison и «По годам»
+по служебным годам. Только `serviceStats.ts` + подписи UI + тесты (+8,
+regression на январь). jest 94/94, 1384/1384. Детали —
+`docs/TASKS/TASK_082_STATISTICS_SERVICE_YEAR.md`.
 
 ---
 
