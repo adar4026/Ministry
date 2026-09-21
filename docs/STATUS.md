@@ -1,6 +1,49 @@
 # STATUS — Ministry
 
-_Последнее обновление: TASK_079 — Шапка шторки профиля: кнопка ×
+_Последнее обновление: TASK_081 — Раздел «Статистика служения»: пункт
+«Статистика» в шторке Профиля больше не заглушка — открывает
+полноэкранный `/statistics` (год ‹ 2026 › / За всё время: hero с итогом
+и средним, «Кратко» 2×2, «Динамика» (SVG-график по 12 месяцам),
+«По месяцам» с полосами, «Сравнение» с предыдущим годом, «По годам»)
+и детализацию месяца `/statistics/month/[key]` со списком дней → существующий
+редактор `/entry`. **Реализовано и проверено локально; commit / deploy /
+production — см. ниже после выполнения.**_
+
+---
+
+_Описание реализации (до деплоя):
+
+Статистика — производное представление `records` + `sessions` из
+`StoreContext`, без собственного хранилища и без изменения модели данных
+(миграции нет). Ядро — новый чистый модуль `src/data/serviceStats.ts`:
+`buildServiceStatsIndex()` (один проход, `Map<"YYYY-MM", {minutes, source,
+days}>`, Session-first по месяцу — то же правило, что `monthTotal()`;
+`creditHours` не входит), `yearStats()`, `yearComparison()`,
+`lifetimeStats()`, `monthDetail()`, `yearSwitcherBounds()`,
+`formatStatMinutes()` («37 ч 30 м» через `formatHM`, тысячи — «1 842 ч»).
+Всё в целых минутах, группировка по строке `"YYYY-MM-DD"` без `new Date()`
+(31.12 → 01.01 не смешиваются). Среднее в месяц = итог / месяцы с
+записями (будущие/пустые не искажают). Календарный год (Янв–Дек);
+`/hours/stats` (служебный год) не менялся. UI —
+`src/components/statistics/` (`YearSwitcher`, `StatsHero`, `StatTiles`,
+`YearTrendChart` на `react-native-svg` с клампом кривой к оси, `BarRows`,
+`FactRows`, `YearComparisonCard`, `StatsEmptyState`, `StatsCard`), только
+live-токены `DS`/`MINISTRY`, light/dark. Легаси-месяцы: «нет разбивки по
+дням» + ссылка в `/hours/month/[key]`; empty state → `/hours/history`;
+`profileMenu.ts`: `stats.href = "/statistics"`.
+
+Проверки: `tsc --noEmit` чисто; `npx jest` — **94/94 suites, 1376/1376**
+(+3 suites, +41 tests); `npx expo export --platform web` собирается;
+`git diff --check` чист. Браузер (отдельный origin `127.0.0.1:8082` с
+синтетическими данными 2023–2026, данные `localhost` не тронуты): 320 px
+dark, 390 px light, 430 px light — hero до «1 714 ч 45 м» помещается на
+320 px, график не слипается, тап по колонке/месяцу/дню, «За всё время» →
+«По годам» → год, Главная → ☰ → Статистика → Назад → Главная, консоль без
+новых ошибок. Детали — `docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`._
+
+---
+
+_Предыдущее обновление: TASK_079 — Шапка шторки профиля: кнопка ×
 убрана, переключатель темы ☼/☾ занял её место (крайняя правая круглая
 кнопка), шеврон `›` сдвинут вправо к новому свободному месту.
 **Реализовано, закоммичено, запушено, задеплоено, проверено на
@@ -104,6 +147,19 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 `prefers-color-scheme` в обе стороны, светлая тема — как раньше,
 перезагрузка с сохранённым dark стартует тёмной до бандла. Детали —
 `docs/TASKS/TASK_078_APP_THEME_DARK_LIGHT.md`._
+
+---
+
+## TASK_081 — коротко
+
+«Статистика» в шторке → `/statistics`: год (‹ 2026 ›) / за всё время,
+hero-итог + среднее по месяцам с записями, «Кратко», SVG-«Динамика»,
+«По месяцам», «Сравнение» с предыдущим годом, «По годам»; месяц →
+`/statistics/month/[key]` → день → `/entry`. Расчёты —
+`src/data/serviceStats.ts` над `records`+`sessions` (Session-first, минуты,
+без `new Date()`), без нового хранилища и миграций; UI —
+`src/components/statistics/`. jest 94/94, 1376/1376. Детали —
+`docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`.
 
 ---
 

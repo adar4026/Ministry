@@ -39,6 +39,9 @@ ministry/
 │   ├── participation/          # Статистика участия возвещателя (TASK_073)
 │   │   ├── index.tsx           # Месяцы → дни служения
 │   │   └── [key].tsx           # Месяц: календарь + отметки
+│   ├── statistics/             # «Статистика служения» из шторки Профиля (TASK_081)
+│   │   ├── index.tsx           # Год (‹ 2026 ›) / За всё время: hero, Кратко, Динамика, По месяцам, Сравнение
+│   │   └── month/[key].tsx     # Месяц: итог, дни служения → /entry
 │   ├── notifications.tsx       # «Уведомления» — заглушка «Скоро появится» (TASK_060)
 │   ├── upcoming-events.tsx     # Ближайшие события (TASK_019)
 │   ├── service.tsx             # Легаси-маршрут: redirect к /hours
@@ -51,6 +54,7 @@ ministry/
 │   │   ├── stats.ts            # Чистые функции статистики (TASK_005E)
 │   │   ├── periodStats.ts      # Сводки периода (TASK_037)
 │   │   ├── periodChart.ts      # Дневные ряды и шкалы графиков (TASK_061)
+│   │   ├── serviceStats.ts     # Индекс + чистые расчёты «Статистики» по календарным годам (TASK_081)
 │   │   ├── timer.ts            # Чистые функции таймера (TASK_005C)
 │   │   ├── ministryMode.ts     # Режим служения / настройки: fallback, цель (TASK_073)
 │   │   ├── participation.ts    # Участие: уникальность по дате, месяцы (TASK_073)
@@ -90,7 +94,9 @@ ministry/
 │   │   ├── profile/            # ProfileHeroCard, ProfileEditSheet, ProfileSummary,
 │   │   │                       #   ProfileSettingsRow (+ ProfileRowVariantContext), profileMenu.ts
 │   │   ├── forms/              # RecordForm, SessionForm, EventForm, TalkForm
-│   │   ├── stats/              # Карточки и график статистики (TASK_061)
+│   │   ├── stats/              # Карточки и график статистики служебного года (TASK_061)
+│   │   ├── statistics/         # Раздел «Статистика» (TASK_081): YearSwitcher, StatsHero, StatTiles,
+│   │   │                       #   YearTrendChart (SVG), BarRows, FactRows, YearComparisonCard, StatsEmptyState
 │   │   ├── TabBar.tsx          # Нижняя навигация: floating glass capsule, pill, drag, «＋» (TASK_067)
 │   │   ├── HeatMap.tsx · MonthHeader.tsx · SessionRow.tsx · …
 │   │   └── TodayCard.tsx
@@ -517,6 +523,37 @@ teal-маркер, название как введено, дата 700 + сро
 - `TAB_BAR_HEIGHT = 64`; контракт `useTabBarContentInset()` не менялся.
   Тем в проекте нет — только светлая. Детали —
   `docs/TASKS/TASK_067_FLOATING_GLASS_TAB_BAR.md`.
+
+---
+
+## Статистика служения (TASK_081)
+
+Пункт «Статистика» в шторке Профиля / на странице Профиля
+(`profileMenu.ts`, `href: "/statistics"`) открывает root-Stack экран
+`app/statistics/index.tsx`. Статистика — **производное представление**
+`records` + `sessions` из `StoreContext`, без собственного хранилища и
+без изменения модели данных. Ядро — `src/data/serviceStats.ts`:
+`buildServiceStatsIndex()` один проход по обеим коллекциям → `Map<"YYYY-MM",
+MonthBucket>` (минуты, источник `session | legacy`, дни `Map<"YYYY-MM-DD",
+минуты>`), Session-first по месяцу — то же правило, что `monthTotal()`
+(TASK_005 §7–8); `creditHours` не входит. Индекс мемоизируется на экране
+по `records`/`sessions`; `yearStats()`, `yearComparison()`,
+`lifetimeStats()`, `monthDetail()`, `yearSwitcherBounds()` — дешёвые
+чтения над ним. Всё в целых минутах; даты группируются срезом строки
+`"YYYY-MM-DD"`, `new Date()` при группировке не используется.
+
+Раздел работает по **календарному** году (Январь–Декабрь) — в отличие от
+`/hours/stats` (служебный год Сен–Авг), который не менялся. Среднее в
+месяц = итог / число месяцев с записями (будущие/пустые месяцы не
+искажают). Легаси-месяцы (`HourRecord`) дают итог, но не дни — UI пишет
+«нет разбивки по дням» и ведёт в `/hours/month/[key]`; месяцы с сессиями
+раскрываются по дням, тап по дню → `/entry?id=` (одна сессия) или выбор
+через `Modal` (несколько) — как в `/hours/history`. Empty state ведёт в
+`/hours/history`. Формат «37 ч 30 м» — `formatHM()`; для четырёхзначных
+часов группировка тысяч NBSP (`formatStatMinutes`). График «Динамика» —
+`react-native-svg`, Catmull-Rom с клампом контрольных точек к оси, цвета
+только `MINISTRY.accent` + `DS`. Подробности —
+`docs/TASKS/TASK_081_SERVICE_STATISTICS_SCREEN.md`.
 
 ---
 

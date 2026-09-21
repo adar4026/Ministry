@@ -15,12 +15,13 @@ jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPu
 beforeEach(() => mockPush.mockClear());
 
 describe("profileMenu", () => {
-  it("keeps the TASK_044/059 settings rows, in order, with Уведомления and Оформление (TASK_078) routed", () => {
+  it("keeps the TASK_044/059 settings rows, in order, with Уведомления, Статистика (TASK_081) and Оформление (TASK_078) routed", () => {
     expect(SETTINGS_ITEMS.map((i) => i.label)).toEqual([
       "Уведомления", "Цели", "Календарь служения", "Статистика", "Оформление", "Язык",
     ]);
     expect(SETTINGS_ITEMS.filter((i) => i.href).map((i) => [i.label, i.href])).toEqual([
       ["Уведомления", "/notifications"],
+      ["Статистика", "/statistics"],
       ["Оформление", "/appearance"],
     ]);
     expect(ABOUT_ITEMS.map((i) => i.label)).toEqual(["История изменений", "Обратная связь"]);
