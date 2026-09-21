@@ -1,8 +1,9 @@
 # TASK_079 — Шапка шторки профиля: убрать ×, переключатель темы — крайняя правая кнопка
 
 **Дата:** 21 сентября 2026
-**Статус:** Implemented, verified locally (tsc/jest/390 px). Ожидает
-commit + push + deploy (см. §4а после деплоя).
+**Статус:** Implemented / deployed / production verified. Закоммичено
+(`c19c4b2`), запушено в `origin/main`, задеплоено на GitHub Pages
+(`gh-pages` `ebab3c5`), проверено на production (см. §4а).
 **Скоуп:** только верхняя правая часть шапки `HomeDrawer` (`topRow` над
 `ProfileSummary`) — кнопка ×, положение шеврона `›` и положение
 переключателя темы ☼/☾. Остальная структура шторки, размеры карточки,
@@ -91,9 +92,24 @@ CLOSE_BTN + 6` = 46) и кнопка закрытия шторки × (`closeBtn
 
 ## 4а. Production
 
-См. `docs/STATUS.md` (актуальный commit/gh-pages хэш и результат
-post-deploy проверки — деплой этой задачи, в отличие от большинства
-предыдущих чисто-визуальных задач, был запрошен владельцем явно).
+Закоммичено `c19c4b2` (`main`, было `7ccb77a`; 5 файлов: `HomeDrawer.tsx`,
+`HomeDrawer.test.tsx`, `app/(tabs)/__tests__/index.test.tsx`,
+`docs/STATUS.md`, этот файл), запушено в `origin/main`. Задеплоено на
+GitHub Pages: `gh-pages` `ebab3c5` (было `8849eb3`), бандл
+`entry-87530050c70feff64c47f90c5fd5feb0.js` — хэш идентичен между
+`npx expo export` локально и `npm run deploy`; свежий `curl` с
+`?nocache=` и отдельная изолированная вкладка браузера оба вернули
+именно этот `entry-*.js` (без заметной CDN-задержки на этот раз).
+Проверено на production, 390 px: `drawer-close` не существует
+(`findByTestId` → `null`); `getBoundingClientRect()` кнопки темы и
+шеврона на production совпал с локальным замером один в один (кнопка
+темы `right: 319` при ширине панели `335` — тот же 16 px отступ, что и
+остальная шапка; зазор шеврон → кнопка темы — 8 px); тап по кнопке темы
+на production живьём переключил тему (dark → light → system, иконка и
+вся цветовая схема экрана); консоль без ошибок. Рабочее дерево после
+всех шагов — чистое (`git status` пусто).
+
+См. также `docs/STATUS.md` (тот же результат, короче).
 
 ## 6. Architecture Review Checklist (ADR-007)
 
