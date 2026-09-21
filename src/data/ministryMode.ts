@@ -1,7 +1,7 @@
 // TASK_073 — pure helpers for the ministry mode / settings model. No React,
 // no storage: StoreContext applies these, screens read the results.
 import { MONTHLY_GOAL } from "./constants";
-import type { MinistryMode, MinistrySettings } from "@/types";
+import type { MinistryMode, MinistrySettings, ThemePreference } from "@/types";
 
 export const MINISTRY_MODES: readonly MinistryMode[] = ["publisher", "pioneer", "specialPioneer"];
 
@@ -12,7 +12,28 @@ export const MINISTRY_MODES: readonly MinistryMode[] = ["publisher", "pioneer", 
 export const DEFAULT_MINISTRY_SETTINGS: MinistrySettings = {
   ministryMode: "pioneer",
   monthlyHourGoal: MONTHLY_GOAL,
+  theme: "system",
 };
+
+// TASK_078 — the theme cycle of Finance's toggleTheme(): light → dark →
+// system → light. `THEME_LABEL` is the a11y / settings wording.
+export const THEME_PREFERENCES: readonly ThemePreference[] = ["light", "dark", "system"];
+export const THEME_LABEL: Record<ThemePreference, string> = {
+  light: "Светлая тема",
+  dark: "Тёмная тема",
+  system: "Системная тема",
+};
+export const THEME_DESCRIPTION: Record<ThemePreference, string> = {
+  light: "Всегда светлое оформление",
+  dark: "Всегда тёмное оформление",
+  system: "Как на устройстве — следует настройке iOS",
+};
+export function isThemePreference(value: unknown): value is ThemePreference {
+  return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
+}
+export function nextThemePreference(current: ThemePreference): ThemePreference {
+  return THEME_PREFERENCES[(THEME_PREFERENCES.indexOf(current) + 1) % THEME_PREFERENCES.length];
+}
 
 export const MODE_LABEL: Record<MinistryMode, string> = {
   publisher: "Возвещатель",
@@ -63,11 +84,12 @@ export function normalizeMinistrySettings(raw: unknown): MinistrySettings {
   const goal = obj.monthlyHourGoal;
   const monthlyHourGoal =
     goal === undefined ? DEFAULT_MINISTRY_SETTINGS.monthlyHourGoal : isValidMonthlyGoal(goal) ? goal : DEFAULT_MINISTRY_SETTINGS.monthlyHourGoal;
-  return { ministryMode, monthlyHourGoal };
+  const theme = isThemePreference(obj.theme) ? obj.theme : DEFAULT_MINISTRY_SETTINGS.theme;
+  return { ministryMode, monthlyHourGoal, theme };
 }
 
 export function settingsEqual(a: MinistrySettings, b: MinistrySettings): boolean {
-  return a.ministryMode === b.ministryMode && a.monthlyHourGoal === b.monthlyHourGoal;
+  return a.ministryMode === b.ministryMode && a.monthlyHourGoal === b.monthlyHourGoal && a.theme === b.theme;
 }
 
 /** The monthly goal as the hours screens consume it: 0 means "no goal". */

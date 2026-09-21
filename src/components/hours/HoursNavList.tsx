@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useStore } from "@/store/StoreContext";
 import { ChartIcon, ChevronRightIcon, ListIcon, PencilIcon } from "@/components/icons";
 import { HOURS_COLORS as C } from "./hoursTokens";
+import { useThemedStyles } from "@/theme";
 
 type NavItem = {
   key: string;
@@ -19,6 +20,7 @@ type NavItem = {
 // above), same "История" disabled-when-empty behavior as the previous
 // QuickActionsRow had.
 export function HoursNavList() {
+  const styles = useThemedStyles(makeStyles);
   const { sessions } = useStore();
 
   const items: NavItem[] = [
@@ -79,7 +81,7 @@ export function HoursNavList() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // TASK_046: shadow lives on an outer, non-clipping wrapper — a shadow and
   // overflow:"hidden" on the same View clip the shadow away on iOS. Same
   // soft shadow as Home's cards (HoursHeroCard/SummaryCard,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: C.divider,
   },
-  rowPressed: { backgroundColor: "#F7F7F9" },
+  rowPressed: { backgroundColor: C.pressed },
   rowDisabled: { opacity: 0.4 },
   iconBg: {
     width: 36,

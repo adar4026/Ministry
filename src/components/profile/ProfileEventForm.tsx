@@ -5,6 +5,7 @@ import { calendarElapsed, formatDateDMY } from "@/data/dateFormat";
 import { MonthCalendarModal } from "@/components/forms/MonthCalendarModal";
 import { DangerButton, Field, PrimaryButton, TextField } from "@/components/ui";
 import type { ProfileEvent } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 const TITLE_MAX_LENGTH = 60;
 
@@ -26,6 +27,7 @@ export function ProfileEventForm({
   onSave: (input: ProfileEventFormInput) => void;
   onDelete?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [date, setDate] = useState(initial?.date ?? toISODate(new Date()));
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -86,14 +88,14 @@ export function ProfileEventForm({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   dateButton: {
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 8,
     paddingVertical: 9,
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
   },
   dateButtonText: { fontSize: 15, color: COLORS.text },
   error: { fontSize: 13, color: COLORS.danger, marginBottom: 10 },

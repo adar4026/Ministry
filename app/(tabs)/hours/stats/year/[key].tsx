@@ -11,12 +11,14 @@ import { effectiveMonthlyGoal, yearlyGoalFor } from "@/data/ministryMode";
 import { yearChartSeries } from "@/data/periodChart";
 import { periodStatusLabel, yearPeriodSummary } from "@/data/periodStats";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // TASK_061 §3 — отдельный экран статистики одного служебного года.
 // `key` — календарный год начала служебного года ("2025" → "2025–2026");
 // сама граница Сен 1 … Авг 31 берётся из src/data/serviceYear.ts и здесь
 // никогда не подменяется календарным годом.
 export default function YearStatsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { key } = useLocalSearchParams<{ key?: string }>();
   const { records, sessions, settings } = useStore();
   const goal = yearlyGoalFor(effectiveMonthlyGoal(settings)); // TASK_073 — 12 × monthly goal
@@ -60,7 +62,7 @@ export default function YearStatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.groupedBg },
   header: { minHeight: 52, justifyContent: "center", paddingHorizontal: 16, paddingVertical: 4 },
   backBtn: { position: "absolute", left: 16, zIndex: 1 },

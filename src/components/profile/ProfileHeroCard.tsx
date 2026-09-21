@@ -4,6 +4,7 @@ import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { SummaryCard, DS } from "@/components/dashboard";
 import { calendarElapsed, formatDateDMY, formatProfileEventElapsed } from "@/data/dateFormat";
 import type { UserProfile } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 const MAX_EVENTS = 3;
 // Reserves a fixed 2-line height for every event's title regardless of
@@ -26,6 +27,7 @@ export function ProfileHeroCard({
   // a caller can use to also clear the now-invalid URI from the store.
   onInvalidPhoto?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const trimmedName = profile.displayName?.trim();
   const hasName = !!trimmedName;
   const hasPhoto = !!profile.profilePhotoUri;
@@ -94,7 +96,7 @@ export function ProfileHeroCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: { padding: 16, gap: 4 },
   emptyState: { alignItems: "center", paddingVertical: 8, gap: 6 },
   emptyTitle: { fontSize: 17, fontWeight: "700", color: DS.navy, marginTop: 10 },

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import { COLORS } from "@/data/constants";
 import { SERVICE_YEAR_MONTH_ORDER } from "@/data/serviceYear";
+import { useThemedStyles } from "@/theme";
 
 interface HeatMapProps {
   cells: { date: string; value: number }[];
@@ -76,6 +77,7 @@ export function HeatMap({
   maxValue,
   onPressCell,
 }: HeatMapProps) {
+  const styles = useThemedStyles(makeStyles);
   const size = cellSize ?? DEFAULT_CELL_SIZE[granularity];
   const max = maxValue ?? Math.max(0, ...cells.map((c) => c.value));
   const radius = 4;
@@ -183,7 +185,7 @@ export function HeatMap({
   return null;
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: { gap: 4 },
   row: { flexDirection: "row", gap: DEFAULT_GAP },
   weekdayRow: { flexDirection: "row", gap: DEFAULT_GAP, marginBottom: 4 },

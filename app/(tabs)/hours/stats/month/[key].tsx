@@ -11,12 +11,14 @@ import { effectiveMonthlyGoal } from "@/data/ministryMode";
 import { monthChartSeries } from "@/data/periodChart";
 import { monthPeriodSummary, periodStatusLabel } from "@/data/periodStats";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // TASK_061 §2 — отдельный экран статистики одного календарного месяца.
 // Период задаётся маршрутом (`key` = "YYYY-MM"), а не собственным
 // селектором: второй параллельный механизм выбора месяца/года в приложении
 // не заводится, экран открывается уже с нужным периодом.
 export default function MonthStatsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { key } = useLocalSearchParams<{ key?: string }>();
   const { records, sessions, settings } = useStore();
   const goal = effectiveMonthlyGoal(settings); // TASK_073 — the user's own goal
@@ -66,7 +68,7 @@ export default function MonthStatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.groupedBg },
   header: { minHeight: 52, justifyContent: "center", paddingHorizontal: 16, paddingVertical: 4 },
   backBtn: { position: "absolute", left: 16, zIndex: 1 },

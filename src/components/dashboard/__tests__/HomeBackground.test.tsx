@@ -13,7 +13,11 @@
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { Stop } from "react-native-svg";
 import { HomeBackground } from "@/components/dashboard/HomeBackground";
-import { DS, HOME_GRADIENT, HOME_MINT_GRADIENT, HOME_MINT_GRADIENT_STOPS } from "@/components/dashboard/tokens";
+import { DS, GRADIENTS } from "@/components/dashboard/tokens";
+
+const HOME_GRADIENT = GRADIENTS.home;
+const HOME_MINT_GRADIENT = GRADIENTS.homeMint;
+const HOME_MINT_GRADIENT_STOPS = GRADIENTS.homeMintStops;
 
 function stopsOf(renderer: ReactTestRenderer) {
   return renderer.root.findAllByType(Stop).map((s) => ({ offset: s.props.offset, color: s.props.stopColor }));

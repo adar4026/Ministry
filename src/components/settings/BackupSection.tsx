@@ -38,6 +38,7 @@ import { RotateCcwIcon, ShieldIcon } from "@/components/icons";
 import { ProfileRowVariantContext, ProfileSettingsRow } from "@/components/profile/ProfileSettingsRow";
 import { DS } from "@/components/dashboard";
 import { DRAWER_ICE } from "@/components/dashboard/tokens";
+import { useThemedStyles } from "@/theme";
 
 // Date portion via the app-wide canonical formatter (TASK_022) — was a
 // locally-grown "DD.MM.YYYY" (dots); only the separator changes, the
@@ -75,6 +76,7 @@ function countsOf(data: MinistryBackupData): MinistryBackupCounts {
 // — false when the caller places another row (e.g. "Синхронизация") right
 // after it inside the same card.
 export function BackupSection({ last = true }: { last?: boolean } = {}) {
+  const styles = useThemedStyles(makeStyles);
   const { records, events, talks, sessions, profile, customCategories, replaceAllData } = useStore();
   const [backingUp, setBackingUp] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -375,7 +377,7 @@ export function BackupSection({ last = true }: { last?: boolean } = {}) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   lastBackup: { paddingHorizontal: 18, paddingTop: 2, paddingBottom: 12 },
   lastBackupDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
   lastBackupDividerDrawer: { borderBottomWidth: 1, borderBottomColor: DRAWER_ICE.sep },
@@ -393,14 +395,14 @@ const styles = StyleSheet.create({
   feedbackError: { backgroundColor: COLORS.dangerBg },
   feedbackTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
   feedbackMessage: { fontSize: 13, lineHeight: 17 },
-  feedbackSuccessText: { color: "#166534" },
+  feedbackSuccessText: { color: DS.successInk },
   feedbackErrorText: { color: COLORS.danger },
   feedbackClose: { fontSize: 16, fontWeight: "700", paddingHorizontal: 2 },
   status: { padding: 12, borderRadius: 8, marginBottom: 16 },
   statusOk: { backgroundColor: COLORS.greenBg },
   statusError: { backgroundColor: COLORS.dangerBg },
   statusText: { fontSize: 14, fontWeight: "700", lineHeight: 19 },
-  statusOkText: { color: "#166534" },
+  statusOkText: { color: DS.successInk },
   statusErrorText: { color: COLORS.danger },
   issues: { marginBottom: 18 },
   issueText: { fontSize: 13, lineHeight: 18, color: COLORS.text, marginBottom: 4 },

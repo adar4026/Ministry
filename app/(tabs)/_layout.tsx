@@ -10,8 +10,10 @@ import { MINISTRY } from "@/components/dashboard/tokens";
 import { COLORS } from "@/data/constants";
 import { hoursTabTitle } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 export default function TabsLayout() {
+  const styles = useThemedStyles(makeStyles);
   const { loaded, settings } = useStore();
   // TASK_073 — the `hours` route keeps its name and screen file; only its
   // presentation (tab label, and so the tab's spoken name) follows the
@@ -89,7 +91,7 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
   loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.bg },
 });

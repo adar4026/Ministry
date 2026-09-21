@@ -11,10 +11,12 @@ import { MF, dayWord, toISODate } from "@/data/constants";
 import { participationDaySetForMonth, participationForMonth } from "@/data/participation";
 import { useStore } from "@/store/StoreContext";
 import type { ServiceParticipation } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — one month of participation: the month calendar with the
 // marked days, then the list of marks (tap → move the date / delete).
 export default function ParticipationMonthScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { key } = useLocalSearchParams<{ key?: string }>();
   const { participation } = useStore();
   const [editing, setEditing] = useState<ServiceParticipation | null>(null);
@@ -62,7 +64,7 @@ export default function ParticipationMonthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, justifyContent: "center", minHeight: 52 },

@@ -23,8 +23,10 @@ import { sortSessionsDescending } from "@/data/stats";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, Session } from "@/types";
 import { confirmAsync } from "@/utils/confirm";
+import { useThemedStyles } from "@/theme";
 
 export default function MonthDetailsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { key } = useLocalSearchParams<{ key?: string }>();
   const { records, sessions, saveRecord, deleteRecord, deleteSession } = useStore();
 
@@ -192,7 +194,7 @@ export default function MonthDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.groupedBg },
   header: { height: 48, justifyContent: "center", paddingHorizontal: 16 },
   backBtn: { position: "absolute", left: 16, zIndex: 1 },
@@ -223,10 +225,10 @@ const styles = StyleSheet.create({
   addSessionBtn: {
     paddingVertical: 14,
     paddingHorizontal: 24,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.blueFill,
     borderRadius: 10,
   },
-  addSessionBtnText: { color: COLORS.card, fontSize: 15, fontWeight: "700" },
+  addSessionBtnText: { color: COLORS.onAccent, fontSize: 15, fontWeight: "700" },
   editRecordBtn: {
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -241,9 +243,9 @@ const styles = StyleSheet.create({
   modalDateValue: { fontSize: 21, fontWeight: "700", color: COLORS.text },
   modalActionBtn: {
     paddingVertical: 14,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.blueFill,
     borderRadius: 10,
     alignItems: "center",
   },
-  modalActionBtnText: { color: COLORS.card, fontSize: 17, fontWeight: "700" },
+  modalActionBtnText: { color: COLORS.onAccent, fontSize: 17, fontWeight: "700" },
 });

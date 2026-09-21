@@ -3,6 +3,8 @@ import { Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { ChevronRightIcon } from "@/components/icons";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
+import { HERO_GLASS } from "@/components/dashboard/tokens";
 
 interface BackButtonProps {
   // Where to send the user when this screen has no history to pop — e.g. a
@@ -44,6 +46,7 @@ export function BackButton({
   size = 44,
   style,
 }: BackButtonProps) {
+  const styles = useThemedStyles(makeStyles);
   function handlePress() {
     if (!alwaysReplace && router.canGoBack()) router.back();
     else router.replace(fallbackHref as any);
@@ -69,12 +72,12 @@ export function BackButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   btn: {
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: HERO_GLASS.hairline,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,

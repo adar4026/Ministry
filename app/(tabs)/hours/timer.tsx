@@ -5,10 +5,12 @@ import { useLocalSearchParams } from "expo-router";
 import { BackButton } from "@/components/BackButton";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { useTimer } from "@/hooks/useTimer";
-import { formatDateDMY, toISODate } from "@/data/constants";
+import { COLORS, formatDateDMY, toISODate } from "@/data/constants";
 import { confirmAsync } from "@/utils/confirm";
+import { useThemedStyles } from "@/theme";
 
 export default function TimerScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { state, mode, elapsedSec, prefillMin, loaded, recoveryElapsedSec, recoveryStartedAt,
     start, pause, resume, stop, save, discard, continue: continueTimer, confirmClockRollback } = useTimer();
 
@@ -292,8 +294,8 @@ export default function TimerScreen() {
   return null;
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f8fafc" },
+const makeStyles = () => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     height: 48,
     justifyContent: "center",
@@ -310,19 +312,19 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn: { paddingVertical: 6, paddingRight: 12 },
-  backText: { fontSize: 15, fontWeight: "600", color: "#1e3a5f" },
-  title: { fontSize: 17, fontWeight: "700", color: "#1e293b", textAlign: "center" },
+  backText: { fontSize: 15, fontWeight: "600", color: COLORS.navy },
+  title: { fontSize: 17, fontWeight: "700", color: COLORS.text, textAlign: "center" },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingTop: 4, alignItems: "center" },
 
   // Idle
   idleCard: { width: "100%", alignItems: "center", gap: 16 },
-  idleTitle: { fontSize: 19, fontWeight: "700", color: "#1e293b", textAlign: "center" },
-  idleSubtitle: { fontSize: 15, color: "#94a3b8", textAlign: "center", lineHeight: 21 },
+  idleTitle: { fontSize: 19, fontWeight: "700", color: COLORS.text, textAlign: "center" },
+  idleSubtitle: { fontSize: 15, color: COLORS.muted, textAlign: "center", lineHeight: 21 },
   startBtn: {
     width: "100%",
     paddingVertical: 16,
-    backgroundColor: "#3b82f6",
+    backgroundColor: COLORS.accent,
     borderRadius: 12,
     alignItems: "center",
     shadowColor: "#000",
@@ -335,45 +337,45 @@ const styles = StyleSheet.create({
 
   // Running
   runningCard: { width: "100%", alignItems: "center", gap: 12 },
-  statusBadge: { fontSize: 13, fontWeight: "700", color: "#3b82f6", backgroundColor: "#dbeafe", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  timerDisplay: { fontSize: 56, fontWeight: "700", color: "#1e293b", fontFamily: "monospace", letterSpacing: 2 },
-  startedLine: { fontSize: 14, color: "#94a3b8" },
+  statusBadge: { fontSize: 13, fontWeight: "700", color: COLORS.accent, backgroundColor: COLORS.light, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  timerDisplay: { fontSize: 56, fontWeight: "700", color: COLORS.text, fontFamily: "monospace", letterSpacing: 2 },
+  startedLine: { fontSize: 14, color: COLORS.muted },
   runningActions: { flexDirection: "row", gap: 12, width: "100%", marginTop: 8 },
-  btnSecondary: { flex: 1, paddingVertical: 14, backgroundColor: "#f1f5f9", borderRadius: 10, alignItems: "center" },
-  btnTextSecondary: { color: "#1e3a5f", fontWeight: "700", fontSize: 15 },
-  btnPrimary: { flex: 1, paddingVertical: 14, backgroundColor: "#dc2626", borderRadius: 10, alignItems: "center" },
+  btnSecondary: { flex: 1, paddingVertical: 14, backgroundColor: COLORS.light, borderRadius: 10, alignItems: "center" },
+  btnTextSecondary: { color: COLORS.navy, fontWeight: "700", fontSize: 15 },
+  btnPrimary: { flex: 1, paddingVertical: 14, backgroundColor: COLORS.danger, borderRadius: 10, alignItems: "center" },
   btnTextPrimary: { color: "#fff", fontWeight: "700", fontSize: 15 },
 
   // Paused
   pausedCard: { width: "100%", alignItems: "center", gap: 12 },
-  statusBadgePaused: { fontSize: 13, fontWeight: "700", color: "#f59e0b", backgroundColor: "#fef9c3", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  statusBadgePaused: { fontSize: 13, fontWeight: "700", color: COLORS.warn, backgroundColor: COLORS.warnBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   pausedActions: { flexDirection: "row", gap: 12, width: "100%", marginTop: 8 },
   // TASK_046: low-emphasis full-cancel action, shown only once stopped
   // (paused) — deliberately separate from "Стоп" above it and from the Save
   // overlay's "Отмена"/"Назад" (which just re-open this same view without
   // discarding).
   cancelLink: { alignItems: "center", justifyContent: "center", paddingVertical: 12, marginTop: 4, width: "100%" },
-  cancelLinkText: { color: "#dc2626", fontWeight: "600", fontSize: 14 },
+  cancelLinkText: { color: COLORS.danger, fontWeight: "600", fontSize: 14 },
 
   // Save overlay
   saveField: { width: "100%", gap: 6, marginTop: 4 },
-  saveLabel: { fontSize: 13, fontWeight: "600", color: "#3b82f6" },
-  saveDateValue: { fontSize: 17, fontWeight: "600", color: "#1e293b" },
-  saveInput: { width: "100%", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 17, color: "#1e293b", backgroundColor: "#fff" },
+  saveLabel: { fontSize: 13, fontWeight: "600", color: COLORS.accent },
+  saveDateValue: { fontSize: 17, fontWeight: "600", color: COLORS.text },
+  saveInput: { width: "100%", borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 17, color: COLORS.text, backgroundColor: "#fff" },
   btnDisabled: { opacity: 0.5 },
 
   // Recovery / Clock rollback
   recoveryCard: { width: "100%", alignItems: "center", gap: 16 },
-  recoveryTitle: { fontSize: 19, fontWeight: "700", color: "#1e293b", textAlign: "center" },
-  recoverySubtitle: { fontSize: 15, color: "#94a3b8", textAlign: "center", lineHeight: 21 },
+  recoveryTitle: { fontSize: 19, fontWeight: "700", color: COLORS.text, textAlign: "center" },
+  recoverySubtitle: { fontSize: 15, color: COLORS.muted, textAlign: "center", lineHeight: 21 },
   recoveryInfo: { width: "100%", gap: 12 },
-  recoveryInfoLabel: { fontSize: 13, fontWeight: "600", color: "#3b82f6" },
-  recoveryInfoValue: { fontSize: 17, fontWeight: "600", color: "#1e293b" },
+  recoveryInfoLabel: { fontSize: 13, fontWeight: "600", color: COLORS.accent },
+  recoveryInfoValue: { fontSize: 17, fontWeight: "600", color: COLORS.text },
   recoveryActions: { flexDirection: "column", gap: 10, width: "100%", marginTop: 8 },
-  recoveryBtn: { width: "100%", paddingVertical: 14, backgroundColor: "#3b82f6", borderRadius: 10, alignItems: "center" },
+  recoveryBtn: { width: "100%", paddingVertical: 14, backgroundColor: COLORS.accent, borderRadius: 10, alignItems: "center" },
   recoveryBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  recoveryBtnSecondary: { width: "100%", paddingVertical: 14, backgroundColor: "#f1f5f9", borderRadius: 10, alignItems: "center" },
-  recoveryBtnTextSecondary: { color: "#1e3a5f", fontWeight: "700", fontSize: 15 },
-  recoveryBtnDanger: { width: "100%", paddingVertical: 14, backgroundColor: "#fee2e2", borderRadius: 10, alignItems: "center" },
-  recoveryBtnTextDanger: { color: "#dc2626", fontWeight: "700", fontSize: 15 },
+  recoveryBtnSecondary: { width: "100%", paddingVertical: 14, backgroundColor: COLORS.light, borderRadius: 10, alignItems: "center" },
+  recoveryBtnTextSecondary: { color: COLORS.navy, fontWeight: "700", fontSize: 15 },
+  recoveryBtnDanger: { width: "100%", paddingVertical: 14, backgroundColor: COLORS.dangerBg, borderRadius: 10, alignItems: "center" },
+  recoveryBtnTextDanger: { color: COLORS.danger, fontWeight: "700", fontSize: 15 },
 });

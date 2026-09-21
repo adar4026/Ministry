@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { buildMonthGrid, WEEKDAYS_SHORT } from "@/data/calendarGrid";
 import { formatClockDuration } from "@/data/constants";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 function isoOf(year: number, monthIndex0: number, day: number): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -34,6 +35,7 @@ export function HistoryCalendar({
   todayISO: string;
   onDayPress?: (dateISO: string) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const grid = buildMonthGrid(year, monthIndex0);
 
   return (
@@ -93,7 +95,7 @@ export function HistoryCalendar({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: { flexDirection: "row", gap: 6, marginBottom: 6 },
   weekday: {
     flex: 1,

@@ -9,6 +9,7 @@ import { COLORS, upcomingItems, type UpcomingItem } from "@/data/constants";
 import { DS } from "@/components/dashboard";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 const HOME_LIMIT = 3;
 
@@ -17,6 +18,7 @@ const HOME_LIMIT = 3;
 // (/timeline, a separate full timeline with its own search/filter/edit
 // behavior that this task intentionally leaves untouched).
 export function UpcomingEventsCard() {
+  const styles = useThemedStyles(makeStyles);
   const { events, talks, customCategories, saveEvent, saveTalk } = useStore();
   // upcomingItems() combines events + talks at the UI layer only — both
   // collections stay separate in StoreContext. Home only ever needs the
@@ -90,7 +92,7 @@ export function UpcomingEventsCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // Same gap as "Последние события"'s eventList (app/(tabs)/index.tsx).
   list: { gap: 10 },
   // Radius/shadow/background come from SummaryCard's defaults (TASK_017) —

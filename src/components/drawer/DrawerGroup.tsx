@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { DRAWER_ICE } from "@/components/dashboard/tokens";
+import { useThemedStyles } from "@/theme";
 
 const GLASS = Platform.select<object>({
   web: { backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" },
@@ -17,6 +18,7 @@ const GLASS = Platform.select<object>({
 });
 
 export function DrawerGroup({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.group} accessibilityRole="none" testID="drawer-group">
       <Text style={styles.title} accessibilityRole="header">
@@ -27,7 +29,7 @@ export function DrawerGroup({ title, children }: { title: string; children: Reac
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   group: { gap: 6 },
   title: {
     fontSize: 12,

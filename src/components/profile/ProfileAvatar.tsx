@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet } from "react-native";
 import { Avatar } from "@/components/Avatar";
+import { useThemedStyles } from "@/theme";
 
 export function ProfileAvatar({
   photoUri,
@@ -31,6 +32,7 @@ export function ProfileAvatar({
   accessibilityLabel?: string;
   hitSlop?: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const [failed, setFailed] = useState(false);
   // A newly-picked/removed photo deserves a fresh chance to load, even if a
   // previous URI had failed.
@@ -69,7 +71,7 @@ export function ProfileAvatar({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   photo: {},
   pressed: { opacity: 0.8 },
 });

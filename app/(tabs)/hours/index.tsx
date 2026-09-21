@@ -7,6 +7,7 @@ import { useTabBarContentInset } from "@/components/TabBar";
 import { ParticipationJournal } from "@/components/participation/ParticipationJournal";
 import { isHoursMode } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // "Часы" dashboard, redesigned (TASK_031) into a minimal time-tracking
 // control center: a large heading, the timer as the page's main visual
@@ -30,6 +31,7 @@ export default function HoursDashboard() {
 }
 
 function HoursDashboardContent() {
+  const styles = useThemedStyles(makeStyles);
   // TASK_054 — clearance now lives on this ScrollView's own content instead
   // of the shared Tabs scene padding (see app/(tabs)/_layout.tsx), so the
   // screen's background fills the full height with nothing else painted
@@ -53,7 +55,7 @@ function HoursDashboardContent() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   scroll: { flex: 1 },
   content: { padding: 16, paddingTop: 8, gap: 16 },

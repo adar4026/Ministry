@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Svg, { Defs, Ellipse, LinearGradient, RadialGradient, Rect, Stop } from "react-native-svg";
 import { HeroCanvas } from "./HeroCanvas";
 import { MINISTRY } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // TASK_065 — the Home hero's background layer. Sits absolutely at the top
 // of the screen, clipped to its own height, never receives pointer events;
@@ -28,6 +29,7 @@ export const HERO_HEIGHT = 300;
 // HeroCanvas, so opening the menu never spins up a second WebGL context
 // next to the one already running under the Home hero.
 export function HeroScene({ height, animated = true }: { height: number; animated?: boolean }) {
+  const styles = useThemedStyles(makeStyles);
   const id = useId();
   const gradId = `heroGrad-${id}`;
   const blobA = `heroBlobA-${id}`;
@@ -69,7 +71,7 @@ export function HeroScene({ height, animated = true }: { height: number; animate
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrap: {
     position: "absolute",
     top: 0,

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import { SEED_RECORDS, SEED_EVENTS, SEED_TALKS } from "@/data/seed";
 import { usePersistentState } from "@/hooks/useStorage";
 import { CAT, toISODate, uid } from "@/data/constants";
-import { DEFAULT_MINISTRY_SETTINGS, isValidMonthlyGoal, normalizeMinistrySettings, settingsEqual } from "@/data/ministryMode";
+import { DEFAULT_MINISTRY_SETTINGS, isThemePreference, isValidMonthlyGoal, normalizeMinistrySettings, settingsEqual } from "@/data/ministryMode";
 import { isFutureDate, isISODay } from "@/data/participation";
 import type {
   CustomCategory,
@@ -10,6 +10,7 @@ import type {
   MinistryEvent,
   MinistryMode,
   MinistrySettings,
+  ThemePreference,
   ProfileEvent,
   ServiceParticipation,
   Session,
@@ -164,6 +165,8 @@ type StoreValue = {
   replaceAllData: (data: ReplaceAllDataInput) => void;
   setMinistryMode: (mode: MinistryMode) => void;
   setMonthlyHourGoal: (goal: number | null) => void;
+  // TASK_078 — colour theme preference (light / dark / system).
+  setThemePreference: (theme: ThemePreference) => void;
   markParticipation: (dateISO: string, now?: Date) => ParticipationWriteResult;
   updateParticipationDate: (id: string, dateISO: string, now?: Date) => ParticipationWriteResult;
   deleteParticipation: (id: string) => void;
@@ -323,6 +326,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!isValidMonthlyGoal(goal)) return;
     setSettings((s) => ({ ...normalizeMinistrySettings(s), monthlyHourGoal: goal }));
   }
+  // TASK_078 — same shape as the two above: one field, the rest untouched.
+  function setThemePreference(theme: ThemePreference) {
+    if (!isThemePreference(theme)) return;
+    setSettings((s) => ({ ...normalizeMinistrySettings(s), theme }));
+  }
 
   // TASK_073 — participation is keyed by calendar day. The uniqueness and
   // no-future rules live HERE, not only in the sheet's UI, so no caller can
@@ -390,6 +398,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     replaceAllData,
     setMinistryMode,
     setMonthlyHourGoal,
+    setThemePreference,
     markParticipation,
     updateParticipationDate,
     deleteParticipation,

@@ -9,12 +9,14 @@ import { COLORS, svcYear } from "@/data/constants";
 import { effectiveMonthlyGoal, yearlyGoalFor } from "@/data/ministryMode";
 import { monthPeriodSummary, yearPeriodSummary } from "@/data/periodStats";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // TASK_061 §1 — «Статистика» это короткий экран-обзор: две карточки итогов
 // и ничего больше. Большие графики (и любые мини-графики) живут только на
 // детальных экранах /hours/stats/month/[key] и /hours/stats/year/[key],
 // куда ведут сами карточки.
 export default function StatsOverviewScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions, settings } = useStore();
   // TASK_073 — goals come from the user's settings (50 / 600 for a
   // pre-existing install, exactly the former constants).
@@ -69,7 +71,7 @@ export default function StatsOverviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.groupedBg },
   header: {
     height: 48,

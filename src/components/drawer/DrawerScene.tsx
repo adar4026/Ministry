@@ -24,6 +24,7 @@ import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, Ellipse, LinearGradient, RadialGradient, Rect, Stop } from "react-native-svg";
 import { DRAWER_ICE } from "@/components/dashboard/tokens";
 import { prefersReducedMotion } from "@/utils/motion";
+import { useThemedStyles } from "@/theme";
 
 const NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -64,6 +65,7 @@ function Blob({
   progress: Animated.Value;
   testID: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [0, DRIFT_X] });
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [0, DRIFT_Y] });
   const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, DRIFT_SCALE] });
@@ -86,6 +88,7 @@ function Blob({
 }
 
 export function DrawerScene({ width, height }: { width: number; height: number }) {
+  const styles = useThemedStyles(makeStyles);
   const id = useId();
   const gradId = `drawerGrad-${id}`;
   const glowId = `drawerGlow-${id}`;
@@ -154,7 +157,7 @@ export function DrawerScene({ width, height }: { width: number; height: number }
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrap: {
     position: "absolute",
     top: 0,

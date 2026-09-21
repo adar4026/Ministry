@@ -1,7 +1,7 @@
 // Learn more https://docs.expo.dev/router/reference/static-rendering/#root-html
 
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { NAV, ministryCssVars } from '@/components/dashboard/tokens';
+import { NAV_DARK, NAV_LIGHT, ministryCssVars } from '@/components/dashboard/tokens';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -59,7 +59,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <style
           id="ministry-ios-safari-viewport-fallback"
           dangerouslySetInnerHTML={{
-            __html: `html,body,#root{background-color:#f8fafc;height:100dvh}`,
+            __html: `html,body,#root{background-color:#f8fafc;height:100dvh}html[data-theme="dark"],html[data-theme="dark"] body,html[data-theme="dark"] #root{background-color:#0f1115}`,
           }}
         />
 
@@ -73,6 +73,20 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <style id="ministry-tokens" dangerouslySetInnerHTML={{ __html: ministryCssVars() }} />
 
         {/*
+          TASK_078 — no light flash for a dark-theme user: before the bundle
+          runs, read the stored preference (AsyncStorage on web = localStorage,
+          key mj_settings_v1) and resolve "system" against the media query,
+          exactly as ThemeProvider will a moment later. Fails silently to
+          light on any error (no storage, corrupt JSON).
+        */}
+        <script
+          id="ministry-theme-boot"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem("mj_settings_v1")||"{}");var t=s.theme;var d=t==="dark"||(t!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.setAttribute("data-theme","dark");document.documentElement.style.colorScheme="dark";}}catch(e){}})();`,
+          }}
+        />
+
+        {/*
           TASK_067 — glass fallback for the floating tab bar and its "+"
           button. Their translucency only works together with
           backdrop-filter (src/components/TabBar.tsx); where a browser has
@@ -83,7 +97,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <style
           id="ministry-glass-fallback"
           dangerouslySetInnerHTML={{
-            __html: `@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){[data-ministry-glass="nav"]{background-color:${NAV.bgSolid} !important}[data-ministry-glass="add"]{background-color:${NAV.addBgSolid} !important}}`,
+            __html: `@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){[data-ministry-glass="nav"]{background-color:${NAV_LIGHT.bgSolid} !important}[data-ministry-glass="add"]{background-color:${NAV_LIGHT.addBgSolid} !important}[data-theme="dark"] [data-ministry-glass="nav"]{background-color:${NAV_DARK.bgSolid} !important}[data-theme="dark"] [data-ministry-glass="add"]{background-color:${NAV_DARK.addBgSolid} !important}}`,
           }}
         />
 

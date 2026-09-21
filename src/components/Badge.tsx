@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { categoryMeta } from "@/data/constants";
 import type { CustomCategory } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // `category` is a system Category key or a CustomCategory.id (TASK_045).
 // `customCategories` is optional/defaults to `[]` so every existing call
@@ -12,6 +13,7 @@ export function Badge({
   category: string;
   customCategories?: CustomCategory[];
 }) {
+  const styles = useThemedStyles(makeStyles);
   const c = categoryMeta(category, customCategories);
   return (
     <View style={[styles.badge, { backgroundColor: c.bg }]}>
@@ -20,7 +22,7 @@ export function Badge({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   badge: { paddingVertical: 2, paddingHorizontal: 8, borderRadius: 20, alignSelf: "flex-start" },
   text: { fontSize: 11, fontWeight: "700" },
 });

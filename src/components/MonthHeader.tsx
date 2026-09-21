@@ -4,6 +4,7 @@ import { COLORS, formatHM, MF, monthTotal, svcYear } from "@/data/constants";
 import { effectiveMonthlyGoal } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 interface MonthHeaderProps {
   year: number;
@@ -22,6 +23,7 @@ export function MonthHeader({
   sessions = [],
   onPressAddSession,
 }: MonthHeaderProps) {
+  const styles = useThemedStyles(makeStyles);
   const { records, settings } = useStore();
   // TASK_073 — the user's own goal (mj_settings_v1), 50 for a pre-existing install.
   const goal = effectiveMonthlyGoal(settings);
@@ -65,7 +67,7 @@ export function MonthHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: {
     backgroundColor: COLORS.card,
     borderRadius: 16,

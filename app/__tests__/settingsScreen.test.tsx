@@ -56,7 +56,7 @@ describe("Settings — Служение", () => {
     expect(renderer.root.findAllByProps({ testID: "goal-card" })).toHaveLength(0);
     expect(store().settings.monthlyHourGoal).toBe(50);
     await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); });
-    expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.settings))!)).toEqual({ ministryMode: "publisher", monthlyHourGoal: 50 });
+    expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.settings))!)).toEqual({ ministryMode: "publisher", monthlyHourGoal: 50, theme: "system" });
 
     await act(async () => radio(renderer, "specialPioneer").props.onPress());
     expect(store().settings.ministryMode).toBe("specialPioneer");

@@ -8,7 +8,10 @@
 // и насыщенной индиго-линией. Здесь эти роли разведены явно, чтобы
 // «поднять контраст графика» больше не означало «поменять COLORS.border
 // всему приложению».
-export const CHART = {
+// TASK_078 — live light/dark pair (src/theme/scheme.ts).
+import { live } from "@/theme/scheme";
+
+export const CHART_LIGHT = {
   // Линия факта — насыщенная индиго (indigo-800), как на референсе.
   // Остаётся в рамках «фирменной синей/индиго» палитры Ministry
   // (ср. TALK_CATEGORY.dot #6366f1).
@@ -25,6 +28,17 @@ export const CHART = {
   // Подписи осей и легенды — slate-700 вместо прежнего светло-серого.
   label: "#334155",
 };
+// Тёмная тема: индиго светлее (indigo-400) на графитовой карточке, сетка и
+// оси — белые с малой прозрачностью, подписи — slate-300.
+export const CHART_DARK: typeof CHART_LIGHT = {
+  fact: "#818cf8",
+  markerFill: "#1c2029",
+  ideal: "#3f3f8f",
+  axis: "rgba(255,255,255,0.28)",
+  grid: "rgba(255,255,255,0.12)",
+  label: "#cbd5e1",
+};
+export const CHART = live(CHART_LIGHT, CHART_DARK);
 
 // Кегли подписей оси X: подбираются по доступной ширине (см.
 // pickAxisFontSize в PeriodChart.tsx). Крупный конец ряда — для месяца

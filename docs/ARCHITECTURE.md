@@ -35,6 +35,7 @@ ministry/
 │   │   ├── profile.tsx         # Профиль (содержимое продублировано в HomeDrawer, TASK_066)
 │   │   └── _layout.tsx         # Tab navigator (5 вкладок)
 │   ├── settings.tsx            # «Настройки»: режим служения + цель часов (TASK_073)
+│   ├── appearance.tsx          # «Оформление»: тема light / dark / system (TASK_078)
 │   ├── participation/          # Статистика участия возвещателя (TASK_073)
 │   │   ├── index.tsx           # Месяцы → дни служения
 │   │   └── [key].tsx           # Месяц: календарь + отметки
@@ -61,6 +62,11 @@ ministry/
 │   │
 │   ├── store/
 │   │   └── StoreContext.tsx    # Global state (Context API)
+│   │
+│   ├── theme/                  # Цветовая тема (TASK_078)
+│   │   ├── scheme.ts           # Реестр активной схемы, live(light, dark), resolveScheme
+│   │   ├── ThemeProvider.tsx   # ThemeProvider / useTheme / useThemedStyles, data-theme на web
+│   │   └── index.ts
 │   │
 │   ├── hooks/
 │   │   ├── useStorage.ts       # AsyncStorage wrapper
@@ -192,7 +198,7 @@ mj_sessions_v1           — массив Session[]        (TASK_005A)
 mj_timer_v1              — TimerState              (TASK_005C)
 mj_profile_v1            — UserProfile             (TASK_042)
 mj_custom_categories_v1  — CustomCategory[]        (TASK_045)
-mj_settings_v1           — MinistrySettings        (TASK_073; seed {pioneer, 50}, normalizeMinistrySettings())
+mj_settings_v1           — MinistrySettings        (TASK_073; seed {pioneer, 50}; TASK_078 + theme: "system"; normalizeMinistrySettings())
 mj_participation_v1      — ServiceParticipation[]  (TASK_073; seed [])
 mj_backup_safety_v1      — страховочная копия данных     (TASK_062)
 mj_last_backup_v1        — ISO-дата последней копии      (TASK_062)
@@ -376,6 +382,63 @@ hero (`HeroScene` / WebGL), палитра, Events, Timeline, Profile, routes �
 «Режим: …») → `app/settings.tsx`: radio-карточки трёх режимов + поле
 «Цель часов» (только для часовых режимов; целое 1–9999, пусто = null;
 значение хранится независимо от режима и не стирается при переключении).
+
+---
+
+## Цветовая тема: light / dark / system (TASK_078)
+
+По образцу Lex Finance (`state.theme` + `applyTheme()` + кнопка ☼/☾ в
+шапке шторки). Предпочтение — `settings.theme` (`mj_settings_v1`, default
+`"system"`, `normalizeMinistrySettings` терпит отсутствие/мусор);
+`setThemePreference()` в StoreContext. Фактическая схема = `resolveScheme(
+preference, useColorScheme())`.
+
+**Механизм (ADR-007, см. TASK_078 §3).** Все цвета приложения живут в
+модульных кластерах токенов, которые читаются внутри модульных
+`StyleSheet.create`. Чтобы не трогать каждый цвет и не перемонтировать
+дерево (это сбрасывало бы навигатор):
+
+1. `src/theme/scheme.ts` — реестр активной схемы (`getScheme` /
+   `setScheme`) и `live(light, dark)`: объект с живыми геттерами, каждое
+   чтение `DS.navy` идёт в набор активной схемы. **Каждый кластер — пара**
+   `X_LIGHT` / `X_DARK` → `X = live(...)`: `DS`, `GRADIENTS`, `MINISTRY`,
+   `NAV`, `FIGURE_GLASS`, `DRAWER_ICE`, `HERO_GLASS` (tokens.ts), `COLORS`,
+   `CAT`, `TALK_CATEGORY` (constants.ts), `HOURS_COLORS`, `HISTORY_COLORS`,
+   `CHART`, `TIMELINE_COLORS`, `ADD_TIME_COLORS`. `live()` бросает, если
+   наборы ключей не совпадают — тёмный токен нельзя забыть молча.
+   Light-наборы = прежние значения (тесты MINISTRY-band, cssVars и т.д. —
+   без изменений); тёмные — не инверсия, а отдельные значения по Finance
+   dark (`#0f1115` / `#1c2029` / `#e7ebf2` / `#8b93a3`, стекло white
+   `.10/.16`), с AA-гардами в `tokens.test.ts`.
+2. `ThemeProvider` (внутри `StoreProvider`, `app/_layout.tsx`) ставит схему
+   в реестр **во время своего рендера** (до потребителей) и — на web —
+   `data-theme` + `color-scheme` на `<html>`, фон `body`, `meta
+   theme-color`, тоже синхронно (эффект ребёнка `HeroCanvas` читает CSS-
+   переменные раньше эффекта родителя). `useTheme()` → `{ scheme,
+   preference, setPreference, cycle }`; `cycle` = light → dark → system.
+3. `useThemedStyles(makeStyles)`: каждый модульный `StyleSheet.create`
+   стал фабрикой `const makeStyles = () => StyleSheet.create({…})`, а
+   компонент читает `const styles = useThemedStyles(makeStyles)` — лист
+   строится один раз на схему (WeakMap-кэш, стабильная identity),
+   компонент подписан на контекст и перерисовывается при смене темы.
+   Модульные `Platform.select` с токенами (TabBar glass, heroFigure
+   HERO/GLASS_STYLES) — тоже фабрики.
+4. `ministryCssVars()` эмитит два блока: `:root{…}` (light) и
+   `:root[data-theme="dark"]{…}`; `HeroCanvas.web` перезапускает шейдер по
+   смене `scheme` и перечитывает `--ministry-*`. `+html.tsx` до загрузки
+   бандла читает `localStorage.mj_settings_v1` и ставит `data-theme`
+   (нет светлой вспышки); glass-fallback таббара — для обеих тем.
+5. UI: кнопка ☼/☾ в шапке шторки (`HomeDrawer`, `testID="drawer-theme"`,
+   36 pt стекло слева от ×, иконка по фактической схеме, a11y-подпись
+   «Сменить тему. Сейчас: …») и экран `app/appearance.tsx` («Оформление»
+   в меню, `href: "/appearance"`) — три radio-карточки как «Режим» в
+   `/settings`.
+
+Роли, где `navy`/`blue`/`card` использовались одновременно как текст и
+как заливка, разведены: `COLORS.navyFill` / `blueFill`, `DS.navyFill`,
+`DS.pressedBg` / `dangerBg`, `COLORS.warnBg`, `HOURS_COLORS.pressed` /
+`secondaryButton` / `dangerButtonBg` — заливки остаются глубокими под белый
+текст в обеих схемах.
 
 ---
 

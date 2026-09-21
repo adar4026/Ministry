@@ -9,6 +9,7 @@ import type { Session as SessionType } from "@/types";
 // "@/data/constants" consumer.
 import { monthTotal, parseISOYearMonth, sessionsForMonth } from "./stats";
 import { serviceYearEndYear, serviceYearLabel } from "./serviceYear";
+import { live } from "@/theme/scheme";
 
 export {
   trailingPace,
@@ -29,7 +30,11 @@ export {
 } from "./stats";
 
 // Color palette (ported from the web prototype).
-export const COLORS = {
+// TASK_078 — live light/dark pair (src/theme/scheme.ts); `COLORS_LIGHT` is
+// the untouched prototype palette. Dark follows Lex Finance's dark theme
+// (graphite #0f1115 / #1c2029, text #e7ebf2, muted #8b93a3) with the
+// semantic tints lifted for AA on those grounds.
+export const COLORS_LIGHT = {
   navy: "#0f2744",
   blue: "#1e3a5f",
   accent: "#3b82f6",
@@ -52,13 +57,44 @@ export const COLORS = {
   tealBg: "#ccfbf1",
   shadow: "#1e3a5f",
   onAccent: "#ffffff",
+  // TASK_078 — paused-timer badge tint (was a literal in timer.tsx).
+  warnBg: "#fef9c3",
+  // TASK_078 — `navy`/`blue` double as TEXT on dark (they lighten); these
+  // are the fills that keep white text/icons on them readable in both.
+  navyFill: "#0f2744",
+  blueFill: "#1e3a5f",
 };
+export const COLORS_DARK: typeof COLORS_LIGHT = {
+  navy: "#e7ebf2",
+  blue: "#c9d4e6",
+  accent: "#5b8bff",
+  light: "#1b2333",
+  border: "rgba(255,255,255,0.10)",
+  muted: "#8b93a3",
+  text: "#e7ebf2",
+  bg: "#0f1115",
+  groupedBg: "#0f1115",
+  card: "#1c2029",
+  danger: "#f87171",
+  dangerBg: "#3b1f22",
+  warn: "#fbbf24",
+  green: "#4ade80",
+  greenBg: "#14351f",
+  teal: "#2dd4bf",
+  tealBg: "#123a35",
+  shadow: "#000000",
+  onAccent: "#ffffff",
+  warnBg: "#3d2f0e",
+  navyFill: "#26385a",
+  blueFill: "#3b5f8f",
+};
+export const COLORS = live(COLORS_LIGHT, COLORS_DARK);
 
 // Category metadata: label + badge background / text / timeline dot colors.
-export const CAT: Record<
-  Category,
-  { label: string; bg: string; tx: string; dot: string }
-> = {
+// TASK_078 — badge tints per scheme: on dark the pastel `bg` becomes a
+// deep tint of the same hue and `tx` the light end of it; `dot` is shared.
+type CategoryStyle = { label: string; bg: string; tx: string; dot: string };
+const CAT_LIGHT: Record<Category, CategoryStyle> = {
   pioneer: { label: "Пионер", bg: "#dbeafe", tx: "#1e40af", dot: "#3b82f6" },
   appointment: { label: "Назначение", bg: "#dcfce7", tx: "#166534", dot: "#22c55e" },
   move: { label: "Переезд", bg: "#fef9c3", tx: "#854d0e", dot: "#eab308" },
@@ -66,13 +102,25 @@ export const CAT: Record<
   personal: { label: "Личное", bg: "#fce7f3", tx: "#9d174d", dot: "#ec4899" },
   other: { label: "Событие", bg: "#f1f5f9", tx: "#475569", dot: "#94a3b8" },
 };
+const CAT_DARK: Record<Category, CategoryStyle> = {
+  pioneer: { label: "Пионер", bg: "#1e3a8a", tx: "#bfdbfe", dot: "#3b82f6" },
+  appointment: { label: "Назначение", bg: "#14532d", tx: "#bbf7d0", dot: "#22c55e" },
+  move: { label: "Переезд", bg: "#713f12", tx: "#fef08a", dot: "#eab308" },
+  school: { label: "Школа", bg: "#4c1d95", tx: "#ddd6fe", dot: "#8b5cf6" },
+  personal: { label: "Личное", bg: "#831843", tx: "#fbcfe8", dot: "#ec4899" },
+  other: { label: "Событие", bg: "#334155", tx: "#e2e8f0", dot: "#94a3b8" },
+};
+export const CAT: Record<Category, CategoryStyle> = live(CAT_LIGHT, CAT_DARK);
 
 export const CATEGORY_KEYS = Object.keys(CAT) as Category[];
 
 // Single visual style for every user-created topic (TASK_045) — distinct
 // from all six system categories and from TALK_CATEGORY's indigo, so a
 // custom topic never reads as an existing built-in one.
-const CUSTOM_CATEGORY_STYLE = { bg: "#cffafe", tx: "#155e75", dot: "#06b6d4" };
+const CUSTOM_CATEGORY_STYLE = live(
+  { bg: "#cffafe", tx: "#155e75", dot: "#06b6d4" },
+  { bg: "#164e63", tx: "#a5f3fc", dot: "#06b6d4" },
+);
 
 // Resolves an event's `category` (a system Category key OR a
 // CustomCategory.id, TASK_045) to display metadata. Falls back to
@@ -93,7 +141,10 @@ export function categoryMeta(
 // Display metadata for public talks shown in the unified Events timeline.
 // Talks keep their own collection (see StoreContext); this is UI-only styling
 // and is deliberately NOT part of the MinistryEvent `Category` enum.
-export const TALK_CATEGORY = { label: "Публичная речь", bg: "#e0e7ff", tx: "#3730a3", dot: "#6366f1" };
+export const TALK_CATEGORY = live(
+  { label: "Публичная речь", bg: "#e0e7ff", tx: "#3730a3", dot: "#6366f1" },
+  { label: "Публичная речь", bg: "#312e81", tx: "#c7d2fe", dot: "#6366f1" },
+);
 
 // Month names — short and full.
 export const MN = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { buildMonthGrid, WEEKDAYS_SHORT } from "@/data/calendarGrid";
-import { MINISTRY } from "./tokens";
+import { HERO_GLASS, MINISTRY } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — the publisher hero's compact month indicator: seven weekday
 // letters, then the month's days as small cells. A day of service is a
@@ -21,6 +22,7 @@ export function ParticipationMiniCalendar({
   /** Day-of-month of today when the shown month is the current one, else undefined. */
   today?: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const grid = buildMonthGrid(year, month - 1);
   return (
     <View style={styles.card} testID="participation-mini-calendar" importantForAccessibility="no-hide-descendants" aria-hidden>
@@ -53,15 +55,15 @@ export function ParticipationMiniCalendar({
 
 const DOT = 26;
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     marginTop: 14,
     paddingVertical: 8,
     paddingHorizontal: 6,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.38)",
+    backgroundColor: HERO_GLASS.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.65)",
+    borderColor: HERO_GLASS.cardBorder,
   },
   row: { flexDirection: "row" },
   weekday: {
@@ -77,7 +79,7 @@ const styles = StyleSheet.create({
   dot: { width: DOT, height: DOT, borderRadius: DOT / 2, alignItems: "center", justifyContent: "center" },
   dotMarked: { backgroundColor: MINISTRY.accent },
   dotToday: { borderWidth: 1.5, borderColor: MINISTRY.primary },
-  dotTodayMarked: { borderWidth: 1.5, borderColor: "rgba(255,255,255,0.9)" },
+  dotTodayMarked: { borderWidth: 1.5, borderColor: HERO_GLASS.onAccentRing },
   day: { fontSize: 12, lineHeight: 15, fontWeight: "600", color: MINISTRY.ink, fontVariant: ["tabular-nums"] },
   dayMarked: { color: "#ffffff", fontWeight: "700" },
 });

@@ -1,5 +1,6 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { FIGURE_GLASS, MINISTRY } from "./tokens";
+import { FIGURE_GLASS, HERO_GLASS, MINISTRY } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — the Home hero's shared presentation pieces, split out of
 // HomeHero.tsx so both content variants (hours for pioneers, participation
@@ -68,7 +69,8 @@ export function figureGlassStyles(os: string): GlassStyles {
   };
 }
 
-const GLASS_STYLES = figureGlassStyles(Platform.OS);
+// TASK_078 — built per colour scheme (FIGURE_GLASS is live).
+const makeGlassStyles = () => figureGlassStyles(Platform.OS);
 // Overlay layers exist on web only; native renders just the body.
 const GLASS_OVERLAYS_UNDER: GlassLayer[] = Platform.OS === "web" ? ["shadow", "depth"] : [];
 const GLASS_OVERLAYS_OVER: GlassLayer[] = Platform.OS === "web" ? ["rim"] : [];
@@ -105,6 +107,8 @@ export function splitDuration(text: string): Array<[string, string]> {
  * clip the shadow layer's blur to a hard rectangle.
  */
 function FigureRow({ pairs, layer }: { pairs: Array<[string, string]>; layer: GlassLayer }) {
+  const styles = useThemedStyles(makeHERO);
+  const GLASS_STYLES = useThemedStyles(makeGlassStyles);
   const body = layer === "body";
   return (
     <View style={styles.figure} testID={body ? "home-hero-figure" : undefined}>
@@ -134,6 +138,7 @@ function FigureRow({ pairs, layer }: { pairs: Array<[string, string]>; layer: Gl
  * caller provides the spoken summary.
  */
 export function GlassFigure({ pairs }: { pairs: Array<[string, string]> }) {
+  const styles = useThemedStyles(makeHERO);
   return (
     <View style={styles.figureWrap} importantForAccessibility="no" testID="home-hero-figure-wrap">
       <View style={styles.figureStack} testID="home-hero-figure-stack">
@@ -179,7 +184,7 @@ export const PILL_GLASS = Platform.select<object>({
 
 // Shared hero styles: the figure geometry (TASK_070/071) and the two action
 // pills. Captions/metrics stay with each content variant.
-export const HERO = StyleSheet.create({
+export const makeHERO = () => StyleSheet.create({
   // Full-width wrapper that centres the figure on the screen. ONLY the
   // figure is centred; the caption and everything below stay left-aligned.
   // No extra space above beyond the screen's heroBlock gap (TASK_074): the
@@ -228,10 +233,13 @@ export const HERO = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: HERO_GLASS.pill,
   },
-  pillPrimary: { backgroundColor: "rgba(255,255,255,0.72)" },
+  pillPrimary: { backgroundColor: HERO_GLASS.pillPrimary },
   pillText: { fontSize: 14, lineHeight: 18, fontWeight: "700", color: MINISTRY.primary },
   pressed: { opacity: 0.8 },
 });
-const styles = HERO;
+// TASK_078 — the shared hero sheet, per scheme, for HomeHero / PublisherHero.
+export function useHero() {
+  return useThemedStyles(makeHERO);
+}

@@ -10,11 +10,12 @@ import { UpcomingEventsCard } from "@/components/UpcomingEventsCard";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useTabBarContentInset } from "@/components/TabBar";
 import { DS, EventCard, HERO_HEIGHT, HeroScene, HomeHero, SectionHeader, SummaryCard } from "@/components/dashboard";
-import { MINISTRY } from "@/components/dashboard/tokens";
+import { HERO_GLASS, MINISTRY } from "@/components/dashboard/tokens";
 import { formatHM, serviceYearAggregation, toISODate, type ServiceYearMonth } from "@/data/constants";
 import { isHoursMode } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 import type { HourRecord, MinistryEvent } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // Home header date (TASK_014): "Пятница, 17 июля" — capitalized weekday
 // first, then day + genitive month.
@@ -34,6 +35,7 @@ const HERO_CONTENT_TOP = 10;
 const HERO_TAIL = 64;
 
 export default function Dashboard() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions, events, customCategories, settings, saveRecord, deleteRecord, saveEvent } = useStore();
   // TASK_073 — a publisher's Home carries no hours anywhere: the hero
   // switches to participation days (HomeHero) and the service-year hours
@@ -215,7 +217,7 @@ export default function Dashboard() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // Home-only screen background. Hours/Events/Add/Profile still render the
   // shared <HomeBackground /> with HOME_GRADIENT and are untouched.
   // TASK_065: the flat ground below the hero is MINISTRY.bg — the same
@@ -248,7 +250,7 @@ const styles = StyleSheet.create({
   // Pulled 6 pt left so the glyph's own optical edge lines up with the
   // content gutter while the 44×44 hit area stays intact.
   menuBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -6, borderRadius: 22 },
-  menuBtnPressed: { backgroundColor: "rgba(255,255,255,0.35)" },
+  menuBtnPressed: { backgroundColor: HERO_GLASS.pressed },
   headerText: { flex: 1, minWidth: 0 },
   // TASK_065: header text now sits on the animated hero — MINISTRY.ink /
   // ink2 are the two tints measured against every wave color (>= 9.5:1 and

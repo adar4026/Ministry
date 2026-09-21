@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { live } from "@/theme/scheme";
 
 // System-font stack matching the reference iOS screenshots (San Francisco).
 // Native: no explicit fontFamily — RN already resolves to San Francisco on
@@ -19,7 +20,7 @@ export const HISTORY_FONT_FAMILY: string | undefined =
 // for "day with logged time" / "today" — introduced here rather than
 // repurposing the blue accent, since the two screens are visually
 // independent redesigns that happen to share the same module.
-export const HISTORY_COLORS = {
+export const HISTORY_COLORS_LIGHT = {
   screenBackground: "#EBEBEF",
   cardBackground: "#FFFFFF",
   primaryText: "#000000",
@@ -36,3 +37,19 @@ export const HISTORY_COLORS = {
   // every other card on this screen rather than a third new token.
   segmentTrack: "#DEDEE3",
 };
+// TASK_078 — dark: graphite grounds, the lavender accent lifted so a
+// logged day still reads as violet, not as mud.
+export const HISTORY_COLORS_DARK: typeof HISTORY_COLORS_LIGHT = {
+  screenBackground: "#0f1115",
+  cardBackground: "#1c2029",
+  primaryText: "#f2f4f8",
+  secondaryText: "#9aa1ae",
+  mutedText: "#6b7280",
+  divider: "rgba(255,255,255,0.10)",
+  emptyCellBorder: "rgba(255,255,255,0.14)",
+  filledDayBg: "#2e2657",
+  todayAccent: "#a78bfa",
+  iconBg: "#242938",
+  segmentTrack: "#232834",
+};
+export const HISTORY_COLORS = live(HISTORY_COLORS_LIGHT, HISTORY_COLORS_DARK);

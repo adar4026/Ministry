@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 // Placeholder avatar: initials on a navy circle. Photo support comes later.
 export function Avatar({
@@ -11,6 +12,7 @@ export function Avatar({
   initials?: string;
   onPress?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const circle = (
     <View
       style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
@@ -32,9 +34,9 @@ export function Avatar({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   avatar: {
-    backgroundColor: COLORS.navy,
+    backgroundColor: COLORS.navyFill,
     alignItems: "center",
     justifyContent: "center",
   },

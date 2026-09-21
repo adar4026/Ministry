@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { DS } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // Generic dashboard card primitive (TASK_007) — white rounded surface with a
 // soft shadow and an optional header (accent title + right-side meta +
@@ -32,6 +33,7 @@ export function SummaryCard({
   // are unaffected.
   accessibilityLabel?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const inner = (
     <View style={[styles.card, style]}>
       {title ? (
@@ -60,7 +62,7 @@ export function SummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: DS.cardBg,
     borderRadius: 22,

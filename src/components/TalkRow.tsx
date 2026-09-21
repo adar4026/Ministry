@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
 import type { Talk } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 export function TalkRow({ talk, onPress }: { talk: Talk; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   const title = talk.title || (talk.number ? `Речь №${talk.number}` : "Специальная речь");
   const subtitle = talk.location ? `${talk.date}  —  ${talk.location}` : talk.date;
   return (
@@ -24,7 +26,7 @@ export function TalkRow({ talk, onPress }: { talk: Talk; onPress: () => void }) 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

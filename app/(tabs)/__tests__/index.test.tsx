@@ -11,7 +11,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
 import { TAB_BAR_HEIGHT } from "@/components/TabBar";
-import { DS, HOME_GRADIENT, HOME_MINT_GRADIENT, MINISTRY } from "@/components/dashboard/tokens";
+import { DS, GRADIENTS, MINISTRY } from "@/components/dashboard/tokens";
+
+const HOME_GRADIENT = GRADIENTS.home;
+const HOME_MINT_GRADIENT = GRADIENTS.homeMint;
 import { HERO_HEIGHT } from "@/components/dashboard/HeroScene";
 import { MenuIcon } from "@/components/icons";
 import { APP_VERSION } from "@/data/appInfo";

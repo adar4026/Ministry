@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS, formatHM } from "@/data/constants";
 import type { PeriodSummary } from "@/data/periodStats";
+import { useThemedStyles } from "@/theme";
 
 interface PeriodSummaryCardProps {
   summary: PeriodSummary;
@@ -10,6 +11,7 @@ interface PeriodSummaryCardProps {
 // полоса и остаток. Ни «Изучений Библии», ни других типов активности
 // (в модели данных проекта их нет), ни оценочных сообщений.
 export function PeriodSummaryCard({ summary }: PeriodSummaryCardProps) {
+  const styles = useThemedStyles(makeStyles);
   const hasGoal = summary.goalHours > 0;
   const pct = hasGoal ? Math.max(0, Math.min(100, (summary.doneHours / summary.goalHours) * 100)) : 0;
 
@@ -30,7 +32,7 @@ export function PeriodSummaryCard({ summary }: PeriodSummaryCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,

@@ -28,6 +28,7 @@
 // lost, the canvas simply never becomes active and the SVG fallback stays.
 
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/theme";
 import { MINISTRY } from "./tokens";
 
 // The task caps DPR at 2 (sharper than the siblings' 1.5, which was chosen
@@ -154,7 +155,8 @@ function parseFloats(str: string, n: number): number[] | null {
   return arr.slice(0, n);
 }
 
-const FALLBACK: Palette = {
+// TASK_078 — a function, not a constant: MINISTRY is live per scheme.
+const fallback = (): Palette => ({
   top: hexToVec3(MINISTRY.heroTop),
   bot: hexToVec3(MINISTRY.bg),
   c1: hexToVec3(MINISTRY.heroA),
@@ -163,10 +165,11 @@ const FALLBACK: Palette = {
   deep: hexToVec3(MINISTRY.heroDeep),
   alpha: MINISTRY.heroAlpha,
   light: MINISTRY.heroLight,
-};
+});
 
 /** Reads the --ministry-* variables; any missing/invalid one falls back to MINISTRY. */
 export function readPalette(): Palette {
+  const FALLBACK = fallback();
   let cs: CSSStyleDeclaration | null = null;
   try {
     cs = getComputedStyle(document.documentElement);
@@ -426,6 +429,10 @@ export function startHero(canvas: HTMLCanvasElement, onActive: (on: boolean) => 
 export function HeroCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
   const [active, setActive] = useState(false);
+  // TASK_078 — a scheme change restarts the shader so it re-reads the
+  // --ministry-* variables (the provider has already switched `data-theme`
+  // on <html> by the time this effect runs).
+  const { scheme } = useTheme();
 
   useEffect(() => {
     const canvas = ref.current;
@@ -460,7 +467,7 @@ export function HeroCanvas() {
         else mq.removeListener(onMq);
       }
     };
-  }, []);
+  }, [scheme]);
 
   return (
     <canvas

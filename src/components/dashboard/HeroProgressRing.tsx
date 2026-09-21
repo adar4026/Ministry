@@ -12,6 +12,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { DS } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -54,6 +55,7 @@ function fontScaleForDigits(digits: number): number {
 }
 
 export function HeroProgressRing({ pct, size = 48 }: { pct: number; size?: number }) {
+  const styles = useThemedStyles(makeStyles);
   // Defensive against a caller passing NaN/Infinity (e.g. a future goal-less
   // consumer computing pct as 0/0) — never let an invalid value reach SVG
   // stroke-dasharray math.
@@ -114,7 +116,7 @@ export function HeroProgressRing({ pct, size = 48 }: { pct: number; size?: numbe
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
   pct: { fontWeight: "700", color: DS.navy, letterSpacing: -0.5 },
   sign: { fontWeight: "700", color: DS.navy },

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import { DS } from "@/components/dashboard/tokens";
 import { COLORS, MF, type ServiceYearMonth } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 // Compact month tile used on the dashboard's current-service-year grid.
 // Renders a ServiceYearMonth ViewModel (session- or legacy-authoritative) —
@@ -15,6 +16,7 @@ export function MonthChip({
   record: ServiceYearMonth;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   // Legacy monthly totals are always whole numbers (entered by hand), but a
   // Session-authoritative month (monthTotal() = sum(durationMinutes)/60,
   // see serviceYearAggregation() in src/data/constants.ts) can land on a
@@ -35,7 +37,7 @@ export function MonthChip({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   chip: {
     backgroundColor: COLORS.light,
     borderWidth: 1,

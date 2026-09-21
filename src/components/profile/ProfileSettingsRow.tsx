@@ -24,6 +24,7 @@ import { createContext, useContext, type ComponentType } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRightIcon, type IconProps } from "@/components/icons";
 import { DRAWER_ICE, DS, MINISTRY } from "@/components/dashboard/tokens";
+import { useThemedStyles } from "@/theme";
 
 export type ProfileRowVariant = "card" | "drawer";
 export const ProfileRowVariantContext = createContext<ProfileRowVariant>("card");
@@ -61,6 +62,7 @@ export function ProfileSettingsRow({
   tone?: "default" | "danger";
   accessibilityLabel?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const variant = useContext(ProfileRowVariantContext);
   const drawer = variant === "drawer";
   const danger = tone === "danger";
@@ -127,7 +129,7 @@ export function ProfileSettingsRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -144,7 +146,7 @@ const styles = StyleSheet.create({
   // Finance `.drawer-sep`: 1 px, margin-left 60 — the row is `position:
   // relative` by default in RN, so the strip pins to its bottom edge.
   sepDrawer: { position: "absolute", left: 60, right: 0, bottom: 0, height: 1, backgroundColor: DRAWER_ICE.sep },
-  pressed: { backgroundColor: "#F5F7FB" },
+  pressed: { backgroundColor: DS.pressedBg },
   pressedDrawer: { backgroundColor: DRAWER_ICE.glass },
   disabled: { opacity: 0.5 },
   iconBg: {
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBgDanger: { backgroundColor: "#fee2e2" },
+  iconBgDanger: { backgroundColor: DS.dangerBg },
   // No tile in the drawer — just a fixed-width slot so titles align.
   iconPlain: { width: 30, height: 30, alignItems: "center", justifyContent: "center", opacity: 0.78 },
   textWrap: { flex: 1, minWidth: 0 },

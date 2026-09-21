@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
 import type { PeriodChartSeries } from "@/data/periodChart";
 import { PeriodChart } from "./PeriodChart";
+import { useThemedStyles } from "@/theme";
 
 interface PeriodChartCardProps {
   title: string; // «Динамика часов» / «Динамика служебного года»
@@ -16,6 +17,7 @@ interface PeriodChartCardProps {
 // либо не строится вовсе — «размазать» месячный итог по дням запрещено
 // (см. шапку src/data/periodChart.ts).
 export function PeriodChartCard({ title, series, showMarkers = true, accessibilityLabel, height = 220 }: PeriodChartCardProps) {
+  const styles = useThemedStyles(makeStyles);
   const isEmpty = series.actual.length === 0 || series.actual[series.actual.length - 1].hours === 0;
 
   return (
@@ -42,7 +44,7 @@ export function PeriodChartCard({ title, series, showMarkers = true, accessibili
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,

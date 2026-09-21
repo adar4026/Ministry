@@ -4,6 +4,7 @@ import { MF } from "@/data/constants";
 import { isCurrentMonth, isCurrentYear, type HistoryPeriod } from "@/data/stats";
 import { serviceYearRange } from "@/data/serviceYear";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 // Period navigation row (TASK_033): ‹ label/subtitle › inside a card, above
 // the calendar. `year`/`monthIndex0` describe the calendar month the
@@ -26,6 +27,7 @@ export function PeriodNav({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const disabled = period === "all";
 
   let title: string;
@@ -92,7 +94,7 @@ export function PeriodNav({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",

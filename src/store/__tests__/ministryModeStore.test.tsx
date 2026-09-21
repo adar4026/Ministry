@@ -55,7 +55,7 @@ describe("existing user migration", () => {
     await seedLegacyInstallation();
     const { get } = await renderStore();
     expect(get().loaded).toBe(true);
-    expect(get().settings).toEqual({ ministryMode: "pioneer", monthlyHourGoal: MONTHLY_GOAL });
+    expect(get().settings).toEqual({ ministryMode: "pioneer", monthlyHourGoal: MONTHLY_GOAL, theme: "system" });
     expect(get().participation).toEqual([]);
     expect(get().records).toEqual([RECORD]);
     expect(get().sessions).toEqual([SESSION]);
@@ -68,7 +68,7 @@ describe("existing user migration", () => {
     await flush();
     const after = Object.fromEntries(await AsyncStorage.multiGet(await AsyncStorage.getAllKeys()));
     for (const k of Object.keys(before)) expect(after[k]).toBe(before[k]);
-    expect(JSON.parse(after[STORAGE_KEYS.settings]!)).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
+    expect(JSON.parse(after[STORAGE_KEYS.settings]!)).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
     expect(JSON.parse(after[STORAGE_KEYS.participation]!)).toEqual([]);
   });
 
@@ -76,14 +76,14 @@ describe("existing user migration", () => {
     await seedLegacyInstallation();
     await AsyncStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ monthlyHourGoal: "fifty" }));
     const { get } = await renderStore();
-    expect(get().settings).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
+    expect(get().settings).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
     await flush();
-    expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.settings))!)).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
+    expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.settings))!)).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
     expect(JSON.parse((await AsyncStorage.getItem(STORAGE_KEYS.records))!)).toEqual([RECORD]);
   });
 
   it("a stored publisher setting is respected on the next launch", async () => {
-    await AsyncStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ ministryMode: "publisher", monthlyHourGoal: 50 }));
+    await AsyncStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ ministryMode: "publisher", monthlyHourGoal: 50, theme: "system" }));
     const { get } = await renderStore();
     expect(get().settings.ministryMode).toBe("publisher");
   });
@@ -124,7 +124,7 @@ describe("mode switching is reversible and keeps hours + goal", () => {
     await act(async () => get().setMinistryMode("publisher"));
     expect(get().settings.monthlyHourGoal).toBe(70);
     await act(async () => get().setMinistryMode("specialPioneer"));
-    expect(get().settings).toEqual({ ministryMode: "specialPioneer", monthlyHourGoal: 70 });
+    expect(get().settings).toEqual({ ministryMode: "specialPioneer", monthlyHourGoal: 70, theme: "system" });
   });
 
   it("setMonthlyHourGoal accepts any whole number in range or null, rejects junk", async () => {

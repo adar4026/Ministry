@@ -12,6 +12,7 @@ import { useStore } from "@/store/StoreContext";
 import type { ServiceParticipation } from "@/types";
 import { ParticipationRow } from "./ParticipationRow";
 import { ParticipationSheet } from "./ParticipationSheet";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — what the `hours` tab shows for a PUBLISHER: the same page
 // frame as the Hours dashboard (large title, HomeBackground, cards on the
@@ -27,6 +28,7 @@ import { ParticipationSheet } from "./ParticipationSheet";
 // Hours, the timer and the hours nav list are not rendered here; their data
 // is untouched and comes back the moment the mode is switched back.
 export function ParticipationJournal() {
+  const styles = useThemedStyles(makeStyles);
   const { participation } = useStore();
   const bottomInset = useTabBarContentInset();
   const todayISO = toISODate(new Date());
@@ -92,7 +94,7 @@ export function ParticipationJournal() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   scroll: { flex: 1 },
   content: { padding: 16, paddingTop: 8, gap: 16 },

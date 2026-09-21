@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { COLORS, formatDateDMY, formatHM } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 interface SessionRowProps {
   session: Session;
@@ -11,6 +12,7 @@ interface SessionRowProps {
 }
 
 export function SessionRow({ session, onPress, onLongPress }: SessionRowProps) {
+  const styles = useThemedStyles(makeStyles);
   const { deleteSession } = useStore();
 
   const handleDelete = () => {
@@ -52,7 +54,7 @@ export function SessionRow({ session, onPress, onLongPress }: SessionRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

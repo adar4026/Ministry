@@ -9,6 +9,7 @@ import { DurationWheelPicker } from "@/components/forms/DurationWheelPicker";
 import { MonthCalendarModal } from "@/components/forms/MonthCalendarModal";
 import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 // The wheel's only granularity is 5-minute steps (0/5/…/55) — no other
 // value may ever appear as a row (owner-clarified product rule). An
@@ -53,6 +54,7 @@ export function SessionForm({
   onDelete?: () => void;
   onStateChange?: (state: { canSubmit: boolean; submit: () => void }) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   // Date is selected only via the full-month calendar (TASK_030) — no
   // free-text entry, so the stored value is always a valid ISO day; the
   // DD-MM-YYYY string (TASK_022) is derived only for display, in the pill.
@@ -147,7 +149,7 @@ export function SessionForm({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   dateCard: {
     flexDirection: "row",
     alignItems: "center",

@@ -14,6 +14,7 @@ import { SessionForm } from "@/components/forms/SessionForm";
 import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { useStore } from "@/store/StoreContext";
 import { confirmAsync } from "@/utils/confirm";
+import { useThemedStyles } from "@/theme";
 
 const NOOP_STATE = { canSubmit: false, submit: () => {} };
 
@@ -26,6 +27,7 @@ const NOOP_STATE = { canSubmit: false, submit: () => {} };
 // SessionForm) so it stays fixed above the scrollable cards; SessionForm
 // reports its live validity/submit trigger up via `onStateChange`.
 export default function EntryScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { sessions, saveSession, deleteSession } = useStore();
   const initial = id ? sessions.find((s) => s.id === id) : undefined;
@@ -94,7 +96,7 @@ export default function EntryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: ADD_TIME_COLORS.screenBackground },
   flex: { flex: 1 },
   topRow: {

@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 export function StatCard({
   label,
@@ -10,6 +11,7 @@ export function StatCard({
   value: string | number;
   color: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.card, { borderTopColor: color }]}>
       <Text style={styles.label}>{label}</Text>
@@ -18,7 +20,7 @@ export function StatCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     flexGrow: 1,
     flexBasis: 130,

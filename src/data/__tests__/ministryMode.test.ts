@@ -6,14 +6,16 @@ import {
   effectiveMonthlyGoal,
   hoursTabTitle,
   isHoursMode,
+  nextThemePreference,
   normalizeMinistrySettings,
   parseMonthlyGoalInput,
+  settingsEqual,
   yearlyGoalFor,
 } from "@/data/ministryMode";
 
 describe("normalizeMinistrySettings — existing-user fallback", () => {
   it("defaults to pioneer with the historical fixed goal", () => {
-    expect(DEFAULT_MINISTRY_SETTINGS).toEqual({ ministryMode: "pioneer", monthlyHourGoal: MONTHLY_GOAL });
+    expect(DEFAULT_MINISTRY_SETTINGS).toEqual({ ministryMode: "pioneer", monthlyHourGoal: MONTHLY_GOAL, theme: "system" });
     expect(MONTHLY_GOAL).toBe(50);
   });
 
@@ -22,22 +24,40 @@ describe("normalizeMinistrySettings — existing-user fallback", () => {
   });
 
   it("keeps a valid stored value untouched", () => {
-    expect(normalizeMinistrySettings({ ministryMode: "publisher", monthlyHourGoal: 30 })).toEqual({
+    expect(normalizeMinistrySettings({ ministryMode: "publisher", monthlyHourGoal: 30, theme: "dark" })).toEqual({
       ministryMode: "publisher",
       monthlyHourGoal: 30,
+      theme: "dark",
     });
-    expect(normalizeMinistrySettings({ ministryMode: "specialPioneer", monthlyHourGoal: null })).toEqual({
+    expect(normalizeMinistrySettings({ ministryMode: "specialPioneer", monthlyHourGoal: null, theme: "light" })).toEqual({
       ministryMode: "specialPioneer",
       monthlyHourGoal: null,
+      theme: "light",
     });
   });
 
   it("falls back per field: unknown mode → pioneer, missing goal → 50, bad goal → 50", () => {
-    expect(normalizeMinistrySettings({ ministryMode: "elder", monthlyHourGoal: 70 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 70 });
-    expect(normalizeMinistrySettings({ ministryMode: "publisher" })).toEqual({ ministryMode: "publisher", monthlyHourGoal: 50 });
-    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: -5 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
-    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: 12.5 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
-    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: "50" })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50 });
+    expect(normalizeMinistrySettings({ ministryMode: "elder", monthlyHourGoal: 70 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 70, theme: "system" });
+    // TASK_078 — theme: missing / unknown → "system"; a valid one is kept.
+    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "sepia" })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
+    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "dark" }).theme).toBe("dark");
+    expect(normalizeMinistrySettings({ ministryMode: "publisher" })).toEqual({ ministryMode: "publisher", monthlyHourGoal: 50, theme: "system" });
+    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: -5 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
+    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: 12.5 })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
+    expect(normalizeMinistrySettings({ ministryMode: "pioneer", monthlyHourGoal: "50" })).toEqual({ ministryMode: "pioneer", monthlyHourGoal: 50, theme: "system" });
+  });
+});
+
+describe("theme helpers (TASK_078)", () => {
+  it("cycles light → dark → system → light, like Finance's toggleTheme()", () => {
+    expect(nextThemePreference("light")).toBe("dark");
+    expect(nextThemePreference("dark")).toBe("system");
+    expect(nextThemePreference("system")).toBe("light");
+  });
+  it("settingsEqual compares the theme too", () => {
+    const a = { ministryMode: "pioneer" as const, monthlyHourGoal: 50, theme: "light" as const };
+    expect(settingsEqual(a, { ...a, theme: "dark" })).toBe(false);
+    expect(settingsEqual(a, { ...a })).toBe(true);
   });
 });
 
@@ -55,8 +75,8 @@ describe("mode / goal helpers", () => {
   });
 
   it("effective goal is 0 for null; yearly goal is 12× monthly (50 → 600)", () => {
-    expect(effectiveMonthlyGoal({ ministryMode: "pioneer", monthlyHourGoal: null })).toBe(0);
-    expect(effectiveMonthlyGoal({ ministryMode: "pioneer", monthlyHourGoal: 70 })).toBe(70);
+    expect(effectiveMonthlyGoal({ ministryMode: "pioneer", monthlyHourGoal: null, theme: "system" })).toBe(0);
+    expect(effectiveMonthlyGoal({ ministryMode: "pioneer", monthlyHourGoal: 70, theme: "system" })).toBe(70);
     expect(yearlyGoalFor(50)).toBe(600);
   });
 

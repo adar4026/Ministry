@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { CalendarIcon, TagIcon } from "@/components/icons";
 import { DS } from "@/components/dashboard";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 // TASK_058 — the "+" bottom sheet on the "События" screen, replacing the
 // two large "Добавить событие"/"Добавить тему" tiles. Both actions still
@@ -38,6 +39,7 @@ export function AddActionSheet({
   onAddEvent: () => void;
   onAddTopic: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(0)).current;
 
@@ -114,7 +116,7 @@ export function AddActionSheet({
               accessibilityLabel="Добавить тему"
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
-              <View style={[styles.iconWrap, { backgroundColor: DS.navy }]}>
+              <View style={[styles.iconWrap, { backgroundColor: DS.navyFill }]}>
                 <TagIcon size={20} color={DS.onAccent} />
               </View>
               <Text style={styles.rowText}>Добавить тему</Text>
@@ -126,14 +128,14 @@ export function AddActionSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingHorizontal: 18,
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: DS.divider,
     borderRadius: 16,

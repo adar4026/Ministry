@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { axisTickLabel, idealHoursAt, type PeriodChartSeries } from "@/data/periodChart";
 import { AXIS_FONT_SIZES, CHART } from "./statsTokens";
+import { useThemedStyles } from "@/theme";
 
 interface PeriodChartProps {
   series: PeriodChartSeries;
@@ -48,6 +49,7 @@ function pickAxisFontSize(available: number, count: number, maxLength: number): 
 // (src/data/periodChart.ts) и плотность маркеров/сетки, заданная самим
 // рядом. Рендер — react-native-svg, уже входящий в зависимости проекта.
 export function PeriodChart({ series, height = 220, showMarkers = true, accessibilityLabel }: PeriodChartProps) {
+  const styles = useThemedStyles(makeStyles);
   const [width, setWidth] = useState(0);
 
   const plotWidth = Math.max(0, width - PAD_LEFT - AXIS_LABEL_WIDTH);
@@ -217,7 +219,7 @@ export function PeriodChart({ series, height = 220, showMarkers = true, accessib
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   canvas: { width: "100%" },
   legend: { flexDirection: "row", gap: 18, justifyContent: "center", marginTop: 10 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 7 },

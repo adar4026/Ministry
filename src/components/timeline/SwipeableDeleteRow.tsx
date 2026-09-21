@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { TIMELINE_COLORS } from "./timelineTokens";
+import { useThemedStyles } from "@/theme";
 
 // Swipe-left-to-delete wrapper for a single "События" card (TASK_041).
 // Wraps react-native-gesture-handler's Swipeable — already a project
@@ -28,6 +29,7 @@ export function SwipeableDeleteRow({
   onDelete: () => void;
   deleteAccessibilityLabel: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   function renderRightActions() {
     return (
       <Pressable
@@ -52,7 +54,7 @@ export function SwipeableDeleteRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   shadowWrap: {
     borderRadius: RADIUS,
     backgroundColor: TIMELINE_COLORS.cardBackground,

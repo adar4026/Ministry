@@ -4,6 +4,7 @@ import { COLORS, LEGACY_ENTRY_BLOCK_MESSAGE, MF, legacyEntryBlockReason } from "
 import type { RecordInput } from "@/store/StoreContext";
 import type { HourRecord, Session } from "@/types";
 import { ChipSelector, DangerButton, Field, PrimaryButton, TextField } from "@/components/ui";
+import { useThemedStyles } from "@/theme";
 
 const MONTH_OPTIONS = MF.map((label, i) => ({ value: i + 1, label }));
 
@@ -23,6 +24,7 @@ export function RecordForm({
   onSave: (input: RecordInput) => void;
   onDelete?: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const now = new Date();
   const [year, setYear] = useState(String(initial?.year ?? now.getFullYear()));
   const [month, setMonth] = useState<number>(initial?.month ?? now.getMonth() + 1);
@@ -90,7 +92,7 @@ export function RecordForm({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   blockNotice: {
     fontSize: 13,
     color: COLORS.danger,

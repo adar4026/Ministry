@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 export function Modal({
   visible,
@@ -20,6 +21,7 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -39,7 +41,7 @@ export function Modal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -47,7 +49,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     width: "100%",
     maxWidth: 420,

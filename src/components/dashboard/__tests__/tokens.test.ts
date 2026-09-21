@@ -2,7 +2,9 @@
 // measurably apart from Alex Finance (violet) and Lexcar (cyan / ice-blue),
 // and readable as text on the hero. These guards keep a future "just tweak
 // the hex" from quietly drifting into either sibling's brand band.
-import { DRAWER_ICE, DS, MINISTRY, ministryCssVars } from "../tokens";
+import { DRAWER_ICE, DRAWER_ICE_DARK, DS, DS_DARK, MINISTRY, MINISTRY_DARK, ministryCssVars } from "../tokens";
+import { COLORS_DARK } from "@/data/constants";
+import { getScheme, setScheme } from "@/theme/scheme";
 
 function hex(s: string): [number, number, number] {
   const h = s.replace("#", "");
@@ -89,10 +91,13 @@ describe("MINISTRY palette — text on the hero stays readable", () => {
 });
 
 describe("ministryCssVars()", () => {
-  it("emits one :root rule with a kebab-case --ministry-* variable per token", () => {
+  it("emits a :root rule (light) and a :root[data-theme=\"dark\"] rule (TASK_078) with a kebab-case --ministry-* variable per token", () => {
     const css = ministryCssVars();
     expect(css.startsWith(":root{")).toBe(true);
     expect(css.endsWith("}")).toBe(true);
+    expect(css).toContain(':root[data-theme="dark"]{');
+    expect(css).toContain(`--ministry-hero-top:${MINISTRY_DARK.heroTop}`);
+    expect(css).toContain(`--ministry-bg:${MINISTRY_DARK.bg}`);
     expect(css).toContain(`--ministry-primary:${MINISTRY.primary}`);
     expect(css).toContain(`--ministry-accent-soft:${MINISTRY.accentSoft}`);
     expect(css).toContain(`--ministry-hero-top:${MINISTRY.heroTop}`);
@@ -111,9 +116,9 @@ describe("ministryCssVars()", () => {
     expect(css).toContain(`--ministry-hero-light:${MINISTRY.heroLight}`);
   });
 
-  it("has exactly as many variables as MINISTRY has keys — nothing typed by hand", () => {
+  it("has exactly as many variables as MINISTRY has keys, in each of the two blocks — nothing typed by hand", () => {
     const count = (ministryCssVars().match(/--ministry-/g) ?? []).length;
-    expect(count).toBe(Object.keys(MINISTRY).length);
+    expect(count).toBe(Object.keys(MINISTRY).length * 2);
   });
 });
 
@@ -170,5 +175,73 @@ describe("DRAWER_ICE — Finance's drawer light, readable", () => {
   it("cssVars do not pick it up — it is not part of the shader palette", () => {
     expect(ministryCssVars()).not.toContain("drawer");
     expect(ministryCssVars()).not.toContain(DRAWER_ICE.top);
+  });
+});
+
+// TASK_078 — the dark sets. Not inversions: Finance-style graphite grounds
+// with Ministry's own accents lifted. The guards mirror the light ones:
+// readable text on every ground the role is used on.
+describe("dark theme (TASK_078) — text stays readable on the graphite grounds", () => {
+  afterEach(() => setScheme("light"));
+
+  it("live clusters follow the registry: DS / MINISTRY / DRAWER_ICE switch on setScheme('dark') and back", () => {
+    expect(getScheme()).toBe("light");
+    expect(DS.cardBg).toBe("#ffffff");
+    setScheme("dark");
+    expect(DS.cardBg).toBe(DS_DARK.cardBg);
+    expect(MINISTRY.ink).toBe(MINISTRY_DARK.ink);
+    expect(DRAWER_ICE.top).toBe(DRAWER_ICE_DARK.top);
+    setScheme("light");
+    expect(DS.cardBg).toBe("#ffffff");
+  });
+
+  it("DS dark: headline >= 12:1 and every small-text role >= 4.5:1 on cardBg and homeBase", () => {
+    for (const ground of [DS_DARK.cardBg, DS_DARK.homeBase]) {
+      expect(contrast(DS_DARK.navy, ground)).toBeGreaterThanOrEqual(12);
+      for (const ink of [DS_DARK.subText, DS_DARK.subInk, DS_DARK.accentInk, DS_DARK.danger, DS_DARK.successInk, DS_DARK.warnInk, DS_DARK.todayInk, DS_DARK.tealInk, DS_DARK.onTintInk]) {
+        expect(contrast(ink, ground)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("MINISTRY dark: ink >= 7:1 and ink2 >= 4.5:1 on the hero top, the deepest wave and the page ground", () => {
+    // The waves are drawn at heroAlpha[0] over heroTop (never at full
+    // strength), so the crest is that blend.
+    const crest = blend(MINISTRY_DARK.heroTop, MINISTRY_DARK.heroA, MINISTRY_DARK.heroAlpha[0]);
+    for (const ground of [MINISTRY_DARK.heroTop, MINISTRY_DARK.heroDeep, MINISTRY_DARK.bg, crest]) {
+      expect(contrast(MINISTRY_DARK.ink, ground)).toBeGreaterThanOrEqual(7);
+      expect(contrast(MINISTRY_DARK.ink2, ground)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrast(MINISTRY_DARK.primary, MINISTRY_DARK.bg)).toBeGreaterThanOrEqual(4.5);
+    // Still Ministry's green-teal family, not Finance's blue.
+    for (const c of [MINISTRY_DARK.primary, MINISTRY_DARK.accent, MINISTRY_DARK.heroA, MINISTRY_DARK.heroB]) {
+      expect(hue(c)).toBeGreaterThanOrEqual(150);
+      expect(hue(c)).toBeLessThanOrEqual(175);
+    }
+  });
+
+  it("COLORS dark: text/muted/accent/danger/green readable on bg and card", () => {
+    for (const ground of [COLORS_DARK.bg, COLORS_DARK.card]) {
+      expect(contrast(COLORS_DARK.text, ground)).toBeGreaterThanOrEqual(10);
+      for (const ink of [COLORS_DARK.muted, COLORS_DARK.accent, COLORS_DARK.danger, COLORS_DARK.green, COLORS_DARK.navy]) {
+        expect(contrast(ink, ground)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // Fills that carry white text stay deep enough for it.
+    expect(contrast("#ffffff", COLORS_DARK.blueFill)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#ffffff", COLORS_DARK.navyFill)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("DRAWER_ICE dark is Finance's dark --hero-* set with its --text / --muted", () => {
+    expect(DRAWER_ICE_DARK.top).toBe("#111827");
+    expect(DRAWER_ICE_DARK.blobSky).toEqual({ color: "#3b82f6", alpha: 0.34 });
+    expect(DRAWER_ICE_DARK.glass).toBe("rgba(255,255,255,0.10)");
+    expect(DRAWER_ICE_DARK.ink).toBe("#e7ebf2");
+    expect(DRAWER_ICE_DARK.ink2).toBe("#a3abbb"); // one step above Finance's #8b93a3 (3.5:1 on the sky blob)
+    const sky = blend(DRAWER_ICE_DARK.top, DRAWER_ICE_DARK.blobSky.color, DRAWER_ICE_DARK.blobSky.alpha);
+    for (const ground of [DRAWER_ICE_DARK.top, DRAWER_ICE_DARK.bottom, sky]) {
+      expect(contrast(DRAWER_ICE_DARK.ink, ground)).toBeGreaterThanOrEqual(7);
+      expect(contrast(DRAWER_ICE_DARK.ink2, ground)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

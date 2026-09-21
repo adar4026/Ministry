@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ClockIcon } from "@/components/icons";
 import { formatHM } from "@/data/constants";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 // Legacy-month row (TASK_034) — shown in place of the Session list when the
 // viewed month has zero Session and its total comes from a legacy
@@ -29,6 +30,7 @@ export function LegacyMonthRow({
   creditHours?: number;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const hasCredit = (creditHours ?? 0) > 0;
   return (
     <Pressable
@@ -53,7 +55,7 @@ export function LegacyMonthRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

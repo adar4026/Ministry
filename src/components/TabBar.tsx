@@ -54,6 +54,7 @@ import {
   PlusIcon,
 } from "@/components/icons";
 import { prefersReducedMotion } from "@/utils/motion";
+import { useThemedStyles } from "@/theme";
 
 // The five slots of the capsule, left to right. `SOON` is not a route.
 export const SOON_SLOT = "soon" as const;
@@ -152,62 +153,63 @@ export function nearestRealSlot(position: number, dir: 1 | -1 = 1): number {
 
 // --- styles that differ by platform ----------------------------------------
 
-const GLASS_CAPSULE = Platform.select<object>({
-  web: {
-    backgroundColor: NAV.bg,
-    backdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
-    WebkitBackdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
-    boxShadow: `0 8px 24px ${NAV.shadow}, inset 0 1px 0 ${NAV.highlight}`,
-  },
-  default: {
-    backgroundColor: NAV.bgSolid,
-    shadowColor: MINISTRY.heroDeep,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-});
-
-const GLASS_ADD = Platform.select<object>({
-  web: {
-    backgroundColor: NAV.addBg,
-    backdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
-    WebkitBackdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
-    boxShadow: `0 6px 18px ${NAV.addShadow}, inset 0 1px 0 ${NAV.addHighlight}`,
-  },
-  default: {
-    backgroundColor: NAV.addBgSolid,
-    shadowColor: MINISTRY.heroDeep,
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
-  },
-});
-
-const GLASS_PILL = Platform.select<object>({
-  web: { boxShadow: `inset 0 1px 0 ${NAV.pillHighlight}, 0 3px 12px ${NAV.pillGlow}` },
-  default: {
-    shadowColor: MINISTRY.accent,
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
-});
-
-// Live-glass decorations: real gradients on web, soft solid stand-ins on
-// native (no gradient primitive without a dependency).
-const GLINT_LAYER = Platform.select<object>({
-  web: { backgroundImage: `radial-gradient(closest-side, ${NAV.glint} 0%, transparent 72%)` },
-  default: { backgroundColor: NAV.glint, borderRadius: 999 },
-});
-const EDGE_LAYER = Platform.select<object>({
-  web: {
-    backgroundImage: `linear-gradient(90deg, ${NAV.edgeDark} 0%, transparent 38%, transparent 62%, ${NAV.edgeLight} 100%)`,
-  },
-  default: {},
+// TASK_078 — built per colour scheme (NAV / MINISTRY are live), so they
+// live in one factory read through useThemedStyles, not module constants.
+const makeGlass = () => ({
+  capsule: Platform.select<object>({
+    web: {
+      backgroundColor: NAV.bg,
+      backdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
+      WebkitBackdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
+      boxShadow: `0 8px 24px ${NAV.shadow}, inset 0 1px 0 ${NAV.highlight}`,
+    },
+    default: {
+      backgroundColor: NAV.bgSolid,
+      shadowColor: MINISTRY.heroDeep,
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+  }) as object,
+  add: Platform.select<object>({
+    web: {
+      backgroundColor: NAV.addBg,
+      backdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
+      WebkitBackdropFilter: `blur(${NAV.blur}) saturate(${NAV.saturate})`,
+      boxShadow: `0 6px 18px ${NAV.addShadow}, inset 0 1px 0 ${NAV.addHighlight}`,
+    },
+    default: {
+      backgroundColor: NAV.addBgSolid,
+      shadowColor: MINISTRY.heroDeep,
+      shadowOpacity: 0.14,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 8,
+    },
+  }) as object,
+  pill: Platform.select<object>({
+    web: { boxShadow: `inset 0 1px 0 ${NAV.pillHighlight}, 0 3px 12px ${NAV.pillGlow}` },
+    default: {
+      shadowColor: MINISTRY.accent,
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 1,
+    },
+  }) as object,
+  // Live-glass decorations: real gradients on web, soft solid stand-ins on
+  // native (no gradient primitive without a dependency).
+  glint: Platform.select<object>({
+    web: { backgroundImage: `radial-gradient(closest-side, ${NAV.glint} 0%, transparent 72%)` },
+    default: { backgroundColor: NAV.glint, borderRadius: 999 },
+  }) as object,
+  edge: Platform.select<object>({
+    web: {
+      backgroundImage: `linear-gradient(90deg, ${NAV.edgeDark} 0%, transparent 38%, transparent 62%, ${NAV.edgeLight} 100%)`,
+    },
+    default: {},
+  }) as object,
 });
 
 // RNW turns `dataSet` into `data-*` attributes — the hook for the CSS
@@ -224,6 +226,8 @@ function haptic(fn: () => Promise<void>) {
 }
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const styles = useThemedStyles(makeStyles);
+  const glass = useThemedStyles(makeGlass);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const narrow = windowWidth < NARROW_WINDOW;
@@ -510,7 +514,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 : "Добавить"
             }
             onPress={() => go(addRoute.name, addRoute.key, focusedRoute?.key === addRoute.key)}
-            style={({ pressed }) => [styles.add, GLASS_ADD, pressed && styles.addPressed]}
+            style={({ pressed }) => [styles.add, glass.add, pressed && styles.addPressed]}
             testID="tab-add"
             {...glassAttr("add")}
           >
@@ -521,7 +525,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         <View
           ref={capsuleRef}
           onLayout={onCapsuleLayout}
-          style={[styles.capsule, GLASS_CAPSULE]}
+          style={[styles.capsule, glass.capsule]}
           testID="tab-capsule"
           {...pan.panHandlers}
           {...glassAttr("nav")}
@@ -532,19 +536,19 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               testID="tab-pill"
               style={[
                 styles.pill,
-                GLASS_PILL,
+                glass.pill,
                 { width: slotW, opacity: pillOpacity, transform: [{ translateX: pillX }, { scaleX: stretch }] },
               ]}
             >
               <Animated.View
                 pointerEvents="none"
-                style={[styles.edge, EDGE_LAYER, { opacity: edgeOpacity, transform: [{ scaleX: edgeDir }] }]}
+                style={[styles.edge, glass.edge, { opacity: edgeOpacity, transform: [{ scaleX: edgeDir }] }]}
               />
               <Animated.View
                 pointerEvents="none"
                 style={[
                   styles.glint,
-                  GLINT_LAYER,
+                  glass.glint,
                   {
                     opacity: glintOpacity,
                     transform: [
@@ -566,7 +570,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 const GLINT_W = 56;
 const GLINT_H = 48;
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrap: {
     // TASK_046: "fixed" pins the bar to the browser viewport itself on web,
     // immune to iOS Safari's dynamic viewport-height recalculation during

@@ -45,14 +45,16 @@ import {
   type ProfileMenuItem,
 } from "@/components/profile/profileMenu";
 import { DRAWER_ICE } from "@/components/dashboard/tokens";
-import { CloudIcon, InfoIcon, PersonIcon, XIcon } from "@/components/icons";
+import { CloudIcon, InfoIcon, MoonIcon, PersonIcon, SunIcon, XIcon } from "@/components/icons";
 import { APP_VERSION } from "@/data/appInfo";
-import { MODE_LABEL } from "@/data/ministryMode";
+import { MODE_LABEL, THEME_LABEL } from "@/data/ministryMode";
 import { prefersReducedMotion } from "@/utils/motion";
 import { useStore } from "@/store/StoreContext";
+import { useTheme } from "@/theme";
 import { DrawerFooter } from "./DrawerFooter";
 import { DrawerGroup } from "./DrawerGroup";
 import { DrawerScene } from "./DrawerScene";
+import { useThemedStyles } from "@/theme";
 
 // Panel geometry: most of the screen, but never all of it — the strip of
 // Home left visible on the right is what makes it read as a drawer.
@@ -67,8 +69,12 @@ const SWIPE_CLOSE_DX = 60;
 const SWIPE_CLOSE_VX = 0.5;
 const OPEN_MS = 320;
 const CLOSE_MS = 220;
-// Width the × button (44) plus a 2 px gap takes out of the summary's name row.
-const CLOSE_BTN_SPACE = 46;
+// Width the two round buttons (theme 36 + gap 6 + × 40) plus a 2 px gap
+// take out of the summary's name row (TASK_078 added the theme button,
+// Finance's `.dh-theme`; the × keeps a 44+ pt hit area via hitSlop).
+const THEME_BTN = 36;
+const CLOSE_BTN = 40;
+const CLOSE_BTN_SPACE = CLOSE_BTN + 6 + THEME_BTN + 2;
 
 // The three gesture decisions, kept pure (and exported) so the swipe logic
 // is unit-testable without synthesising responder touch histories.
@@ -96,8 +102,12 @@ function haptic(fn: () => Promise<void>) {
 }
 
 export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   const { profile, saveProfile, settings } = useStore();
   const modeSubtitle = `Режим: ${MODE_LABEL[settings.ministryMode]}`;
+  // TASK_078 — Finance's round ☼/☾ button: cycles light → dark → system;
+  // the icon follows the RESOLVED scheme, the label names the preference.
+  const theme = useTheme();
   // A row that navigates closes the drawer first (TASK_073), so the pushed
   // screen is not left under this modal; placeholder rows keep the drawer.
   const openMenuItem = useCallback(
@@ -252,10 +262,24 @@ export function HomeDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 headTrailingSpace={CLOSE_BTN_SPACE}
               />
               <Pressable
+                onPress={theme.cycle}
+                accessibilityRole="button"
+                accessibilityLabel={`Сменить тему. Сейчас: ${THEME_LABEL[theme.preference]}`}
+                hitSlop={6}
+                style={({ pressed }) => [styles.themeBtn, pressed && styles.closeBtnPressed]}
+                testID="drawer-theme"
+              >
+                {theme.scheme === "dark" ? (
+                  <MoonIcon size={19} color={DRAWER_ICE.ink} />
+                ) : (
+                  <SunIcon size={19} color={DRAWER_ICE.ink} />
+                )}
+              </Pressable>
+              <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
                 accessibilityLabel="Закрыть меню"
-                hitSlop={4}
+                hitSlop={6}
                 style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
                 testID="drawer-close"
               >
@@ -349,7 +373,7 @@ const BACKDROP_BLUR = Platform.select<object>({
   default: {},
 });
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   root: { flex: 1 },
   // TASK_077 — Finance's drawer overlay: a cool graphite dim plus blur.
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: DRAWER_ICE.backdrop, ...BACKDROP_BLUR },
@@ -374,16 +398,16 @@ const styles = StyleSheet.create({
   // Finance rhythm: `.drawer-group{margin:12px 16px 0}`.
   content: { paddingHorizontal: 16, gap: 12 },
   topRow: { position: "relative", paddingTop: 6 },
-  // 44×44 touch target, Finance's round glass button (`.dh-theme` look:
+  // 40 pt round glass button (44+ pt hit area via hitSlop), Finance `.dh-theme` look:
   // glass fill + glass rim) — pinned to the top right corner of the
   // summary's name row.
   closeBtn: {
     position: "absolute",
-    top: 10,
+    top: 12,
     right: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: CLOSE_BTN,
+    height: CLOSE_BTN,
+    borderRadius: CLOSE_BTN / 2,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: DRAWER_ICE.glass,
@@ -391,4 +415,20 @@ const styles = StyleSheet.create({
     borderColor: DRAWER_ICE.glassBorder,
   },
   closeBtnPressed: { backgroundColor: DRAWER_ICE.glassPressed },
+  // Finance `.dh-theme`: 38 px round glass button with the glass rim, to
+  // the left of ×; its icon sits at .82 like the reference.
+  themeBtn: {
+    position: "absolute",
+    top: 14,
+    right: CLOSE_BTN + 6,
+    width: THEME_BTN,
+    height: THEME_BTN,
+    borderRadius: THEME_BTN / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: DRAWER_ICE.glass,
+    borderWidth: 1,
+    borderColor: DRAWER_ICE.glassBorder,
+    opacity: 0.92,
+  },
 });

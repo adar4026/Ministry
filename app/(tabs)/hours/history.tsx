@@ -28,6 +28,7 @@ import {
 import { currentServiceYearEndYear } from "@/data/serviceYear";
 import { useStore } from "@/store/StoreContext";
 import type { Session } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // History: period switcher (Month/Year/All-time) + total card, then the
 // TASK_032 calendar grid + flat session list for the currently *displayed*
@@ -60,6 +61,7 @@ import type { Session } from "@/types";
 // creditHours: 30` contributes 30 to totalMinutes and 30 to creditMinutes,
 // not 0 to one or 60 to the other.
 export default function HistoryScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions } = useStore();
 
   const now = useMemo(() => new Date(), []);
@@ -225,7 +227,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.screenBackground },
   header: {
     height: 48,

@@ -11,6 +11,7 @@ import {
   toISODate,
 } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 const STATUS = {
   ahead: { emoji: "🟢", label: "Опережение графика" },
@@ -19,6 +20,7 @@ const STATUS = {
 } as const;
 
 export function TodayCard() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions } = useStore();
 
   const now = new Date();
@@ -60,7 +62,7 @@ export function TodayCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     borderRadius: 24,
     padding: 20,

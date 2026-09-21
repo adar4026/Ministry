@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { MF } from "@/data/constants";
 import { WheelPicker } from "@/components/WheelPicker";
 import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
+import { useThemedStyles } from "@/theme";
 
 const MONTH_ITEMS = MF.map((label, monthIndex0) => ({ value: monthIndex0, label }));
 
@@ -33,6 +34,7 @@ export function MonthYearWheelPicker({
   onChangeMonth: (monthIndex0: number) => void;
   onChangeYear: (year: number) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const yearItems = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const start = Math.min(currentYear - YEARS_PAST, year - 5);
@@ -63,6 +65,6 @@ export function MonthYearWheelPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: { flexDirection: "row" },
 });

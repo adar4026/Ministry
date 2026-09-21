@@ -8,16 +8,20 @@ import {
   type TextInputProps,
 } from "react-native";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 export function Card({ children, style }: { children: ReactNode; style?: object }) {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return <Text style={styles.sectionTitle}>{children}</Text>;
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -27,6 +31,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 export function TextField(props: TextInputProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <TextInput
       placeholderTextColor={COLORS.muted}
@@ -37,6 +42,7 @@ export function TextField(props: TextInputProps) {
 }
 
 export function PrimaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -48,6 +54,7 @@ export function PrimaryButton({ label, onPress }: { label: string; onPress: () =
 }
 
 export function DangerButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -74,6 +81,7 @@ export function ChipSelector<T extends string | number>({
   // their appearance is unchanged; the Events page passes its own blue.
   idleTextColor?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.chipRow}>
       {options.map((opt) => {
@@ -101,7 +109,7 @@ export function ChipSelector<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -123,12 +131,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     color: COLORS.text,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
   },
   primaryBtn: {
     flex: 1,
     paddingVertical: 11,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.blueFill,
     borderRadius: 8,
     alignItems: "center",
   },
@@ -148,8 +156,8 @@ const styles = StyleSheet.create({
   // existing labels here are all short system words, well under this cap,
   // so no visible change for them.
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, maxWidth: 200 },
-  chipIdle: { backgroundColor: "#fff", borderColor: COLORS.border },
-  chipActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
+  chipIdle: { backgroundColor: COLORS.card, borderColor: COLORS.border },
+  chipActive: { backgroundColor: COLORS.blueFill, borderColor: COLORS.blueFill },
   chipText: { fontSize: 13, color: COLORS.muted, fontWeight: "600" },
   chipTextActive: { color: "#fff" },
 });

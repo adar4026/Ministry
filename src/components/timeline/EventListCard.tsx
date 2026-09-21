@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDateDMY } from "@/data/dateFormat";
 import { eventElapsed, formatEventElapsed } from "@/data/eventElapsed";
 import { TIMELINE_COLORS } from "./timelineTokens";
+import { useThemedStyles } from "@/theme";
 
 // The single "События"-style event/talk card (TASK_056) — content only, no
 // shadow/radius/gesture chrome of its own (see StaticCardShell and
@@ -34,6 +35,7 @@ export function EventListCard({
   onEdit?: () => void;
   editAccessibilityLabel?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const elapsed = eventElapsed(date);
   const isPast = !elapsed.isToday && !elapsed.isFuture;
   return (
@@ -68,7 +70,7 @@ export function EventListCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: { backgroundColor: TIMELINE_COLORS.cardBackground, padding: 14, gap: 8 },
   titleRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
-import { ACCENT_RING_STOPS, DS, RING_STOPS } from "./tokens";
+import { DS, GRADIENTS } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // Circular progress ring for a goal (TASK_007). Presentational only — takes a
 // precomputed percentage; no calculation happens here. Reusable by any future
@@ -25,13 +26,14 @@ export function GoalRing({
   // unchanged for any other consumer of this component).
   tone?: "multi" | "accent";
 }) {
+  const styles = useThemedStyles(makeStyles);
   const stroke = 13;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(100, pct));
   const dash = (clamped / 100) * circumference;
   const center = size / 2;
-  const stops = tone === "accent" ? ACCENT_RING_STOPS : RING_STOPS;
+  const stops = tone === "accent" ? GRADIENTS.accentRing : GRADIENTS.ring;
 
   return (
     <View style={{ width: size, height: size }}>
@@ -73,7 +75,7 @@ export function GoalRing({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   center: {
     position: "absolute",
     top: 0,

@@ -171,18 +171,22 @@ describe("ProfileScreen — TASK_059 notifications entry point", () => {
     alertSpy.mockRestore();
   });
 
-  it("leaves every other settings row on the soon() handler", async () => {
+  it("leaves every other settings row on the soon() handler; «Оформление» opens /appearance (TASK_078)", async () => {
     const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     const pushSpy = jest.spyOn(router, "push").mockImplementation(() => {});
     const renderer = await renderScreen();
 
-    for (const label of ["Цели", "Календарь служения", "Статистика", "Оформление", "Язык"]) {
+    for (const label of ["Цели", "Календарь служения", "Статистика", "Язык"]) {
       act(() => {
         renderer.root.findAllByProps({ accessibilityLabel: label })[0].props.onPress();
       });
       expect(alertSpy).toHaveBeenLastCalledWith(label, "Появится позже");
     }
     expect(pushSpy).not.toHaveBeenCalled();
+    act(() => {
+      renderer.root.findAllByProps({ accessibilityLabel: "Оформление" })[0].props.onPress();
+    });
+    expect(pushSpy).toHaveBeenCalledWith("/appearance");
     pushSpy.mockRestore();
     alertSpy.mockRestore();
   });

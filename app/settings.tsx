@@ -16,6 +16,7 @@ import {
 } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryMode } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — «Настройки», opened from the Home drawer (☰ → Приложение →
 // Настройки). The app's own settings live HERE, not in Profile.
@@ -29,6 +30,7 @@ import type { MinistryMode } from "@/types";
 // fields: picking «Возвещатель» hides the goal row but never clears the
 // value, so switching back restores it.
 export default function SettingsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { settings, setMinistryMode, setMonthlyHourGoal } = useStore();
   const hours = isHoursMode(settings.ministryMode);
 
@@ -139,7 +141,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, justifyContent: "center", minHeight: 52 },

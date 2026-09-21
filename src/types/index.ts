@@ -121,7 +121,15 @@ export type MinistryMode = "publisher" | "pioneer" | "specialPioneer";
 export type MinistrySettings = {
   ministryMode: MinistryMode;
   monthlyHourGoal: number | null;
+  // TASK_078 — colour theme, as in Lex Finance: an explicit light or dark,
+  // or "system" (follow the device). Missing in older stores → "system".
+  theme: ThemePreference;
 };
+
+// TASK_078 — what the user picks ("system" follows the OS) vs. what is
+// actually painted (`ColorScheme`, always resolved to one of the two).
+export type ThemePreference = "light" | "dark" | "system";
+export type ColorScheme = "light" | "dark";
 
 // One calendar day on which the user took part in the ministry (TASK_073).
 // A separate entity from Session/HourRecord — hours and participation are

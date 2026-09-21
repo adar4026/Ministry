@@ -20,6 +20,7 @@ import { commitProfilePhoto } from "@/utils/profilePhotoStorage";
 import { ProfileEventForm, type ProfileEventFormInput } from "./ProfileEventForm";
 import type { ProfileInput } from "@/store/StoreContext";
 import type { ProfileEvent, UserProfile } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 const MAX_EVENTS = 3;
 const NAME_MAX_LENGTH = 60;
@@ -43,6 +44,7 @@ function ActionRow({
   accessibilityLabel: string;
   textStyle?: object;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -76,6 +78,7 @@ export function ProfileEditSheet({
   onSave: (input: ProfileInput) => void;
   onClose: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const [name, setName] = useState(profile.displayName ?? "");
   const [photoUri, setPhotoUri] = useState(profile.profilePhotoUri);
@@ -265,14 +268,14 @@ export function ProfileEditSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingHorizontal: 18,
@@ -308,7 +311,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
   doneBtn: {
     marginTop: 12,
     paddingVertical: 15,
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.blueFill,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
   },
   doneBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   eventModalSheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     padding: 18,

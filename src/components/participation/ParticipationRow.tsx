@@ -4,6 +4,7 @@ import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "@/components/h
 import { MINISTRY } from "@/components/dashboard/tokens";
 import { formatDayShortRu } from "@/data/participation";
 import type { ServiceParticipation } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — one row of the participation journal:
 //
@@ -24,6 +25,7 @@ export function ParticipationRow({
   onPress?: (item: ServiceParticipation) => void;
   todayISO?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const label = formatDayShortRu(item.date, todayISO);
   return (
     <Pressable
@@ -42,7 +44,7 @@ export function ParticipationRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.divider },
   pressed: { opacity: 0.6 },

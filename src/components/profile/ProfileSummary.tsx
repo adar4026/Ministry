@@ -36,6 +36,7 @@ import { ChevronRightIcon } from "@/components/icons";
 import { DRAWER_ICE, MINISTRY } from "@/components/dashboard/tokens";
 import { calendarElapsed, formatDateDMY, formatProfileEventElapsed } from "@/data/dateFormat";
 import type { UserProfile } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 export function ProfileSummary({
   profile,
@@ -53,6 +54,7 @@ export function ProfileSummary({
   // block below can still run the full width of the summary.
   headTrailingSpace?: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const trimmedName = profile.displayName?.trim();
   const hasName = !!trimmedName;
   const isEmpty = !hasName && !profile.profilePhotoUri && profile.events.length === 0;
@@ -121,14 +123,14 @@ export function ProfileSummary({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // Finance `.drawer-top{margin:… 12px 2px}` + `.drawer-balance{margin:4px
   // 16px 8px}`: the head is inset 2 px less than the groups; 8 px of air
   // before the first group.
   wrap: { paddingHorizontal: 0, paddingTop: 2, paddingBottom: 8, borderRadius: 18, gap: 10 },
   pressed: { backgroundColor: DRAWER_ICE.glass },
   // `.drawer-head{gap:12px;padding:6px 8px 6px 6px;border-radius:18px}`
-  head: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6, paddingLeft: 2, paddingRight: 4, borderRadius: 18 },
+  head: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6, paddingLeft: 2, paddingRight: 2, borderRadius: 18 },
   avatarRing: {
     borderRadius: 27,
     borderWidth: 2,
@@ -145,7 +147,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, fontWeight: "500", color: DRAWER_ICE.ink2, marginTop: 2 },
   // Finance's `.dh-chev`: a small muted chevron at the end of the head row,
   // before the space the caller keeps for its × button.
-  headChevron: { flexShrink: 0, marginLeft: -2 },
+  headChevron: { flexShrink: 0, marginLeft: -4 },
   // No surface of its own: the rows sit straight on the drawer ground, in
   // the zone Finance gives its balance block (`margin: 4px 16px 8px`).
   events: { paddingHorizontal: 4 },

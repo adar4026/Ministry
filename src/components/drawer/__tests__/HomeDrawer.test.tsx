@@ -9,6 +9,7 @@ import { Modal, Platform, ScrollView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { StoreProvider, useStore } from "@/store/StoreContext";
+import { ThemeProvider } from "@/theme";
 import { HeroCanvas } from "@/components/dashboard/HeroCanvas";
 import { DRAWER_ICE } from "@/components/dashboard/tokens";
 import { APP_VERSION, formatUpdatedLabel } from "@/data/appInfo";
@@ -67,8 +68,10 @@ async function renderDrawer(open: boolean, onClose = jest.fn()) {
     renderer = create(
       <SafeAreaProvider initialMetrics={METRICS}>
         <StoreProvider>
-          <Harness onReady={(s) => (store = s)} />
-          <HomeDrawer open={open} onClose={onClose} />
+          <ThemeProvider>
+            <Harness onReady={(s) => (store = s)} />
+            <HomeDrawer open={open} onClose={onClose} />
+          </ThemeProvider>
         </StoreProvider>
       </SafeAreaProvider>,
     );
@@ -79,8 +82,10 @@ async function renderDrawer(open: boolean, onClose = jest.fn()) {
       renderer.update(
         <SafeAreaProvider initialMetrics={METRICS}>
           <StoreProvider>
-            <Harness onReady={(s) => (store = s)} />
-            <HomeDrawer open={nextOpen} onClose={onClose} />
+            <ThemeProvider>
+              <Harness onReady={(s) => (store = s)} />
+              <HomeDrawer open={nextOpen} onClose={onClose} />
+            </ThemeProvider>
           </StoreProvider>
         </SafeAreaProvider>,
       );
@@ -154,13 +159,41 @@ describe("HomeDrawer — open / close lifecycle", () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it("the × button is a real 44×44 button", async () => {
+  it("the × button is a real button with a 44+ pt hit area (40 pt glass + hitSlop, TASK_078)", async () => {
     const { renderer } = await renderDrawer(true);
     const btn = renderer.root.findByProps({ accessibilityLabel: "Закрыть меню" });
     expect(btn.props.accessibilityRole).toBe("button");
     const style = flat(btn.props.style({ pressed: false }));
-    expect(style.width).toBe(44);
-    expect(style.height).toBe(44);
+    expect(style.width).toBe(40);
+    expect(style.height).toBe(40);
+    expect((style.width as number) + 2 * (btn.props.hitSlop as number)).toBeGreaterThanOrEqual(44);
+  });
+
+  // TASK_078 — Finance's `.dh-theme`: a round ☼/☾ button left of ×, cycling
+  // light → dark → system; the icon follows the resolved scheme.
+  it("has a theme button left of × that cycles the preference and persists it", async () => {
+    const { renderer, store } = await renderDrawer(true);
+    const get = store;
+    const btn = renderer.root.findByProps({ testID: "drawer-theme" });
+    expect(btn.props.accessibilityRole).toBe("button");
+    expect(btn.props.accessibilityLabel).toContain("Системная тема");
+    const style = flat(btn.props.style({ pressed: false }));
+    expect(style.width).toBe(36);
+    expect(style.position).toBe("absolute");
+    expect(style.right as number).toBeGreaterThan(40);
+    await act(async () => {
+      btn.props.onPress();
+    });
+    expect(get().settings.theme).toBe("light");
+    await act(async () => {
+      renderer.root.findByProps({ testID: "drawer-theme" }).props.onPress();
+    });
+    expect(get().settings.theme).toBe("dark");
+    expect(renderer.root.findByProps({ testID: "drawer-theme" }).props.accessibilityLabel).toContain("Тёмная тема");
+    await act(async () => {
+      renderer.root.findByProps({ testID: "drawer-theme" }).props.onPress();
+    });
+    expect(get().settings.theme).toBe("system");
   });
 });
 

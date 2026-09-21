@@ -4,6 +4,7 @@ import { formatClockDuration } from "@/data/constants";
 import { formatHistoryListDate } from "@/data/dateFormat";
 import type { Session } from "@/types";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 // One row of the History month list (TASK_032; made pressable in TASK_034).
 // `startTime` is only ever read for source === "timer" — manual entries
@@ -38,6 +39,7 @@ export function HistorySessionRow({
   onPress?: (id: string) => void;
   onLongPress?: (id: string) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const label = formatHistoryListDate(session.date, session.source === "timer" ? session.startTime : undefined);
   const note = session.note?.trim();
   const notePreview = note && note.length > 60 ? `${note.slice(0, 60)}…` : note;
@@ -69,7 +71,7 @@ export function HistorySessionRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   row: {
     flexDirection: "column",
     paddingVertical: 14,

@@ -10,6 +10,7 @@ import { CloudIcon, InfoIcon } from "@/components/icons";
 import { ABOUT_ITEMS, SETTINGS_ITEMS, activateMenuItem } from "@/components/profile/profileMenu";
 import { APP_VERSION } from "@/data/appInfo";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // TASK_066 — the rows and the version now come from the shared
 // profileMenu.ts / appInfo.ts, which the Home drawer renders too: this page
@@ -17,6 +18,7 @@ import { useStore } from "@/store/StoreContext";
 // "Уведомления" opens /notifications, every other row is a placeholder.
 
 export default function ProfileScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { profile, saveProfile } = useStore();
   const [editOpen, setEditOpen] = useState(false);
   // TASK_054 — clearance now lives on this ScrollView's own content instead
@@ -94,7 +96,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // Same background mechanism as Home/Timeline (TASK_041/TASK_007):
   // DS.homeBase as the flat base color under HomeBackground's gradient —
   // no page-local background color.

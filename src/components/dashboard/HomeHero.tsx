@@ -5,9 +5,10 @@ import { dayWord, formatHMRounded, formatHoursWord, monthProgress } from "@/data
 import { effectiveMonthlyGoal, isHoursMode } from "@/data/ministryMode";
 import { computePaceDeviation, formatDeviationLabel } from "@/data/cumulativeProgress";
 import { CalendarIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/components/icons";
-import { DS, MINISTRY } from "./tokens";
-import { GlassFigure, HERO, PILL_GLASS, splitDuration } from "./heroFigure";
+import { DS, HERO_GLASS, MINISTRY } from "./tokens";
+import { GlassFigure, PILL_GLASS, makeHERO, splitDuration } from "./heroFigure";
 import { PublisherHero } from "./PublisherHero";
+import { useThemedStyles } from "@/theme";
 
 // Re-exported: the glass-figure contract is tested through this module.
 export { figureGlassStyles, splitDuration, type GlassLayer } from "./heroFigure";
@@ -58,6 +59,7 @@ export function HomeHero() {
 }
 
 function HoursHero() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions, settings } = useStore();
   // The user's own goal (mj_settings_v1) — 50 for an install that predates it.
   const goal = effectiveMonthlyGoal(settings);
@@ -155,7 +157,11 @@ function HoursHero() {
   );
 }
 
-const styles = StyleSheet.create({
+// TASK_078 — the shared HERO sheet is rebuilt per scheme, so it is read
+// inside the factory rather than at module level.
+const makeStyles = () => {
+  const HERO = makeHERO();
+  return StyleSheet.create({
   // No top padding: the header→hero distance is the screen's heroBlock gap
   // (index.tsx), so the figure sits right under the date line (TASK_070).
   wrap: { paddingTop: 0, gap: 0 },
@@ -164,7 +170,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: HERO_GLASS.track,
     overflow: "hidden",
   },
   fill: { height: "100%", borderRadius: 3, backgroundColor: MINISTRY.accent },
@@ -179,3 +185,4 @@ const styles = StyleSheet.create({
   pillText: HERO.pillText,
   pressed: HERO.pressed,
 });
+};

@@ -1,7 +1,8 @@
 import { useId } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
-import { HOME_GRADIENT } from "./tokens";
+import { GRADIENTS } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // Home-only decorative background (TASK_010): a soft vertical gradient
 // (muted sage -> near-white) sitting behind the header and the monthly
@@ -14,14 +15,15 @@ const DEFAULT_STOPS = [0, 0.55, 1] as const;
 
 type HomeBackgroundProps = {
   // TASK_053 — optional overrides so the Home screen can render its own
-  // mint gradient (HOME_MINT_GRADIENT/HOME_MINT_GRADIENT_STOPS in tokens.ts)
+  // mint gradient (GRADIENTS.homeMint / GRADIENTS.homeMintStops in tokens.ts)
   // while Hours/Timeline/Profile/upcoming-events keep getting the original
-  // HOME_GRADIENT/DEFAULT_STOPS below unchanged.
+  // GRADIENTS.home/DEFAULT_STOPS below unchanged.
   colors?: readonly [string, string, string];
   stops?: readonly [number, number, number];
 };
 
-export function HomeBackground({ colors = HOME_GRADIENT, stops = DEFAULT_STOPS }: HomeBackgroundProps = {}) {
+export function HomeBackground({ colors = GRADIENTS.home, stops = DEFAULT_STOPS }: HomeBackgroundProps = {}) {
+  const styles = useThemedStyles(makeStyles);
   // TASK_019: the root Stack keeps the previous screen mounted underneath
   // the new /upcoming-events screen, so two <HomeBackground> instances can
   // exist in the DOM at once. On web, SVG gradient ids are global — a
@@ -44,7 +46,7 @@ export function HomeBackground({ colors = HOME_GRADIENT, stops = DEFAULT_STOPS }
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrap: { position: "absolute", top: 0, left: 0, right: 0, height: GRADIENT_HEIGHT },
   svg: { position: "absolute", top: 0, left: 0 },
 });

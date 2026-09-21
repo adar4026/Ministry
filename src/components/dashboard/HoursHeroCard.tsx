@@ -6,6 +6,7 @@ import { MONTHLY_GOAL, dayWord, formatHMRounded, formatHoursWord, monthProgress 
 import { computePaceDeviation, formatDeviationLabel } from "@/data/cumulativeProgress";
 import { CalendarIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/components/icons";
 import { DS } from "./tokens";
+import { useThemedStyles } from "@/theme";
 
 // Nominative month names, used only in the spoken accessibility label (no
 // visible month/year text in this card as of TASK_015 — see below).
@@ -35,6 +36,7 @@ function StatItem({
   value: string;
   stacked: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={stacked ? styles.statItemStacked : styles.statItem}>
       <View style={styles.statHead}>
@@ -80,6 +82,7 @@ const STAT_STACK_BREAKPOINT = 360;
 // DISPLAY ONLY via formatHMRounded() — the underlying monthProgress() values
 // (hoursDone/hoursRemaining/requiredPerDay) stay exact and are never mutated.
 export function HoursHeroCard() {
+  const styles = useThemedStyles(makeStyles);
   const { records, sessions } = useStore();
   const { width } = useWindowDimensions();
   const stackStats = width < STAT_STACK_BREAKPOINT;
@@ -213,7 +216,7 @@ export function HoursHeroCard() {
 // TASK_048 density pass. Every spacing value below was reduced, never
 // replaced by a fixed height — the card still sizes itself from its content,
 // so it stays adaptive to font scaling and narrow screens.
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: DS.cardBg,
     borderRadius: 22,

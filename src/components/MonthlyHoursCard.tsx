@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 export function MonthlyHoursCard({
   monthLabel,
@@ -12,6 +13,7 @@ export function MonthlyHoursCard({
   goal: number;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const pct = Math.min(100, Math.round((hours / goal) * 100));
   const remaining = Math.max(0, goal - hours);
 
@@ -44,7 +46,7 @@ export function MonthlyHoursCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 12 },
   hours: { fontSize: 24, fontWeight: "700", color: COLORS.blue },
   goal: { fontSize: 13, color: COLORS.muted },
-  track: { backgroundColor: "#f1f5f9", borderRadius: 6, height: 8, overflow: "hidden", marginTop: 10 },
+  track: { backgroundColor: COLORS.light, borderRadius: 6, height: 8, overflow: "hidden", marginTop: 10 },
   fill: { height: "100%", borderRadius: 6, backgroundColor: COLORS.accent },
   remaining: { fontSize: 12, color: COLORS.muted, marginTop: 8 },
 });

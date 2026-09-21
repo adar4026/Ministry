@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { TIMELINE_COLORS } from "./timelineTokens";
+import { useThemedStyles } from "@/theme";
 
 // Non-swipeable counterpart to SwipeableDeleteRow's shadowWrap+clip
 // (TASK_056) — same radius/shadow values, no Swipeable/gesture. Used to give
@@ -9,6 +10,7 @@ import { TIMELINE_COLORS } from "./timelineTokens";
 const RADIUS = 20;
 
 export function StaticCardShell({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.shadowWrap}>
       <View style={styles.clip}>{children}</View>
@@ -16,7 +18,7 @@ export function StaticCardShell({ children }: { children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   shadowWrap: {
     borderRadius: RADIUS,
     backgroundColor: TIMELINE_COLORS.cardBackground,

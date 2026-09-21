@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { HistoryPeriod } from "@/data/stats";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 const OPTIONS: { key: HistoryPeriod; label: string }[] = [
   { key: "month", label: "Месяц" },
@@ -13,6 +14,7 @@ const OPTIONS: { key: HistoryPeriod; label: string }[] = [
 // `period`/`onChange` alone. Mouse and touch both go through Pressable's
 // onPress, so no separate handling is needed for the two input types.
 export function PeriodSwitcher({ period, onChange }: { period: HistoryPeriod; onChange: (p: HistoryPeriod) => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.track} accessibilityRole="tablist">
       {OPTIONS.map((opt) => {
@@ -34,7 +36,7 @@ export function PeriodSwitcher({ period, onChange }: { period: HistoryPeriod; on
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   track: {
     flexDirection: "row",
     backgroundColor: C.segmentTrack,

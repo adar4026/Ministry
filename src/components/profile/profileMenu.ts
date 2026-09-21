@@ -46,7 +46,7 @@ export const SETTINGS_ITEMS: readonly ProfileMenuItem[] = [
   { key: "goals", label: "Цели", icon: TargetIcon },
   { key: "calendar", label: "Календарь служения", icon: CalendarIcon },
   { key: "stats", label: "Статистика", icon: ChartIcon },
-  { key: "appearance", label: "Оформление", icon: PaletteIcon },
+  { key: "appearance", label: "Оформление", icon: PaletteIcon, href: "/appearance" }, // TASK_078
   { key: "language", label: "Язык", icon: GlobeIcon },
 ];
 

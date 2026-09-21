@@ -10,8 +10,10 @@ import { TalkForm } from "@/components/forms/TalkForm";
 import { COLORS } from "@/data/constants";
 import { isHoursMode } from "@/data/ministryMode";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 export default function AddScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { sessions, customCategories, settings, saveRecord, saveEvent, saveTalk } = useStore();
   // TASK_073 — a publisher does not log hours, so the monthly-hours card is
   // not offered here; events and talks are unchanged.
@@ -93,7 +95,7 @@ export default function AddScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   content: { padding: 16, gap: 12 },
   header: { height: 44 },
   title: { fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: 4 },

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
 
 // Compact, closer to a native iOS UIPickerView row than the original 40 —
 // the owner's physical-device check found 40 noticeably sparser than a
@@ -50,6 +51,7 @@ export function WheelPicker({
   accessibilityLabel?: string;
   highlightColor?: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(
     0,
@@ -223,7 +225,7 @@ export function WheelPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   container: { flex: 1, overflow: "hidden" },
   highlight: {
     position: "absolute",

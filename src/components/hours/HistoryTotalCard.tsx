@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ShareIcon } from "@/components/icons";
 import { formatDurationRu } from "@/data/constants";
 import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyTokens";
+import { useThemedStyles } from "@/theme";
 
 // "Итого" heading + total-time card (TASK_033). The share/export button is
 // disabled — the project has no report-export mechanism yet (see
@@ -15,6 +16,7 @@ import { HISTORY_COLORS as C, HISTORY_FONT_FAMILY as FONT } from "./historyToken
 // when > 0, so the card matches its usual look whenever there's no credit
 // to report.
 export function HistoryTotalCard({ totalMinutes, creditMinutes = 0 }: { totalMinutes: number; creditMinutes?: number }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View>
       <Text style={styles.heading}>Итого</Text>
@@ -43,7 +45,7 @@ export function HistoryTotalCard({ totalMinutes, creditMinutes = 0 }: { totalMin
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   heading: { fontSize: 20, fontWeight: "700", color: C.primaryText, marginTop: 20, marginBottom: 10, fontFamily: FONT },
   card: {
     flexDirection: "row",

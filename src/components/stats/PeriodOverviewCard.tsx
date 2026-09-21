@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS, formatHM } from "@/data/constants";
 import type { PeriodSummary } from "@/data/periodStats";
 import { ChartIcon, ChevronRightIcon } from "@/components/icons";
+import { useThemedStyles } from "@/theme";
 
 interface PeriodOverviewCardProps {
   title: string; // «Этот месяц» / «Служебный год»
@@ -15,6 +16,7 @@ interface PeriodOverviewCardProps {
 // день/неделю»: большие цифры и вся аналитика живут на детальных экранах,
 // куда ведёт эта карточка.
 export function PeriodOverviewCard({ title, summary, actionLabel, onPress }: PeriodOverviewCardProps) {
+  const styles = useThemedStyles(makeStyles);
   const hasGoal = summary.goalHours > 0;
   const pct = hasGoal ? Math.max(0, Math.min(100, (summary.doneHours / summary.goalHours) * 100)) : 0;
 
@@ -53,7 +55,7 @@ export function PeriodOverviewCard({ title, summary, actionLabel, onPress }: Per
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,

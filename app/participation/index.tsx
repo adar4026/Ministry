@@ -9,6 +9,7 @@ import { ChevronRightIcon } from "@/components/icons";
 import { MF, dayWord } from "@/data/constants";
 import { participationByMonth } from "@/data/participation";
 import { useStore } from "@/store/StoreContext";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — «Детали» for a PUBLISHER: participation statistics by month.
 //
@@ -20,6 +21,7 @@ import { useStore } from "@/store/StoreContext";
 // Root-Stack route (outside `(tabs)`), same placement as /upcoming-events
 // and /notifications, so the tab bar is not mounted under it.
 export default function ParticipationStatsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { participation } = useStore();
   const months = useMemo(() => participationByMonth(participation), [participation]);
   const total = useMemo(() => months.reduce((n, m) => n + m.days, 0), [months]);
@@ -64,7 +66,7 @@ export default function ParticipationStatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, justifyContent: "center", minHeight: 52 },
@@ -75,7 +77,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: DS.cardBg, borderRadius: 22, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingVertical: 14, minHeight: 64 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: DS.divider },
-  pressed: { backgroundColor: "#F5F7FB" },
+  pressed: { backgroundColor: DS.pressedBg },
   textWrap: { flex: 1 },
   month: { fontSize: 16, fontWeight: "700", color: DS.navy },
   days: { fontSize: 14, fontWeight: "600", color: MINISTRY.primary, marginTop: 2 },

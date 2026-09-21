@@ -5,7 +5,10 @@
 // (DS.homeBase + <HomeBackground />, src/components/dashboard/) verbatim
 // rather than introduce a page-local background color, so timeline.tsx
 // imports those directly instead of duplicating a similar-looking value.
-export const TIMELINE_COLORS = {
+// TASK_078 — live light/dark pair (src/theme/scheme.ts).
+import { live } from "@/theme/scheme";
+
+export const TIMELINE_COLORS_LIGHT = {
   cardBackground: "#FFFFFF",
   primaryText: "#000000",
   secondaryText: "#6E6E73",
@@ -15,3 +18,13 @@ export const TIMELINE_COLORS = {
   danger: "#dc2626",
   onDanger: "#ffffff",
 };
+export const TIMELINE_COLORS_DARK: typeof TIMELINE_COLORS_LIGHT = {
+  cardBackground: "#1c2029",
+  primaryText: "#f2f4f8",
+  secondaryText: "#9aa1ae",
+  topicText: "#5b8bff",
+  durationAccent: "#fbbf24",
+  danger: "#f87171",
+  onDanger: "#ffffff",
+};
+export const TIMELINE_COLORS = live(TIMELINE_COLORS_LIGHT, TIMELINE_COLORS_DARK);

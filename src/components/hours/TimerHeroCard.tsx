@@ -6,6 +6,7 @@ import { formatElapsed } from "@/data/timer";
 import { formatDateDMY, toISODate } from "@/data/constants";
 import { confirmAsync } from "@/utils/confirm";
 import { HOURS_COLORS as C } from "./hoursTokens";
+import { useThemedStyles } from "@/theme";
 
 // The main visual element of the "Часы" screen (TASK_031). Embeds the
 // timer directly (idle/running/paused) via the same screen-scoped
@@ -18,6 +19,7 @@ import { HOURS_COLORS as C } from "./hoursTokens";
 // out to it for those two states instead of risking a second, divergent
 // implementation.
 export function TimerHeroCard() {
+  const styles = useThemedStyles(makeStyles);
   const {
     mode,
     elapsedSec,
@@ -233,7 +235,7 @@ export function TimerHeroCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   card: {
     backgroundColor: C.cardBackground,
     borderRadius: 22,
@@ -282,7 +284,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   secondaryBtn: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: C.secondaryButton,
     paddingVertical: 15,
     borderRadius: 14,
     alignItems: "center",
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: C.primaryText, fontWeight: "700", fontSize: 16 },
   dangerBtn: {
-    backgroundColor: "#FDECEC",
+    backgroundColor: C.dangerButtonBg,
     paddingVertical: 15,
     borderRadius: 14,
     alignItems: "center",
@@ -310,6 +312,6 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     fontSize: 16,
     color: C.primaryText,
-    backgroundColor: "#fff",
+    backgroundColor: C.cardBackground,
   },
 });

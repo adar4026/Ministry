@@ -5,6 +5,8 @@ import { buildMonthGrid, addMonths, WEEKDAYS_SHORT } from "@/data/calendarGrid";
 import { ADD_TIME_COLORS } from "@/components/forms/entryTokens";
 import { MonthYearWheelPicker } from "@/components/forms/MonthYearWheelPicker";
 import { COLORS } from "@/data/constants";
+import { useThemedStyles } from "@/theme";
+import { HERO_GLASS } from "@/components/dashboard/tokens";
 
 function isoOf(year: number, monthIndex0: number, day: number): string {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -46,6 +48,7 @@ export function MonthCalendarModal({
   onSelect: (iso: string) => void;
   onClose: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const selected = parseISO(selectedDate);
   const [view, setView] = useState({ year: selected.year, monthIndex0: selected.monthIndex0 });
   const [pickerMode, setPickerMode] = useState(false);
@@ -171,7 +174,7 @@ export function MonthCalendarModal({
 
 const CELL = 40;
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.25)",
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: ADD_TIME_COLORS.cardBackground,
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: HERO_GLASS.hairline,
     width: "100%",
     maxWidth: 400,
     alignSelf: "center",

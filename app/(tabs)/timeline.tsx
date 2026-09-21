@@ -17,6 +17,7 @@ import { PlusIcon } from "@/components/icons";
 import { CAT, CATEGORY_KEYS, TALK_CATEGORY, categoryMeta, talkTitle } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // "talk" is a synthetic filter/category for public talks in the combined
 // timeline; it is not part of the MinistryEvent category enum.
@@ -69,6 +70,7 @@ type TimelineItem =
   | { kind: "talk"; id: string; date: string; talk: Talk };
 
 export default function TimelineScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { events, talks, customCategories, saveEvent, deleteEvent, saveTalk, deleteTalk, addCustomCategory } =
     useStore();
   // TASK_054 — clearance now lives on this ScrollView's own content instead
@@ -305,7 +307,7 @@ export default function TimelineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   // TASK_041 (revised) — same background mechanism as Home
   // (app/(tabs)/index.tsx): DS.homeBase as the flat base color, with
   // <HomeBackground /> layering its gradient on top. No page-local

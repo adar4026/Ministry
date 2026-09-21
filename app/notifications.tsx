@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BackButton } from "@/components/BackButton";
 import { DS, HomeBackground, SummaryCard } from "@/components/dashboard";
 import { BellIcon } from "@/components/icons";
+import { useThemedStyles } from "@/theme";
 
 // TASK_060 — "Профиль → Уведомления". Deliberately an information-only
 // placeholder, not a working settings screen: TASK_059's version looked
@@ -23,6 +24,7 @@ import { BellIcon } from "@/components/icons";
 // DS + SummaryCard + BackButton, exactly as /upcoming-events and Profile
 // already do.
 export default function NotificationsScreen() {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.screen}>
       <HomeBackground />
@@ -53,7 +55,7 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, justifyContent: "center", minHeight: 52 },

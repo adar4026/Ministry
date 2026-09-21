@@ -9,6 +9,7 @@ import { DS, HomeBackground, SummaryCard, UpcomingEventRow } from "@/components/
 import { upcomingItems, type UpcomingItem } from "@/data/constants";
 import { useStore } from "@/store/StoreContext";
 import type { MinistryEvent, Talk } from "@/types";
+import { useThemedStyles } from "@/theme";
 
 // TASK_019 — dedicated screen for the complete upcoming-events list, opened
 // from Home's "Ближайшие события" → "Показать все". Lives outside the
@@ -20,6 +21,7 @@ import type { MinistryEvent, Talk } from "@/types";
 // avoids. Being outside `Tabs` also means the bottom tab bar (rendered only
 // by the `Tabs` navigator) naturally doesn't show here — nothing to hide.
 export default function UpcomingEventsScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { events, talks, customCategories, saveEvent, saveTalk } = useStore();
   // Same shared selector as Home's preview card, called with no limit —
   // the complete future-dated list, no month/year window.
@@ -89,7 +91,7 @@ export default function UpcomingEventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   screen: { flex: 1, backgroundColor: DS.homeBase },
   safe: { flex: 1 },
   // TASK_075 — 14 px of visual breathing room on top of the safe-area inset

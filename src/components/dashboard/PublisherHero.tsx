@@ -12,8 +12,9 @@ import {
 import { ParticipationSheet } from "@/components/participation/ParticipationSheet";
 import { CheckIcon, ChevronRightIcon } from "@/components/icons";
 import { MINISTRY } from "./tokens";
-import { GlassFigure, HERO, PILL_GLASS } from "./heroFigure";
+import { GlassFigure, PILL_GLASS, useHero } from "./heroFigure";
 import { ParticipationMiniCalendar } from "./ParticipationMiniCalendar";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — the Home hero's content for a PUBLISHER. The question it
 // answers is «в какие дни я участвовал в служении?», not «сколько часов»:
@@ -28,6 +29,8 @@ import { ParticipationMiniCalendar } from "./ParticipationMiniCalendar";
 // statistics, never a judgement. Hours are not read here at all. The scene
 // behind (HeroScene) is the very same as for pioneers.
 export function PublisherHero() {
+  const HERO = useHero();
+  const styles = useThemedStyles(makeStyles);
   const { participation } = useStore();
   const now = new Date();
   const year = now.getFullYear();
@@ -86,7 +89,7 @@ export function PublisherHero() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   wrap: { paddingTop: 0, gap: 0 },
   last: { marginTop: 6, fontSize: 13, lineHeight: 17, fontWeight: "600", color: MINISTRY.ink2 },
 });

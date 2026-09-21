@@ -10,6 +10,7 @@ import { formatDayLabelRu, isFutureDate } from "@/data/participation";
 import { useStore } from "@/store/StoreContext";
 import type { ServiceParticipation } from "@/types";
 import { confirmAsync } from "@/utils/confirm";
+import { useThemedStyles } from "@/theme";
 
 // TASK_073 — the light bottom sheet behind «✓ Отметить служение».
 //
@@ -40,6 +41,7 @@ export function ParticipationSheet({
   /** Edit mode: the record being changed. */
   existing?: ServiceParticipation;
 }) {
+  const styles = useThemedStyles(makeStyles);
   // Degrade-to-zero outside the app shell (component tests) — same rule as
   // useTabBarContentInset() / HomeDrawer.
   const bottomInset = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
@@ -175,7 +177,7 @@ export function ParticipationSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(10,36,30,0.42)", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: MINISTRY.surface,
