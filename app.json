@@ -7,7 +7,7 @@
     "scheme": "ministry",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ministry-icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.alext.ministry"
@@ -15,13 +15,13 @@
     "android": {
       "package": "com.alext.ministry",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon-foreground.png",
-        "backgroundImage": "./assets/adaptive-icon-background.png"
+        "foregroundImage": "./assets/ministry-icon-adaptive-foreground.png",
+        "backgroundColor": "#323f70"
       }
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/ministry-icon.png"
     },
     "plugins": [
       "expo-router",
