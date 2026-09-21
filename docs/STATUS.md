@@ -1,8 +1,27 @@
 # STATUS — Ministry
 
 _Последнее обновление: TASK_078 — Тема приложения: светлая / тёмная /
-системная, как в Lex Finance. **Реализовано, проверено в браузере,
-ожидает подтверждения владельца → commit + deploy.**
+системная, как в Lex Finance. **Реализовано, закоммичено, запушено,
+задеплоено, проверено на production.**
+
+Закоммичено `0a0fb81` (`main`, было `9288745`; 115 файлов), запушено в
+`origin/main`. Задеплоено на GitHub Pages: `gh-pages` `8849eb3` (бандл
+`entry-fdb7c73aff81db177a3b589a1ea5fde9.js`) — хэш подтверждён
+идентичным между локальной сборкой и ответом `adar4026.github.io`
+(вторая попытка опроса после ~20 c CDN-задержки); свежая изолированная
+вкладка загрузила именно этот `entry-*.js`; в отданном `index.html` есть
+`ministry-theme-boot` и блок `:root[data-theme="dark"]`. Проверено на
+production (375 px): ☰ → ☼/☾ дважды (system → light → dark) →
+`data-theme="dark"`, `color-scheme: dark`, `mj_settings_v1.theme =
+"dark"`, `body` `rgb(15,17,21)`, панель шторки `rgb(23,26,33)` (Finance
+dark `--home-bg`); перезагрузка `/appearance` — стартует тёмным до
+бандла, «Тёмная тема» отмечена; консоль без ошибок на обоих экранах.
+Ожидает проверки владельца на iPhone (PWA), в т.ч. system-режим при
+смене темы iOS._
+
+---
+
+_Описание реализации (до деплоя):
 
 Как в Finance: `settings.theme` (`mj_settings_v1`, default `"system"`,
 старые установки нормализуются), кнопка ☼/☾ в шапке шторки (цикл light →
@@ -44,8 +63,9 @@ verbatim), Ministry-hero — та же green-teal семья, утопленна
 ☼/☾ в шапке шторки, экран «Оформление», `data-theme` на web. Инфраструктура
 `src/theme/` (live-токены + `useThemedStyles`, без remount), пары
 light/dark для всех 15 кластеров токенов с AA-гардами, 81 файл переведён
-кодмодом. jest 91/91, 1337/1337. Ожидает подтверждения владельца →
-commit + deploy. Детали — `docs/TASKS/TASK_078_APP_THEME_DARK_LIGHT.md`.
+кодмодом. jest 91/91, 1337/1337. Закоммичено (`0a0fb81`), задеплоено
+на GitHub Pages (`gh-pages` `8849eb3`), проверено на production. Детали
+— `docs/TASKS/TASK_078_APP_THEME_DARK_LIGHT.md`.
 
 ---
 
