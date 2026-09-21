@@ -145,33 +145,23 @@ describe("HomeDrawer — open / close lifecycle", () => {
     }
   });
 
-  it("× and the backdrop both call onClose; the hardware back request does too", async () => {
+  it("the backdrop tap and the hardware back request both call onClose (TASK_079: no × any more)", async () => {
     const { renderer, onClose } = await renderDrawer(true);
-    act(() => {
-      renderer.root.findByProps({ accessibilityLabel: "Закрыть меню" }).props.onPress();
-    });
     act(() => {
       renderer.root.findByProps({ testID: "drawer-backdrop" }).props.onPress();
     });
     act(() => {
       modal(renderer).props.onRequestClose();
     });
-    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Закрыть меню" })).toHaveLength(0);
   });
 
-  it("the × button is a real button with a 44+ pt hit area (40 pt glass + hitSlop, TASK_078)", async () => {
-    const { renderer } = await renderDrawer(true);
-    const btn = renderer.root.findByProps({ accessibilityLabel: "Закрыть меню" });
-    expect(btn.props.accessibilityRole).toBe("button");
-    const style = flat(btn.props.style({ pressed: false }));
-    expect(style.width).toBe(40);
-    expect(style.height).toBe(40);
-    expect((style.width as number) + 2 * (btn.props.hitSlop as number)).toBeGreaterThanOrEqual(44);
-  });
-
-  // TASK_078 — Finance's `.dh-theme`: a round ☼/☾ button left of ×, cycling
+  // TASK_078 — Finance's `.dh-theme`: a round ☼/☾ button, cycling
   // light → dark → system; the icon follows the resolved scheme.
-  it("has a theme button left of × that cycles the preference and persists it", async () => {
+  // TASK_079 — now the drawer's only top-right button, pinned to the corner
+  // the × used to occupy.
+  it("has a theme button — the drawer's only top-right control — that cycles the preference and persists it", async () => {
     const { renderer, store } = await renderDrawer(true);
     const get = store;
     const btn = renderer.root.findByProps({ testID: "drawer-theme" });
@@ -180,7 +170,7 @@ describe("HomeDrawer — open / close lifecycle", () => {
     const style = flat(btn.props.style({ pressed: false }));
     expect(style.width).toBe(36);
     expect(style.position).toBe("absolute");
-    expect(style.right as number).toBeGreaterThan(40);
+    expect(style.right).toBe(0);
     await act(async () => {
       btn.props.onPress();
     });
@@ -419,12 +409,14 @@ describe("HomeDrawer — profile summary from useStore().profile", () => {
     });
   });
 
-  it("keeps the name row clear of the overlaid × so the milestones block can run full width", async () => {
+  it("keeps the name row clear of the overlaid theme button so the milestones block can run full width", async () => {
     const { renderer } = await renderDrawer(true);
     const summary = renderer.root.findByType(ProfileSummary);
-    expect(summary.props.headTrailingSpace).toBeGreaterThanOrEqual(44);
-    const close = renderer.root.findByProps({ testID: "drawer-close" });
-    const style = flat(typeof close.props.style === "function" ? close.props.style({ pressed: false }) : close.props.style);
+    expect(summary.props.headTrailingSpace).toBeGreaterThanOrEqual(40);
+    const themeBtn = renderer.root.findByProps({ testID: "drawer-theme" });
+    const style = flat(
+      typeof themeBtn.props.style === "function" ? themeBtn.props.style({ pressed: false }) : themeBtn.props.style,
+    );
     expect(style.position).toBe("absolute");
   });
 });

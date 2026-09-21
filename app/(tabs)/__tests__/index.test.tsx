@@ -157,15 +157,6 @@ describe("Home drawer — open / close — TASK_066", () => {
     expect(renderer.root.findByProps({ accessibilityLabel: "Меню" }).props.role).toBe("dialog");
   });
 
-  it("closes from the × button", async () => {
-    const { renderer } = await renderScreen();
-    await openDrawer(renderer);
-    await act(async () => {
-      renderer.root.findByProps({ accessibilityLabel: "Закрыть меню" }).props.onPress();
-    });
-    expect(findMenuButton(renderer).props.accessibilityState).toEqual({ expanded: false });
-  });
-
   it("closes from a tap on the dimmed backdrop", async () => {
     const { renderer } = await renderScreen();
     await openDrawer(renderer);
@@ -179,7 +170,7 @@ describe("Home drawer — open / close — TASK_066", () => {
     const { renderer } = await renderScreen();
     await openDrawer(renderer);
     await act(async () => {
-      renderer.root.findByProps({ accessibilityLabel: "Закрыть меню" }).props.onPress();
+      renderer.root.findByProps({ testID: "drawer-backdrop" }).props.onPress();
     });
     act(() => {
       renderer.root.findByProps({ accessibilityLabel: "Добавить часы" }).props.onPress();
